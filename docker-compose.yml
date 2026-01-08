@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    networks:
+      - bookclub
+    depends_on: []
+
+  mini-app:
+    build:
+      context: ./mini-app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - bookclub
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    networks:
+      - bookclub
+    depends_on:
+      - bot
+      - mini-app
+
+networks:
+  bookclub:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
