@@ -141,6 +141,7 @@ router.get("/:id", async (req, res) => {
         publicationYear: book.publicationYear,
         pageCount: book.pageCount,
         googleBooksUrl: book.googleBooksUrl,
+        goodreadsUrl: book.goodreadsUrl,
         reviewCount: book.reviews.length,
         sentiments,
       },
