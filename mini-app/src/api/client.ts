@@ -166,3 +166,99 @@ export async function getBookLeaderboard(limit?: number): Promise<{
   const query = limit ? `?limit=${limit}` : "";
   return fetchApi(`/leaderboard/books${query}`);
 }
+
+export async function getMonthlyBookLeaderboard(options?: {
+  year?: number;
+  month?: number;
+  limit?: number;
+}): Promise<{
+  period: { type: "monthly"; year: number; month: number };
+  leaderboard: BookLeaderboardEntry[];
+}> {
+  const params = new URLSearchParams();
+  if (options?.year) params.set("year", options.year.toString());
+  if (options?.month) params.set("month", options.month.toString());
+  if (options?.limit) params.set("limit", options.limit.toString());
+
+  const query = params.toString();
+  return fetchApi(`/leaderboard/books/monthly${query ? `?${query}` : ""}`);
+}
+
+export async function getYearlyBookLeaderboard(options?: {
+  year?: number;
+  limit?: number;
+}): Promise<{
+  period: { type: "yearly"; year: number };
+  leaderboard: BookLeaderboardEntry[];
+}> {
+  const params = new URLSearchParams();
+  if (options?.year) params.set("year", options.year.toString());
+  if (options?.limit) params.set("limit", options.limit.toString());
+
+  const query = params.toString();
+  return fetchApi(`/leaderboard/books/yearly${query ? `?${query}` : ""}`);
+}
+
+export async function getReviewersLeaderboard(limit?: number): Promise<{
+  leaderboard: LeaderboardEntry[];
+}> {
+  const query = limit ? `?limit=${limit}` : "";
+  return fetchApi(`/leaderboard/reviewers${query}`);
+}
+
+export async function getMonthlyReviewersLeaderboard(options?: {
+  year?: number;
+  month?: number;
+  limit?: number;
+}): Promise<{
+  period: { type: "monthly"; year: number; month: number };
+  leaderboard: LeaderboardEntry[];
+}> {
+  const params = new URLSearchParams();
+  if (options?.year) params.set("year", options.year.toString());
+  if (options?.month) params.set("month", options.month.toString());
+  if (options?.limit) params.set("limit", options.limit.toString());
+
+  const query = params.toString();
+  return fetchApi(`/leaderboard/reviewers/monthly${query ? `?${query}` : ""}`);
+}
+
+export async function getYearlyReviewersLeaderboard(options?: {
+  year?: number;
+  limit?: number;
+}): Promise<{
+  period: { type: "yearly"; year: number };
+  leaderboard: LeaderboardEntry[];
+}> {
+  const params = new URLSearchParams();
+  if (options?.year) params.set("year", options.year.toString());
+  if (options?.limit) params.set("limit", options.limit.toString());
+
+  const query = params.toString();
+  return fetchApi(`/leaderboard/reviewers/yearly${query ? `?${query}` : ""}`);
+}
+
+export async function getStats(): Promise<{
+  booksCount: number;
+  reviewsCount: number;
+  reviewersCount: number;
+}> {
+  return fetchApi("/stats");
+}
+
+export async function getRandomReviews(limit?: number): Promise<{ reviews: Review[] }> {
+  const query = limit ? `?limit=${limit}` : "";
+  return fetchApi(`/reviews/random${query}`);
+}
+
+export async function getRecentReviews(options?: {
+  limit?: number;
+  offset?: number;
+}): Promise<{ reviews: Review[] }> {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set("limit", options.limit.toString());
+  if (options?.offset) params.set("offset", options.offset.toString());
+
+  const query = params.toString();
+  return fetchApi(`/reviews/recent${query ? `?${query}` : ""}`);
+}

@@ -232,8 +232,41 @@ export async function getYearlyLeaderboard(year: number, limit = 10) {
   }));
 }
 
-export async function getMostReviewedBooks(limit = 10) {
+export async function getMostReviewedBooks(limit = 10, period?: { type: 'monthly' | 'yearly'; year: number; month?: number }) {
+  let whereClause = {};
+
+  if (period) {
+    if (period.type === 'monthly' && period.month) {
+      const startDate = new Date(period.year, period.month - 1, 1);
+      const endDate = new Date(period.year, period.month, 1);
+      whereClause = {
+        reviews: {
+          some: {
+            reviewedAt: {
+              gte: startDate,
+              lt: endDate,
+            },
+          },
+        },
+      };
+    } else if (period.type === 'yearly') {
+      const startDate = new Date(period.year, 0, 1);
+      const endDate = new Date(period.year + 1, 0, 1);
+      whereClause = {
+        reviews: {
+          some: {
+            reviewedAt: {
+              gte: startDate,
+              lt: endDate,
+            },
+          },
+        },
+      };
+    }
+  }
+
   const results = await prisma.book.findMany({
+    where: whereClause,
     include: {
       _count: {
         select: { reviews: true },
@@ -255,4 +288,69 @@ export async function getMostReviewedBooks(limit = 10) {
     coverUrl: book.coverUrl,
     reviewCount: book._count.reviews,
   }));
+}
+
+export async function getStats() {
+  const [booksCount, reviewsCount, reviewersCount] = await Promise.all([
+    prisma.book.count(),
+    prisma.review.count(),
+    prisma.review.groupBy({
+      by: ['telegramUserId'],
+    }).then(results => results.length),
+  ]);
+
+  return {
+    booksCount,
+    reviewsCount,
+    reviewersCount,
+  };
+}
+
+export async function getRandomReviews(limit = 5) {
+  // Get total count
+  const totalCount = await prisma.review.count({
+    where: {
+      bookId: { not: null },
+    },
+  });
+
+  if (totalCount === 0) {
+    return [];
+  }
+
+  // Generate random offsets
+  const randomOffsets = Array.from({ length: Math.min(limit, totalCount) }, () =>
+    Math.floor(Math.random() * totalCount)
+  );
+
+  // Fetch reviews at random offsets
+  const reviews = await Promise.all(
+    randomOffsets.map(offset =>
+      prisma.review.findMany({
+        where: {
+          bookId: { not: null },
+        },
+        include: {
+          book: true,
+        },
+        take: 1,
+        skip: offset,
+      })
+    )
+  );
+
+  return reviews.flat();
+}
+
+export async function getRecentReviews(limit = 20, offset = 0) {
+  return prisma.review.findMany({
+    include: {
+      book: true,
+    },
+    orderBy: {
+      reviewedAt: 'desc',
+    },
+    take: limit,
+    skip: offset,
+  });
 }

@@ -19,5 +19,17 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function({ addUtilities }) {
+      const lineClampUtilities = {
+        '.line-clamp-6': {
+          overflow: 'hidden',
+          display: '-webkit-box',
+          '-webkit-box-orient': 'vertical',
+          '-webkit-line-clamp': '6',
+        },
+      };
+      addUtilities(lineClampUtilities);
+    },
+  ],
 };
