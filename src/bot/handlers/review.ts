@@ -26,6 +26,11 @@ export async function handleReviewMessage(ctx: Context) {
     return;
   }
 
+  // Ignore commands (messages starting with /)
+  if (message.text.startsWith('/')) {
+    return;
+  }
+
   // Check if message contains the review hashtag
   if (!message.text.includes(config.reviewHashtag)) {
     return;
@@ -48,6 +53,30 @@ export async function handleReviewCommand(ctx: Context) {
 
   if (!("text" in replyMessage) || !replyMessage.text) {
     await ctx.reply("The replied message doesn't contain any text.");
+    return;
+  }
+
+  // Validate that the replied message looks like a book review
+  // It should be substantial (not just a short greeting) and mention a book
+  const text = replyMessage.text.trim();
+  if (text.length < 20) {
+    await ctx.reply(
+      "The message is too short to be a book review. Reviews should be at least 20 characters.",
+      { reply_parameters: { message_id: message.message_id } }
+    );
+    return;
+  }
+
+  // Check if the message contains common book-related patterns
+  const hasBookIndicators = /(?:book|author|read|novel|story|chapter|page|ISBN|publication)/i.test(text) ||
+    /["«»""]/.test(text); // Check for quotes which often indicate book titles
+
+  if (!hasBookIndicators) {
+    await ctx.reply(
+      "This message doesn't appear to be a book review. Reviews should mention a book, author, or related terms.\n\n" +
+      "Tip: Use the hashtag " + config.reviewHashtag + " for automatic review detection.",
+      { reply_parameters: { message_id: message.message_id } }
+    );
     return;
   }
 
