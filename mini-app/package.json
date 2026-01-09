@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "eslint src --ext .ts,.tsx"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@telegram-apps/sdk-react": "^1.1.3",

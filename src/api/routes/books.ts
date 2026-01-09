@@ -19,12 +19,20 @@ router.get("/", async (req, res) => {
       offset = "0",
     } = req.query;
 
+    const parsedLimit = parseInt(limit as string, 10);
+    const parsedOffset = parseInt(offset as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit < 1 || isNaN(parsedOffset) || parsedOffset < 0) {
+      res.status(400).json({ error: "Invalid limit or offset parameter" });
+      return;
+    }
+
     const books = await getAllBooks({
       sortBy: sortBy as "reviewCount" | "recentlyReviewed" | "alphabetical" | undefined,
       genre: genre as string | undefined,
       search: search as string | undefined,
-      limit: parseInt(limit as string, 10),
-      offset: parseInt(offset as string, 10),
+      limit: parsedLimit,
+      offset: parsedOffset,
     });
 
     res.json({ books });
@@ -44,7 +52,14 @@ router.get("/search", async (req, res) => {
       return;
     }
 
-    const books = await searchBooks(q, parseInt(limit as string, 10));
+    const parsedLimit = parseInt(limit as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      res.status(400).json({ error: "Invalid limit parameter" });
+      return;
+    }
+
+    const books = await searchBooks(q, parsedLimit);
 
     res.json({
       books: books.map((book: { id: number; title: string; author: string | null; coverUrl: string | null; _count: { reviews: number } }) => ({
@@ -148,10 +163,18 @@ router.get("/:id/reviews", async (req, res) => {
       return;
     }
 
+    const parsedLimit = parseInt(limit as string, 10);
+    const parsedOffset = parseInt(offset as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit < 1 || isNaN(parsedOffset) || parsedOffset < 0) {
+      res.status(400).json({ error: "Invalid limit or offset parameter" });
+      return;
+    }
+
     const reviews = await getReviewsByBookId(id, {
       sentiment: sentiment as "positive" | "negative" | "neutral" | undefined,
-      limit: parseInt(limit as string, 10),
-      offset: parseInt(offset as string, 10),
+      limit: parsedLimit,
+      offset: parsedOffset,
     });
 
     res.json({
