@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+mini-app/node_modules/
+
+# Build output
+dist/
+mini-app/dist/
+
+# Database
+data/
+*.db
+*.db-journal
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Coverage
+coverage/
+
+# Misc
+.cache/
+tmp/

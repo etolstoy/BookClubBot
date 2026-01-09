@@ -1,0 +1,48 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Book {
+  id              Int       @id @default(autoincrement())
+  title           String
+  author          String?
+  googleBooksId   String?   @unique @map("google_books_id")
+  googleBooksUrl  String?   @map("google_books_url")
+  coverUrl        String?   @map("cover_url")
+  genres          String?   // JSON array stored as string for SQLite
+  publicationYear Int?      @map("publication_year")
+  description     String?
+  isbn            String?
+  pageCount       Int?      @map("page_count")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  reviews         Review[]
+
+  @@map("books")
+}
+
+model Review {
+  id                  Int       @id @default(autoincrement())
+  book                Book?     @relation(fields: [bookId], references: [id])
+  bookId              Int?      @map("book_id")
+  telegramUserId      BigInt    @map("telegram_user_id")
+  telegramUsername    String?   @map("telegram_username")
+  telegramDisplayName String?   @map("telegram_display_name")
+  reviewText          String    @map("review_text")
+  sentiment           String?   // 'positive', 'negative', 'neutral'
+  messageId           BigInt?   @map("message_id")
+  chatId              BigInt?   @map("chat_id")
+  reviewedAt          DateTime  @map("reviewed_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  @@index([telegramUserId, reviewedAt])
+  @@index([bookId])
+  @@map("reviews")
+}
