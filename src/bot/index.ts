@@ -10,6 +10,7 @@ import {
   handleLeaderboardCommand,
   handleSearchCommand,
 } from "./handlers/commands.js";
+import { initNotificationService, sendSuccessNotification } from "../services/notification.service.js";
 
 export function createBot() {
   const bot = new Telegraf(config.botToken);
@@ -33,6 +34,9 @@ export function createBot() {
 }
 
 export async function startBot(bot: Telegraf) {
+  // Initialize notification service
+  initNotificationService(bot);
+
   // Enable graceful stop
   process.once("SIGINT", () => bot.stop("SIGINT"));
   process.once("SIGTERM", () => bot.stop("SIGTERM"));
@@ -50,4 +54,12 @@ export async function startBot(bot: Telegraf) {
   console.log("Starting bot...");
   await bot.launch();
   console.log("Bot started successfully!");
+
+  // Send startup notification
+  if (config.adminChatId) {
+    await sendSuccessNotification("Bot started successfully", {
+      operation: "Bot Startup",
+      additionalInfo: `Environment: ${config.isDev ? "development" : "production"}`,
+    });
+  }
 }

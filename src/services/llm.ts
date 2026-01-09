@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { config } from "../lib/config.js";
+import { sendErrorNotification, sendWarningNotification } from "./notification.service.js";
 
 const openai = new OpenAI({
   apiKey: config.openaiApiKey,
@@ -119,6 +120,25 @@ If you cannot identify a book title, respond with:
   } catch (error) {
     console.error("Error extracting book info:", error);
     console.log('[OpenAI] Error occurred, trying regex fallback');
+
+    // Send notification for critical errors (rate limit, API errors, etc.)
+    if (error instanceof Error) {
+      const isRateLimit = error.message.includes('429') || error.message.includes('rate limit');
+      const isQuotaExceeded = error.message.includes('quota') || error.message.includes('insufficient_quota');
+
+      if (isRateLimit || isQuotaExceeded) {
+        await sendErrorNotification(error, {
+          operation: "OpenAI Book Extraction",
+          additionalInfo: "Falling back to regex extraction. Consider checking OpenAI billing.",
+        });
+      } else {
+        await sendWarningNotification("OpenAI extraction failed", {
+          operation: "Book Info Extraction",
+          additionalInfo: `Error: ${error.message}. Using regex fallback.`,
+        });
+      }
+    }
+
     return extractBookInfoWithRegex(reviewText);
   }
 }
