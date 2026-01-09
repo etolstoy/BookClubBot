@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { config } from "../lib/config.js";
+import { sendErrorNotification, sendWarningNotification } from "./notification.service.js";
 
 const openai = new OpenAI({
   apiKey: config.openaiApiKey,
@@ -9,6 +10,57 @@ export interface ExtractedBookInfo {
   title: string;
   author: string | null;
   additionalContext: string | null;
+}
+
+/**
+ * Fallback function to extract book info using regex patterns
+ * Used when OpenAI API is unavailable or fails
+ */
+function extractBookInfoWithRegex(reviewText: string): ExtractedBookInfo | null {
+  // Common patterns for book references:
+  // "Title" by Author
+  // «Title» by Author
+  // "Title" - Author
+  // Book: "Title"
+
+  const patterns = [
+    // "Title" by Author or «Title» by Author
+    /["«»""]([^"«»""]+)["«»""]\s+(?:by|автор|от)\s+([^.\n]+)/i,
+    // "Title" - Author
+    /["«»""]([^"«»""]+)["«»""]\s*[-–—]\s*([^.\n]+)/i,
+    // Book: "Title" or just "Title" at the start
+    /(?:book|книга)?\s*[:—]?\s*["«»""]([^"«»""]+)["«»""]/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = reviewText.match(pattern);
+    if (match) {
+      const title = match[1]?.trim();
+      const author = match[2]?.trim() || null;
+
+      if (title && title.length >= 2) {
+        console.log('[Regex Fallback] Extracted book:', { title, author });
+        return {
+          title,
+          author,
+          additionalContext: null,
+        };
+      }
+    }
+  }
+
+  // If no pattern matched, try to find quoted text (likely a title)
+  const quotedText = reviewText.match(/["«»""]([^"«»""]+)["«»""]/);
+  if (quotedText && quotedText[1] && quotedText[1].length >= 2) {
+    console.log('[Regex Fallback] Extracted title from quotes:', quotedText[1]);
+    return {
+      title: quotedText[1].trim(),
+      author: null,
+      additionalContext: null,
+    };
+  }
+
+  return null;
 }
 
 export async function extractBookInfo(
@@ -49,13 +101,15 @@ If you cannot identify a book title, respond with:
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      return null;
+      console.log('[OpenAI] No content in response, trying regex fallback');
+      return extractBookInfoWithRegex(reviewText);
     }
 
     const parsed = JSON.parse(content);
 
     if (!parsed.title) {
-      return null;
+      console.log('[OpenAI] No title found, trying regex fallback');
+      return extractBookInfoWithRegex(reviewText);
     }
 
     return {
@@ -65,6 +119,26 @@ If you cannot identify a book title, respond with:
     };
   } catch (error) {
     console.error("Error extracting book info:", error);
-    return null;
+    console.log('[OpenAI] Error occurred, trying regex fallback');
+
+    // Send notification for critical errors (rate limit, API errors, etc.)
+    if (error instanceof Error) {
+      const isRateLimit = error.message.includes('429') || error.message.includes('rate limit');
+      const isQuotaExceeded = error.message.includes('quota') || error.message.includes('insufficient_quota');
+
+      if (isRateLimit || isQuotaExceeded) {
+        await sendErrorNotification(error, {
+          operation: "OpenAI Book Extraction",
+          additionalInfo: "Falling back to regex extraction. Consider checking OpenAI billing.",
+        });
+      } else {
+        await sendWarningNotification("OpenAI extraction failed", {
+          operation: "Book Info Extraction",
+          additionalInfo: `Error: ${error.message}. Using regex fallback.`,
+        });
+      }
+    }
+
+    return extractBookInfoWithRegex(reviewText);
   }
 }
