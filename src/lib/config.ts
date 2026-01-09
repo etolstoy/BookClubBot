@@ -13,6 +13,9 @@ const configSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 
+console.log('[Config] Raw REVIEW_HASHTAG from env:', process.env.REVIEW_HASHTAG);
+console.log('[Config] REVIEW_HASHTAG length:', process.env.REVIEW_HASHTAG?.length);
+
 const parsed = configSchema.safeParse(process.env);
 
 if (!parsed.success) {
@@ -20,6 +23,9 @@ if (!parsed.success) {
   console.error(parsed.error.flatten().fieldErrors);
   process.exit(1);
 }
+
+console.log('[Config] Parsed REVIEW_HASHTAG:', parsed.data.REVIEW_HASHTAG);
+console.log('[Config] Parsed REVIEW_HASHTAG length:', parsed.data.REVIEW_HASHTAG?.length);
 
 export const config = {
   botToken: parsed.data.BOT_TOKEN,
@@ -35,5 +41,8 @@ export const config = {
   isDev: parsed.data.NODE_ENV === "development",
   isProd: parsed.data.NODE_ENV === "production",
 };
+
+console.log('[Config] Final reviewHashtag:', config.reviewHashtag);
+console.log('[Config] Final reviewHashtag length:', config.reviewHashtag?.length);
 
 export default config;
