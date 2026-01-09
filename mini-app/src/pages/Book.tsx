@@ -102,28 +102,16 @@ export default function Book() {
         </div>
       )}
 
-      {(book.googleBooksUrl || book.goodreadsUrl) && (
-        <div className="flex flex-col gap-2 mb-6">
-          {book.googleBooksUrl && (
-            <a
-              href={book.googleBooksUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-tg-link hover:underline"
-            >
-              View on Google Books &rarr;
-            </a>
-          )}
-          {book.goodreadsUrl && (
-            <a
-              href={book.goodreadsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-tg-link hover:underline"
-            >
-              View on Goodreads &rarr;
-            </a>
-          )}
+      {book.goodreadsUrl && (
+        <div className="mb-6">
+          <a
+            href={book.goodreadsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-tg-link hover:underline"
+          >
+            View on Goodreads &rarr;
+          </a>
         </div>
       )}
 

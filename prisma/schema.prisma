@@ -15,7 +15,6 @@ model Book {
   author          String?
   googleBooksId   String?   @unique @map("google_books_id")
   googleBooksUrl  String?   @map("google_books_url")
-  goodreadsUrl    String?   @map("goodreads_url")
   coverUrl        String?   @map("cover_url")
   genres          String?   // JSON array stored as string for SQLite
   publicationYear Int?      @map("publication_year")
