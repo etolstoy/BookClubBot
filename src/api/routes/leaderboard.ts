@@ -15,11 +15,17 @@ router.get("/monthly", async (req, res) => {
     const now = new Date();
     const targetYear = year ? parseInt(year as string, 10) : now.getFullYear();
     const targetMonth = month ? parseInt(month as string, 10) : now.getMonth() + 1;
+    const parsedLimit = parseInt(limit as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      res.status(400).json({ error: "Invalid limit parameter" });
+      return;
+    }
 
     const leaderboard = await getMonthlyLeaderboard(
       targetYear,
       targetMonth,
-      parseInt(limit as string, 10)
+      parsedLimit
     );
 
     res.json({
@@ -43,10 +49,16 @@ router.get("/yearly", async (req, res) => {
 
     const now = new Date();
     const targetYear = year ? parseInt(year as string, 10) : now.getFullYear();
+    const parsedLimit = parseInt(limit as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      res.status(400).json({ error: "Invalid limit parameter" });
+      return;
+    }
 
     const leaderboard = await getYearlyLeaderboard(
       targetYear,
-      parseInt(limit as string, 10)
+      parsedLimit
     );
 
     res.json({
@@ -66,9 +78,15 @@ router.get("/yearly", async (req, res) => {
 router.get("/books", async (req, res) => {
   try {
     const { limit = "10" } = req.query;
+    const parsedLimit = parseInt(limit as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      res.status(400).json({ error: "Invalid limit parameter" });
+      return;
+    }
 
     const leaderboard = await getMostReviewedBooks(
-      parseInt(limit as string, 10)
+      parsedLimit
     );
 
     res.json({ leaderboard });
