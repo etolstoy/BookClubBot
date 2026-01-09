@@ -4,6 +4,9 @@ import Home from "./pages/Home";
 import Book from "./pages/Book";
 import Reviewer from "./pages/Reviewer";
 import Leaderboard from "./pages/Leaderboard";
+import ReviewersLeaderboard from "./pages/ReviewersLeaderboard";
+import BrowseBooks from "./pages/BrowseBooks";
+import FreshReviews from "./pages/FreshReviews";
 
 declare global {
   interface Window {
@@ -57,8 +60,13 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/browse" element={<BrowseBooks />} />
       <Route path="/book/:id" element={<Book />} />
       <Route path="/reviewer/:userId" element={<Reviewer />} />
+      <Route path="/top-books" element={<Leaderboard />} />
+      <Route path="/top-reviewers" element={<ReviewersLeaderboard />} />
+      <Route path="/fresh-reviews" element={<FreshReviews />} />
+      {/* Legacy route for backward compatibility */}
       <Route path="/leaderboard" element={<Leaderboard />} />
     </Routes>
   );
