@@ -12,10 +12,18 @@ router.get("/:userId", async (req, res) => {
     const telegramUserId = BigInt(req.params.userId);
     const { limit = "50", offset = "0" } = req.query;
 
+    const parsedLimit = parseInt(limit as string, 10);
+    const parsedOffset = parseInt(offset as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit < 1 || isNaN(parsedOffset) || parsedOffset < 0) {
+      res.status(400).json({ error: "Invalid limit or offset parameter" });
+      return;
+    }
+
     const [reviews, stats] = await Promise.all([
       getReviewsByUserId(telegramUserId, {
-        limit: parseInt(limit as string, 10),
-        offset: parseInt(offset as string, 10),
+        limit: parsedLimit,
+        offset: parsedOffset,
       }),
       getUserReviewStats(telegramUserId),
     ]);

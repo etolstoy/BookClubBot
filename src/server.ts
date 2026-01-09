@@ -36,10 +36,15 @@ export function createServer() {
 }
 
 export function startServer(app: express.Application) {
-  return new Promise<void>((resolve) => {
-    app.listen(config.port, () => {
+  return new Promise<void>((resolve, reject) => {
+    const server = app.listen(config.port, () => {
       console.log(`API server listening on port ${config.port}`);
       resolve();
+    });
+
+    server.on('error', (error) => {
+      console.error('Failed to start server:', error);
+      reject(error);
     });
   });
 }
