@@ -31,6 +31,7 @@ export interface BookSearchResult {
   publicationYear: number | null;
   coverUrl: string | null;
   googleBooksUrl: string | null;
+  goodreadsUrl: string | null;
   isbn: string | null;
   pageCount: number | null;
 }
@@ -66,6 +67,24 @@ function getBestCoverUrl(
   );
 }
 
+function generateGoodreadsUrl(
+  isbn: string | null,
+  title: string,
+  author: string | null
+): string | null {
+  // Prefer ISBN-based URL (most reliable)
+  if (isbn) {
+    // Clean ISBN (remove hyphens)
+    const cleanIsbn = isbn.replace(/-/g, "");
+    return `https://www.goodreads.com/book/isbn/${cleanIsbn}`;
+  }
+
+  // Fallback to search URL
+  const query = author ? `${title} ${author}` : title;
+  const encodedQuery = encodeURIComponent(query);
+  return `https://www.goodreads.com/search?q=${encodedQuery}`;
+}
+
 export async function searchBooks(query: string): Promise<BookSearchResult[]> {
   const params = new URLSearchParams({
     q: query,
@@ -96,16 +115,21 @@ export async function searchBooks(query: string): Promise<BookSearchResult[]> {
     return data.items.map(
       (item: { id: string; volumeInfo: GoogleBookResult }): BookSearchResult => {
         const info = item.volumeInfo;
+        const title = info.title || "Unknown Title";
+        const author = info.authors?.join(", ") ?? null;
+        const isbn = extractISBN(info.industryIdentifiers);
+
         return {
           googleBooksId: item.id,
-          title: info.title || "Unknown Title",
-          author: info.authors?.join(", ") ?? null,
+          title,
+          author,
           description: info.description ?? null,
           genres: info.categories ?? [],
           publicationYear: extractYear(info.publishedDate),
           coverUrl: getBestCoverUrl(info.imageLinks),
           googleBooksUrl: info.infoLink ?? null,
-          isbn: extractISBN(info.industryIdentifiers),
+          goodreadsUrl: generateGoodreadsUrl(isbn, title, author),
+          isbn,
           pageCount: info.pageCount ?? null,
         };
       }
@@ -137,17 +161,21 @@ export async function getBookById(
 
     const item = await response.json() as { id: string; volumeInfo: GoogleBookResult };
     const info = item.volumeInfo;
+    const title = info.title || "Unknown Title";
+    const author = info.authors?.join(", ") ?? null;
+    const isbn = extractISBN(info.industryIdentifiers);
 
     return {
       googleBooksId: item.id,
-      title: info.title || "Unknown Title",
-      author: info.authors?.join(", ") ?? null,
+      title,
+      author,
       description: info.description ?? null,
       genres: info.categories ?? [],
       publicationYear: extractYear(info.publishedDate),
       coverUrl: getBestCoverUrl(info.imageLinks),
       googleBooksUrl: info.infoLink ?? null,
-      isbn: extractISBN(info.industryIdentifiers),
+      goodreadsUrl: generateGoodreadsUrl(isbn, title, author),
+      isbn,
       pageCount: info.pageCount ?? null,
     };
   } catch (error) {

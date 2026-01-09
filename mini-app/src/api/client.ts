@@ -42,6 +42,7 @@ export interface BookDetail {
   publicationYear: number | null;
   pageCount: number | null;
   googleBooksUrl: string | null;
+  goodreadsUrl: string | null;
   reviewCount: number;
   sentiments: {
     positive: number;
