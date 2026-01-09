@@ -1,21 +1,21 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
-  getMonthlyBookLeaderboard,
-  getYearlyBookLeaderboard,
-  getBookLeaderboard,
-  type BookLeaderboardEntry,
+  getMonthlyReviewersLeaderboard,
+  getYearlyReviewersLeaderboard,
+  getReviewersLeaderboard,
+  type LeaderboardEntry,
 } from "../api/client";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
 
 type Tab = "monthly" | "yearly" | "overall";
 
-export default function Leaderboard() {
+export default function ReviewersLeaderboard() {
   const [tab, setTab] = useState<Tab>("monthly");
-  const [monthlyData, setMonthlyData] = useState<BookLeaderboardEntry[]>([]);
-  const [yearlyData, setYearlyData] = useState<BookLeaderboardEntry[]>([]);
-  const [overallData, setOverallData] = useState<BookLeaderboardEntry[]>([]);
+  const [monthlyData, setMonthlyData] = useState<LeaderboardEntry[]>([]);
+  const [yearlyData, setYearlyData] = useState<LeaderboardEntry[]>([]);
+  const [overallData, setOverallData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,9 +26,9 @@ export default function Leaderboard() {
 
       try {
         const [monthly, yearly, overall] = await Promise.all([
-          getMonthlyBookLeaderboard({ limit: 20 }),
-          getYearlyBookLeaderboard({ limit: 20 }),
-          getBookLeaderboard(20),
+          getMonthlyReviewersLeaderboard({ limit: 20 }),
+          getYearlyReviewersLeaderboard({ limit: 20 }),
+          getReviewersLeaderboard(20),
         ]);
 
         setMonthlyData(monthly.leaderboard);
@@ -62,7 +62,7 @@ export default function Leaderboard() {
         &larr; Back to home
       </Link>
 
-      <h1 className="text-2xl font-bold text-tg-text mb-4">Top Books</h1>
+      <h1 className="text-2xl font-bold text-tg-text mb-4">Top Reviewers</h1>
 
       <div className="flex gap-2 mb-6">
         <button
@@ -99,27 +99,19 @@ export default function Leaderboard() {
 
       <div className="flex flex-col gap-2">
         {currentData.length === 0 ? (
-          <p className="text-center text-tg-hint py-4">No books yet</p>
+          <p className="text-center text-tg-hint py-4">No reviews yet</p>
         ) : (
           currentData.map((entry) => (
             <Link
-              key={entry.bookId}
-              to={`/book/${entry.bookId}`}
+              key={entry.telegramUserId}
+              to={`/reviewer/${entry.telegramUserId}`}
               className="flex items-center gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity"
             >
               <span className="w-8 text-center text-lg">{getMedal(entry.rank)}</span>
-              {entry.coverUrl && (
-                <img
-                  src={entry.coverUrl}
-                  alt={entry.title}
-                  className="w-10 h-14 object-cover rounded"
-                />
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-tg-text truncate">{entry.title}</div>
-                {entry.author && (
-                  <div className="text-sm text-tg-hint truncate">{entry.author}</div>
-                )}
+              <div className="flex-1">
+                <span className="font-medium text-tg-text">
+                  {entry.displayName || entry.username || "Anonymous"}
+                </span>
               </div>
               <span className="text-tg-hint">
                 {entry.reviewCount} review{entry.reviewCount !== 1 ? "s" : ""}
