@@ -28,14 +28,21 @@ export async function handleReviewMessage(ctx: Context) {
 
   // Ignore commands (messages starting with /)
   if (message.text.startsWith('/')) {
+    console.log('[Review Handler] Ignoring command:', message.text.substring(0, 20));
     return;
   }
 
   // Check if message contains the review hashtag
-  if (!message.text.includes(config.reviewHashtag)) {
+  const hasHashtag = message.text.includes(config.reviewHashtag);
+  console.log('[Review Handler] Message:', message.text.substring(0, 50));
+  console.log('[Review Handler] Looking for hashtag:', config.reviewHashtag);
+  console.log('[Review Handler] Has hashtag:', hasHashtag);
+
+  if (!hasHashtag) {
     return;
   }
 
+  console.log('[Review Handler] Processing as review');
   await processReview(ctx, message);
 }
 
