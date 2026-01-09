@@ -31,7 +31,6 @@ export interface BookSearchResult {
   publicationYear: number | null;
   coverUrl: string | null;
   googleBooksUrl: string | null;
-  goodreadsUrl: string | null;
   isbn: string | null;
   pageCount: number | null;
 }
@@ -67,23 +66,6 @@ function getBestCoverUrl(
   );
 }
 
-function generateGoodreadsUrl(
-  isbn: string | null,
-  title: string,
-  author: string | null
-): string | null {
-  // Prefer ISBN-based URL (most reliable)
-  if (isbn) {
-    // Clean ISBN (remove hyphens)
-    const cleanIsbn = isbn.replace(/-/g, "");
-    return `https://www.goodreads.com/book/isbn/${cleanIsbn}`;
-  }
-
-  // Fallback to search URL
-  const query = author ? `${title} ${author}` : title;
-  const encodedQuery = encodeURIComponent(query);
-  return `https://www.goodreads.com/search?q=${encodedQuery}`;
-}
 
 export async function searchBooks(query: string): Promise<BookSearchResult[]> {
   const params = new URLSearchParams({
@@ -128,7 +110,6 @@ export async function searchBooks(query: string): Promise<BookSearchResult[]> {
           publicationYear: extractYear(info.publishedDate),
           coverUrl: getBestCoverUrl(info.imageLinks),
           googleBooksUrl: info.infoLink ?? null,
-          goodreadsUrl: generateGoodreadsUrl(isbn, title, author),
           isbn,
           pageCount: info.pageCount ?? null,
         };
@@ -174,7 +155,6 @@ export async function getBookById(
       publicationYear: extractYear(info.publishedDate),
       coverUrl: getBestCoverUrl(info.imageLinks),
       googleBooksUrl: info.infoLink ?? null,
-      goodreadsUrl: generateGoodreadsUrl(isbn, title, author),
       isbn,
       pageCount: info.pageCount ?? null,
     };

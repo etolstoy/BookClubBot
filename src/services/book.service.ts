@@ -7,7 +7,6 @@ export interface CreateBookInput {
   author?: string | null;
   googleBooksId?: string | null;
   googleBooksUrl?: string | null;
-  goodreadsUrl?: string | null;
   coverUrl?: string | null;
   genres?: string[];
   publicationYear?: number | null;
@@ -94,7 +93,6 @@ export async function createBook(input: CreateBookInput) {
       author: input.author,
       googleBooksId: input.googleBooksId,
       googleBooksUrl: input.googleBooksUrl,
-      goodreadsUrl: input.goodreadsUrl,
       coverUrl: input.coverUrl,
       genres: input.genres ? JSON.stringify(input.genres) : null,
       publicationYear: input.publicationYear,
@@ -134,7 +132,6 @@ export async function findOrCreateBook(
       author: googleBook.author,
       googleBooksId: googleBook.googleBooksId,
       googleBooksUrl: googleBook.googleBooksUrl,
-      goodreadsUrl: googleBook.goodreadsUrl,
       coverUrl: googleBook.coverUrl,
       genres: googleBook.genres,
       publicationYear: googleBook.publicationYear,

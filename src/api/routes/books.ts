@@ -8,6 +8,23 @@ import { getReviewsByBookId } from "../../services/review.service.js";
 
 const router = Router();
 
+function generateGoodreadsUrl(
+  isbn: string | null,
+  title: string,
+  author: string | null
+): string | null {
+  // Prefer ISBN-based URL (most reliable)
+  if (isbn) {
+    const cleanIsbn = isbn.replace(/-/g, "");
+    return `https://www.goodreads.com/book/isbn/${cleanIsbn}`;
+  }
+
+  // Fallback to search URL
+  const query = author ? `${title} ${author}` : title;
+  const encodedQuery = encodeURIComponent(query);
+  return `https://www.goodreads.com/search?q=${encodedQuery}`;
+}
+
 // GET /api/books - List all books
 router.get("/", async (req, res) => {
   try {
@@ -141,7 +158,7 @@ router.get("/:id", async (req, res) => {
         publicationYear: book.publicationYear,
         pageCount: book.pageCount,
         googleBooksUrl: book.googleBooksUrl,
-        goodreadsUrl: book.goodreadsUrl,
+        goodreadsUrl: generateGoodreadsUrl(book.isbn, book.title, book.author),
         reviewCount: book.reviews.length,
         sentiments,
       },
