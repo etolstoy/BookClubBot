@@ -1,5 +1,6 @@
 import { Context, MiddlewareFn } from "telegraf";
 import { config } from "../../lib/config.js";
+import { sendErrorNotification } from "../../services/notification.service.js";
 
 export const chatFilter: MiddlewareFn<Context> = async (ctx, next) => {
   // If no target chat ID is configured, allow all chats
@@ -26,6 +27,19 @@ export const errorHandler: MiddlewareFn<Context> = async (ctx, next) => {
     await next();
   } catch (error) {
     console.error("Bot error:", error);
+
+    // Send error notification to admin
+    if (error instanceof Error) {
+      const userId = ctx.from?.id ? BigInt(ctx.from.id) : undefined;
+      const messageId = ctx.message?.message_id ? BigInt(ctx.message.message_id) : undefined;
+
+      await sendErrorNotification(error, {
+        operation: "Bot Message Handler",
+        userId,
+        messageId,
+        additionalInfo: `Chat: ${ctx.chat?.id}, Update: ${ctx.update.update_id}`,
+      });
+    }
 
     // Try to send error message to user
     try {

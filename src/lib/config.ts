@@ -8,6 +8,7 @@ const configSchema = z.object({
   OPENAI_API_KEY: z.string().min(1, "OPENAI_API_KEY is required"),
   GOOGLE_BOOKS_API_KEY: z.string().optional(),
   TARGET_CHAT_ID: z.string().optional(),
+  ADMIN_CHAT_ID: z.string().optional(),
   REVIEW_HASHTAG: z.string().default("#рецензия"),
   PORT: z.string().default("3001"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
@@ -35,6 +36,9 @@ export const config = {
   googleBooksApiKey: parsed.data.GOOGLE_BOOKS_API_KEY,
   targetChatId: parsed.data.TARGET_CHAT_ID
     ? BigInt(parsed.data.TARGET_CHAT_ID)
+    : undefined,
+  adminChatId: parsed.data.ADMIN_CHAT_ID
+    ? BigInt(parsed.data.ADMIN_CHAT_ID)
     : undefined,
   reviewHashtag: parsed.data.REVIEW_HASHTAG,
   port: parseInt(parsed.data.PORT, 10),
