@@ -10,6 +10,12 @@ export default defineConfig({
     },
   },
   server: {
+    host: true, // Listen on all addresses including network
+    allowedHosts: [
+      ".ngrok-free.app", // Allow all ngrok hosts
+      ".ngrok.io",       // Allow legacy ngrok hosts
+      "localhost",       // Allow localhost
+    ],
     proxy: {
       "/api": {
         target: "http://localhost:3001",

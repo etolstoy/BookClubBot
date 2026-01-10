@@ -38,6 +38,26 @@ export default function Book() {
     loadBook();
   }, [id]);
 
+  const handleReviewUpdated = (updatedReview: Review) => {
+    // If the review was reassigned to a different book, remove it from this page
+    if (updatedReview.book?.id !== parseInt(id!, 10)) {
+      setReviews((prev) => prev.filter((r) => r.id !== updatedReview.id));
+
+      // Update book stats to reflect the removed review
+      if (book) {
+        setBook({
+          ...book,
+          reviewCount: book.reviewCount - 1,
+        });
+      }
+    } else {
+      // Otherwise, update the review in place
+      setReviews((prev) =>
+        prev.map((r) => (r.id === updatedReview.id ? updatedReview : r))
+      );
+    }
+  };
+
   if (loading) return <Loading />;
   if (error) return <ErrorMessage message={error} />;
   if (!book) return <ErrorMessage message={t("book.notFound")} />;
@@ -172,7 +192,11 @@ export default function Book() {
           <p className="text-center text-tg-hint py-4">{t("book.noReviews")}</p>
         ) : (
           filteredReviews.map((review) => (
-            <ReviewCard key={review.id} review={review} />
+            <ReviewCard
+              key={review.id}
+              review={review}
+              onReviewUpdated={handleReviewUpdated}
+            />
           ))
         )}
       </div>

@@ -11,6 +11,9 @@ export const translations = {
     by: "автор",
     readMore: "Читать далее →",
     anonymous: "Аноним",
+    saving: "Сохранение...",
+    save: "Сохранить",
+    cancel: "Отмена",
   },
 
   home: {
@@ -106,6 +109,32 @@ export const translations = {
       few: "{{count}} книги",
       many: "{{count}} книг",
     },
+  },
+
+  review: {
+    edit: "Редактировать",
+  },
+
+  editReview: {
+    title: "Редактировать рецензию",
+    reviewText: "Текст рецензии",
+    reviewTextPlaceholder: "Напишите вашу рецензию...",
+    sentiment: "Настроение",
+    book: "Книга",
+    changeBook: "Изменить",
+    selectBook: "Выбрать книгу",
+    searchBookPlaceholder: "Поиск по названию или автору...",
+    noBookResults: "Книги не найдены",
+    errors: {
+      emptyText: "Текст рецензии не может быть пустым",
+      saveFailed: "Не удалось сохранить изменения",
+    },
+  },
+
+  sentiment: {
+    positive: "Положительное",
+    negative: "Отрицательное",
+    neutral: "Нейтральное",
   },
 };
 

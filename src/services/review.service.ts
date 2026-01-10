@@ -513,3 +513,84 @@ export async function getRecentReviews(limit = 20, offset = 0) {
     skip: offset,
   });
 }
+
+export interface UpdateReviewInput {
+  reviewText?: string;
+  sentiment?: Sentiment;
+  bookId?: number;
+}
+
+/**
+ * Update a review (text, sentiment, or book assignment)
+ * Returns updated review with book details
+ */
+export async function updateReview(
+  reviewId: number,
+  input: UpdateReviewInput
+) {
+  const updateData: any = {};
+
+  if (input.reviewText !== undefined) {
+    updateData.reviewText = input.reviewText;
+  }
+
+  if (input.sentiment !== undefined) {
+    updateData.sentiment = input.sentiment;
+  }
+
+  if (input.bookId !== undefined) {
+    updateData.bookId = input.bookId;
+  }
+
+  return prisma.review.update({
+    where: { id: reviewId },
+    data: updateData,
+    include: { book: true },
+  });
+}
+
+/**
+ * Check if a review belongs to a user (for authorization)
+ */
+export async function isReviewOwner(
+  reviewId: number,
+  telegramUserId: bigint
+): Promise<boolean> {
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    select: { telegramUserId: true },
+  });
+
+  return review?.telegramUserId === telegramUserId;
+}
+
+/**
+ * Find orphaned books (books with no reviews) and delete them
+ * Returns count of deleted books
+ */
+export async function cleanupOrphanBooks(): Promise<number> {
+  // Find books with zero reviews
+  const orphanBooks = await prisma.book.findMany({
+    where: {
+      reviews: {
+        none: {},
+      },
+    },
+    select: { id: true },
+  });
+
+  if (orphanBooks.length === 0) {
+    return 0;
+  }
+
+  // Delete orphan books
+  const result = await prisma.book.deleteMany({
+    where: {
+      id: {
+        in: orphanBooks.map((b) => b.id),
+      },
+    },
+  });
+
+  return result.count;
+}

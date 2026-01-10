@@ -15,8 +15,15 @@ declare global {
         ready: () => void;
         expand: () => void;
         close: () => void;
+        initData: string; // Raw signed initData string
         initDataUnsafe: {
           start_param?: string;
+          user?: {
+            id: number;
+            username?: string;
+            first_name?: string;
+            last_name?: string;
+          };
         };
         themeParams: Record<string, string>;
         colorScheme: "light" | "dark";
