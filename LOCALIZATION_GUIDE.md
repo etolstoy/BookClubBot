@@ -1,6 +1,6 @@
 # Russian Localization Guide
 
-All UI texts from the mini-app have been extracted to a separate file for easy maintenance and translation updates.
+All UI texts from the mini-app have been extracted to a separate file for easy maintenance and translation updates. The application is now fully branded as **Вастрик.Книги** with Ubuntu font throughout.
 
 ## What's Been Created
 

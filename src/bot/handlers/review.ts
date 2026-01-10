@@ -27,6 +27,11 @@ export async function handleReviewMessage(ctx: Context) {
     return;
   }
 
+  // Only work in group chats
+  if (ctx.chat?.type !== "group" && ctx.chat?.type !== "supergroup") {
+    return;
+  }
+
   // Ignore commands (messages starting with /)
   if (message.text.startsWith('/')) {
     console.log('[Review Handler] Ignoring command:', message.text.substring(0, 20));
@@ -50,9 +55,17 @@ export async function handleReviewMessage(ctx: Context) {
 export async function handleReviewCommand(ctx: Context) {
   const message = ctx.message as Message.TextMessage;
 
+  // Only work in group chats
+  if (ctx.chat?.type !== "group" && ctx.chat?.type !== "supergroup") {
+    await ctx.reply(
+      "Команда /review работает только в групповых чатах. Используйте её как ответ на сообщения с рецензиями на книги."
+    );
+    return;
+  }
+
   if (!message || !("reply_to_message" in message) || !message.reply_to_message) {
     await ctx.reply(
-      "Please use /review as a reply to a message you want to mark as a review."
+      "Пожалуйста, используйте /review как ответ на сообщение, которое хотите отметить как рецензию."
     );
     return;
   }
@@ -60,7 +73,7 @@ export async function handleReviewCommand(ctx: Context) {
   const replyMessage = message.reply_to_message as Message.TextMessage;
 
   if (!("text" in replyMessage) || !replyMessage.text) {
-    await ctx.reply("The replied message doesn't contain any text.");
+    await ctx.reply("Это сообщение не содержит текста.");
     return;
   }
 
@@ -69,20 +82,20 @@ export async function handleReviewCommand(ctx: Context) {
   const text = replyMessage.text.trim();
   if (text.length < 20) {
     await ctx.reply(
-      "The message is too short to be a book review. Reviews should be at least 20 characters.",
+      "Сообщение слишком короткое для рецензии. Рецензии должны содержать минимум 20 символов.",
       { reply_parameters: { message_id: message.message_id } }
     );
     return;
   }
 
   // Check if the message contains common book-related patterns
-  const hasBookIndicators = /(?:book|author|read|novel|story|chapter|page|ISBN|publication)/i.test(text) ||
+  const hasBookIndicators = /(?:book|author|read|novel|story|chapter|page|ISBN|publication|книга|автор|читал|роман|история|глава|страниц|издание)/i.test(text) ||
     /["«»""]/.test(text); // Check for quotes which often indicate book titles
 
   if (!hasBookIndicators) {
     await ctx.reply(
-      "This message doesn't appear to be a book review. Reviews should mention a book, author, or related terms.\n\n" +
-      "Tip: Use the hashtag " + config.reviewHashtag + " for automatic review detection.",
+      "Это сообщение не похоже на рецензию. Рецензии должны упоминать книгу, автора или связанные термины.\n\n" +
+      "Совет: используйте хештег " + config.reviewHashtag + " для автоматического определения рецензий.",
       { reply_parameters: { message_id: message.message_id } }
     );
     return;
@@ -102,14 +115,14 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
   // Check for duplicate
   const isDuplicate = await checkDuplicateReview(telegramUserId, messageId);
   if (isDuplicate) {
-    await ctx.reply("This review has already been saved!", {
+    await ctx.reply("Эта рецензия уже сохранена!", {
       reply_parameters: { message_id: message.message_id },
     });
     return;
   }
 
   // Send processing message
-  const processingMsg = await ctx.reply("Processing review... 📖", {
+  const processingMsg = await ctx.reply("Обрабатываю рецензию... 📖", {
     reply_parameters: { message_id: message.message_id },
   });
 
@@ -147,17 +160,16 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
 
       if (!stored) {
         await ctx.reply(
-          "⚠️ You already have a pending review. Please complete it first or send /cancel to abort.",
+          "⚠️ У вас уже есть незавершённая рецензия. Пожалуйста, завершите её сначала.",
           { reply_parameters: { message_id: message.message_id } }
         );
         return;
       }
 
       await ctx.reply(
-        "❌ Could not identify a book in this review.\n\n" +
-        "📖 Please send the ISBN of the book (ISBN-10 or ISBN-13) to save this review.\n\n" +
-        "Example: 978-0-7475-3269-9\n\n" +
-        "Send /cancel to abort.",
+        "❌ Не удалось определить книгу в этой рецензии.\n\n" +
+        "📖 Пожалуйста, отправьте ISBN книги (ISBN-10 или ISBN-13), чтобы сохранить эту рецензию.\n\n" +
+        "Пример: 978-0-7475-3269-9",
         { reply_parameters: { message_id: message.message_id } }
       );
       return;
@@ -196,18 +208,18 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
 
       // ISBN input button
       buttons.push([
-        Markup.button.callback("🔢 Enter ISBN manually", `book_isbn:${review.id}`),
+        Markup.button.callback("🔢 Ввести ISBN вручную", `book_isbn:${review.id}`),
       ]);
 
       // Keep current book button
       buttons.push([
-        Markup.button.callback("✅ Keep current choice", `book_confirmed:${review.id}`),
+        Markup.button.callback("✅ Оставить текущий выбор", `book_confirmed:${review.id}`),
       ]);
 
       const keyboard = Markup.inlineKeyboard(buttons);
 
       await ctx.reply(
-        `⚠️ Multiple books detected in your review!\n\nPrimary book: "${bookTitle}"\n\nPlease confirm which book you're reviewing:`,
+        `⚠️ Обнаружено несколько книг в вашей рецензии!\n\nОсновная книга: "${bookTitle}"\n\nПожалуйста, подтвердите, на какую книгу вы пишете рецензию:`,
         {
           reply_parameters: { message_id: message.message_id },
           ...keyboard,
@@ -221,9 +233,9 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
     let keyboard;
 
     if (isNewBook) {
-      responseText = `🎉 Congratulations! This is the first review for "${bookTitle}"!`;
+      responseText = `🎉 Поздравляем! Это первая рецензия на "${bookTitle}"!`;
     } else {
-      responseText = `📚 Review saved! This is review #${reviewCount} for "${bookTitle}".`;
+      responseText = `📚 Рецензия сохранена! Это рецензия #${reviewCount} на "${bookTitle}".`;
     }
 
     // Add sentiment badge
@@ -241,7 +253,7 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
     if (review.book) {
       keyboard = Markup.inlineKeyboard([
         Markup.button.url(
-          "View all reviews",
+          "Посмотреть все рецензии",
           generateDeepLink(review.book.id)
         ),
       ]);
@@ -261,7 +273,7 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
       // Ignore if can't delete
     }
 
-    await ctx.reply("Sorry, there was an error processing this review. Please try again.", {
+    await ctx.reply("Извините, произошла ошибка при обработке этой рецензии. Пожалуйста, попробуйте ещё раз.", {
       reply_parameters: { message_id: message.message_id },
     });
   }

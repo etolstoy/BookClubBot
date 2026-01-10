@@ -5,17 +5,13 @@ import { chatFilter, errorHandler } from "./middleware/auth.js";
 import { handleReviewMessage, handleReviewCommand } from "./handlers/review.js";
 import {
   handleStartCommand,
-  handleHelpCommand,
   handleStatsCommand,
-  handleLeaderboardCommand,
-  handleSearchCommand,
 } from "./handlers/commands.js";
 import {
   handleBookConfirmed,
   handleBookAlternative,
   handleBookISBN,
   handleISBNInput,
-  handleCancelISBN,
   handlePendingReviewISBN,
 } from "./handlers/book-selection.js";
 import { initNotificationService, sendSuccessNotification } from "../services/notification.service.js";
@@ -29,12 +25,8 @@ export function createBot() {
 
   // Commands
   bot.command("start", handleStartCommand);
-  bot.command("help", handleHelpCommand);
   bot.command("stats", handleStatsCommand);
-  bot.command("leaderboard", handleLeaderboardCommand);
-  bot.command("search", handleSearchCommand);
   bot.command("review", handleReviewCommand);
-  bot.command("cancel", handleCancelISBN);
 
   // Callback query handlers for book selection
   bot.action(/^book_confirmed:/, handleBookConfirmed);
@@ -74,12 +66,9 @@ export async function startBot(bot: Telegraf) {
 
   // Set bot commands for menu
   await bot.telegram.setMyCommands([
-    { command: "start", description: "Start the bot and see welcome message" },
-    { command: "review", description: "Mark a replied message as a review" },
-    { command: "stats", description: "View your review statistics" },
-    { command: "leaderboard", description: "See top reviewers this month" },
-    { command: "search", description: "Search for a book" },
-    { command: "help", description: "Show help and available commands" },
+    { command: "start", description: "Запустить бота и увидеть приветствие" },
+    { command: "review", description: "Отметить сообщение как рецензию" },
+    { command: "stats", description: "Посмотреть вашу статистику рецензий" },
   ]);
 
   console.log("Starting bot...");

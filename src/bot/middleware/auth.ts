@@ -43,7 +43,7 @@ export const errorHandler: MiddlewareFn<Context> = async (ctx, next) => {
 
     // Try to send error message to user
     try {
-      await ctx.reply("An error occurred. Please try again later.");
+      await ctx.reply("Произошла ошибка. Пожалуйста, попробуйте позже.");
     } catch {
       // Ignore if can't send message
     }

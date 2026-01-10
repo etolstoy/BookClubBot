@@ -24,8 +24,8 @@ export async function handleBookConfirmed(ctx: Context) {
 
   const reviewId = parseInt(callbackQuery.data.split(":")[1]);
 
-  await ctx.answerCbQuery("✅ Book confirmed!");
-  await ctx.editMessageText("✅ Review saved successfully!");
+  await ctx.answerCbQuery("✅ Книга подтверждена!");
+  await ctx.editMessageText("✅ Рецензия успешно сохранена!");
 }
 
 export async function handleBookAlternative(ctx: Context) {
@@ -43,7 +43,7 @@ export async function handleBookAlternative(ctx: Context) {
   });
 
   if (!review) {
-    await ctx.answerCbQuery("❌ Review not found");
+    await ctx.answerCbQuery("❌ Рецензия не найдена");
     return;
   }
 
@@ -51,7 +51,7 @@ export async function handleBookAlternative(ctx: Context) {
   const bookInfo = await extractBookInfo(review.reviewText);
 
   if (!bookInfo || !bookInfo.alternativeBooks || !bookInfo.alternativeBooks[altIndex]) {
-    await ctx.answerCbQuery("❌ Alternative book not found");
+    await ctx.answerCbQuery("❌ Альтернативная книга не найдена");
     return;
   }
 
@@ -69,9 +69,9 @@ export async function handleBookAlternative(ctx: Context) {
     data: { bookId },
   });
 
-  await ctx.answerCbQuery("✅ Book updated!");
+  await ctx.answerCbQuery("✅ Книга обновлена!");
   await ctx.editMessageText(
-    `✅ Review updated to: "${altBook.title}"${altBook.author ? ` by ${altBook.author}` : ""}`
+    `✅ Рецензия обновлена на: "${altBook.title}"${altBook.author ? ` (${altBook.author})` : ""}`
   );
 }
 
@@ -87,9 +87,8 @@ export async function handleBookISBN(ctx: Context) {
 
   await ctx.answerCbQuery();
   await ctx.editMessageText(
-    "📖 Please send the ISBN of the book (ISBN-10 or ISBN-13).\n\n" +
-    "Example: 978-0-7475-3269-9\n\n" +
-    "Send /cancel to abort."
+    "📖 Пожалуйста, отправьте ISBN книги (ISBN-10 или ISBN-13).\n\n" +
+    "Пример: 978-0-7475-3269-9"
   );
 }
 
@@ -112,7 +111,7 @@ export async function handleISBNInput(ctx: Context) {
 
   if (!isbnRegex.test(isbn)) {
     await ctx.reply(
-      "❌ Invalid ISBN format. Please try again or send /cancel to abort.",
+      "❌ Неверный формат ISBN. Пожалуйста, попробуйте ещё раз.",
       { reply_parameters: { message_id: message.message_id } }
     );
     return;
@@ -121,7 +120,7 @@ export async function handleISBNInput(ctx: Context) {
   // Clear pending input
   pendingISBNInputs.delete(userId);
 
-  const processingMsg = await ctx.reply("🔍 Searching for book by ISBN...", {
+  const processingMsg = await ctx.reply("🔍 Ищу книгу по ISBN...", {
     reply_parameters: { message_id: message.message_id },
   });
 
@@ -132,7 +131,7 @@ export async function handleISBNInput(ctx: Context) {
     if (!result) {
       await ctx.telegram.deleteMessage(ctx.chat!.id, processingMsg.message_id);
       await ctx.reply(
-        "❌ Could not find book with this ISBN. Please check the ISBN and try again.",
+        "❌ Не удалось найти книгу с этим ISBN. Пожалуйста, проверьте ISBN и попробуйте ещё раз.",
         { reply_parameters: { message_id: message.message_id } }
       );
       return;
@@ -151,7 +150,7 @@ export async function handleISBNInput(ctx: Context) {
 
     await ctx.telegram.deleteMessage(ctx.chat!.id, processingMsg.message_id);
     await ctx.reply(
-      `✅ Book found and review updated!\n\n📖 ${book?.title || "Unknown"}${
+      `✅ Книга найдена и рецензия обновлена!\n\n📖 ${book?.title || "Неизвестно"}${
         book?.author ? `\n✍️ ${book.author}` : ""
       }`,
       { reply_parameters: { message_id: message.message_id } }
@@ -160,25 +159,9 @@ export async function handleISBNInput(ctx: Context) {
     console.error("Error processing ISBN:", error);
     await ctx.telegram.deleteMessage(ctx.chat!.id, processingMsg.message_id);
     await ctx.reply(
-      "❌ Error processing ISBN. Please try again.",
+      "❌ Ошибка при обработке ISBN. Пожалуйста, попробуйте ещё раз.",
       { reply_parameters: { message_id: message.message_id } }
     );
-  }
-}
-
-export async function handleCancelISBN(ctx: Context) {
-  const message = ctx.message;
-  if (!message || !("from" in message)) return;
-
-  const userId = message.from.id.toString();
-  const hadPendingISBN = pendingISBNInputs.has(userId);
-  const hadPendingReview = pendingReviews.has(userId);
-
-  pendingISBNInputs.delete(userId);
-  pendingReviews.delete(userId);
-
-  if (hadPendingISBN || hadPendingReview) {
-    await ctx.reply("❌ ISBN input cancelled. Review was not saved.");
   }
 }
 
@@ -215,7 +198,7 @@ export async function handlePendingReviewISBN(ctx: Context) {
 
   if (!isbnRegex.test(isbn)) {
     await ctx.reply(
-      "❌ Invalid ISBN format. Please try again or send /cancel to abort.",
+      "❌ Неверный формат ISBN. Пожалуйста, попробуйте ещё раз.",
       { reply_parameters: { message_id: message.message_id } }
     );
     return true;
@@ -224,7 +207,7 @@ export async function handlePendingReviewISBN(ctx: Context) {
   // Clear pending review
   pendingReviews.delete(userId);
 
-  const processingMsg = await ctx.reply("🔍 Searching for book by ISBN...", {
+  const processingMsg = await ctx.reply("🔍 Ищу книгу по ISBN...", {
     reply_parameters: { message_id: message.message_id },
   });
 
@@ -235,7 +218,7 @@ export async function handlePendingReviewISBN(ctx: Context) {
     if (!bookResult) {
       await ctx.telegram.deleteMessage(ctx.chat!.id, processingMsg.message_id);
       await ctx.reply(
-        "❌ Could not find book with this ISBN. Please check the ISBN and try again, or send /cancel to abort.",
+        "❌ Не удалось найти книгу с этим ISBN. Пожалуйста, проверьте ISBN и попробуйте ещё раз.",
         { reply_parameters: { message_id: message.message_id } }
       );
       // Restore pending review so user can try again
@@ -277,9 +260,9 @@ export async function handlePendingReviewISBN(ctx: Context) {
       sentiment === "positive" ? "👍" : sentiment === "negative" ? "👎" : "😐";
 
     await ctx.reply(
-      `✅ Book found and review saved!\n\n📖 ${book?.title || "Unknown"}${
+      `✅ Книга найдена и рецензия сохранена!\n\n📖 ${book?.title || "Неизвестно"}${
         book?.author ? `\n✍️ ${book.author}` : ""
-      }\n\nThis is review #${reviewCount} for this book. ${sentimentEmoji}`,
+      }\n\nЭто рецензия #${reviewCount} на эту книгу. ${sentimentEmoji}`,
       { reply_parameters: { message_id: message.message_id } }
     );
 
@@ -288,7 +271,7 @@ export async function handlePendingReviewISBN(ctx: Context) {
     console.error("Error processing ISBN for pending review:", error);
     await ctx.telegram.deleteMessage(ctx.chat!.id, processingMsg.message_id);
     await ctx.reply(
-      "❌ Error processing ISBN. Please try again.",
+      "❌ Ошибка при обработке ISBN. Пожалуйста, попробуйте ещё раз.",
       { reply_parameters: { message_id: message.message_id } }
     );
     // Restore pending review so user can try again
