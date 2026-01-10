@@ -160,17 +160,25 @@ export async function getYearlyLeaderboard(options?: {
   return fetchApi(`/leaderboard/yearly${query ? `?${query}` : ""}`);
 }
 
-export async function getBookLeaderboard(limit?: number): Promise<{
+export async function getBookLeaderboard(options?: {
+  limit?: number;
+  offset?: number;
+}): Promise<{
   leaderboard: BookLeaderboardEntry[];
 }> {
-  const query = limit ? `?limit=${limit}` : "";
-  return fetchApi(`/leaderboard/books${query}`);
+  const params = new URLSearchParams();
+  if (options?.limit) params.set("limit", options.limit.toString());
+  if (options?.offset) params.set("offset", options.offset.toString());
+
+  const query = params.toString();
+  return fetchApi(`/leaderboard/books${query ? `?${query}` : ""}`);
 }
 
 export async function getMonthlyBookLeaderboard(options?: {
   year?: number;
   month?: number;
   limit?: number;
+  offset?: number;
 }): Promise<{
   period: { type: "monthly"; year: number; month: number };
   leaderboard: BookLeaderboardEntry[];
@@ -179,6 +187,7 @@ export async function getMonthlyBookLeaderboard(options?: {
   if (options?.year) params.set("year", options.year.toString());
   if (options?.month) params.set("month", options.month.toString());
   if (options?.limit) params.set("limit", options.limit.toString());
+  if (options?.offset) params.set("offset", options.offset.toString());
 
   const query = params.toString();
   return fetchApi(`/leaderboard/books/monthly${query ? `?${query}` : ""}`);
@@ -187,6 +196,7 @@ export async function getMonthlyBookLeaderboard(options?: {
 export async function getYearlyBookLeaderboard(options?: {
   year?: number;
   limit?: number;
+  offset?: number;
 }): Promise<{
   period: { type: "yearly"; year: number };
   leaderboard: BookLeaderboardEntry[];
@@ -194,6 +204,7 @@ export async function getYearlyBookLeaderboard(options?: {
   const params = new URLSearchParams();
   if (options?.year) params.set("year", options.year.toString());
   if (options?.limit) params.set("limit", options.limit.toString());
+  if (options?.offset) params.set("offset", options.offset.toString());
 
   const query = params.toString();
   return fetchApi(`/leaderboard/books/yearly${query ? `?${query}` : ""}`);

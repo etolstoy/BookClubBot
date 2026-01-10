@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   getMonthlyBookLeaderboard,
   getYearlyBookLeaderboard,
@@ -11,13 +11,18 @@ import ErrorMessage from "../components/ErrorMessage";
 
 type Tab = "monthly" | "yearly" | "overall";
 
+const ITEMS_PER_PAGE = 20;
+
 export default function Leaderboard() {
-  const [tab, setTab] = useState<Tab>("monthly");
+  const navigate = useNavigate();
+  const [tab, setTab] = useState<Tab>("overall");
   const [monthlyData, setMonthlyData] = useState<BookLeaderboardEntry[]>([]);
   const [yearlyData, setYearlyData] = useState<BookLeaderboardEntry[]>([]);
   const [overallData, setOverallData] = useState<BookLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     async function loadData() {
@@ -25,15 +30,33 @@ export default function Leaderboard() {
       setError(null);
 
       try {
-        const [monthly, yearly, overall] = await Promise.all([
-          getMonthlyBookLeaderboard({ limit: 20 }),
-          getYearlyBookLeaderboard({ limit: 20 }),
-          getBookLeaderboard(20),
-        ]);
+        const offset = (page - 1) * ITEMS_PER_PAGE;
+        let data: BookLeaderboardEntry[];
 
-        setMonthlyData(monthly.leaderboard);
-        setYearlyData(yearly.leaderboard);
-        setOverallData(overall.leaderboard);
+        if (tab === "monthly") {
+          const result = await getMonthlyBookLeaderboard({
+            limit: ITEMS_PER_PAGE,
+            offset
+          });
+          data = result.leaderboard;
+          setMonthlyData(data);
+        } else if (tab === "yearly") {
+          const result = await getYearlyBookLeaderboard({
+            limit: ITEMS_PER_PAGE,
+            offset
+          });
+          data = result.leaderboard;
+          setYearlyData(data);
+        } else {
+          const result = await getBookLeaderboard({
+            limit: ITEMS_PER_PAGE,
+            offset
+          });
+          data = result.leaderboard;
+          setOverallData(data);
+        }
+
+        setHasMore(data.length === ITEMS_PER_PAGE);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load leaderboard");
       } finally {
@@ -42,13 +65,32 @@ export default function Leaderboard() {
     }
 
     loadData();
-  }, []);
+  }, [tab, page]);
 
   const getMedal = (rank: number) => {
     if (rank === 1) return "🥇";
     if (rank === 2) return "🥈";
     if (rank === 3) return "🥉";
     return `${rank}.`;
+  };
+
+  const handleTabChange = (newTab: Tab) => {
+    setTab(newTab);
+    setPage(1);
+  };
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      setPage(page - 1);
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (hasMore) {
+      setPage(page + 1);
+      window.scrollTo(0, 0);
+    }
   };
 
   if (loading) return <Loading />;
@@ -58,35 +100,15 @@ export default function Leaderboard() {
 
   return (
     <div className="p-4">
-      <Link to="/" className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; Back to home
-      </Link>
+      <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
+        &larr; Back
+      </button>
 
       <h1 className="text-2xl font-bold text-tg-text mb-4">Top Books</h1>
 
       <div className="flex gap-2 mb-6">
         <button
-          onClick={() => setTab("monthly")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
-            tab === "monthly"
-              ? "bg-tg-button text-tg-button-text"
-              : "bg-tg-secondary text-tg-hint"
-          }`}
-        >
-          This Month
-        </button>
-        <button
-          onClick={() => setTab("yearly")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
-            tab === "yearly"
-              ? "bg-tg-button text-tg-button-text"
-              : "bg-tg-secondary text-tg-hint"
-          }`}
-        >
-          This Year
-        </button>
-        <button
-          onClick={() => setTab("overall")}
+          onClick={() => handleTabChange("overall")}
           className={`px-4 py-2 rounded-lg text-sm font-medium ${
             tab === "overall"
               ? "bg-tg-button text-tg-button-text"
@@ -95,6 +117,26 @@ export default function Leaderboard() {
         >
           Overall
         </button>
+        <button
+          onClick={() => handleTabChange("monthly")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            tab === "monthly"
+              ? "bg-tg-button text-tg-button-text"
+              : "bg-tg-secondary text-tg-hint"
+          }`}
+        >
+          30D
+        </button>
+        <button
+          onClick={() => handleTabChange("yearly")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            tab === "yearly"
+              ? "bg-tg-button text-tg-button-text"
+              : "bg-tg-secondary text-tg-hint"
+          }`}
+        >
+          365D
+        </button>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -102,10 +144,10 @@ export default function Leaderboard() {
           <p className="text-center text-tg-hint py-4">No books yet</p>
         ) : (
           currentData.map((entry) => (
-            <Link
+            <div
               key={entry.bookId}
-              to={`/book/${entry.bookId}`}
-              className="flex items-center gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity"
+              onClick={() => navigate(`/book/${entry.bookId}`)}
+              className="flex items-center gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity cursor-pointer"
             >
               <span className="w-8 text-center text-lg">{getMedal(entry.rank)}</span>
               {entry.coverUrl && (
@@ -124,10 +166,40 @@ export default function Leaderboard() {
               <span className="text-tg-hint">
                 {entry.reviewCount} review{entry.reviewCount !== 1 ? "s" : ""}
               </span>
-            </Link>
+            </div>
           ))
         )}
       </div>
+
+      {currentData.length > 0 && (
+        <div className="flex items-center justify-between mt-6">
+          <button
+            onClick={handlePrevPage}
+            disabled={page === 1}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              page === 1
+                ? "bg-tg-secondary text-tg-hint cursor-not-allowed"
+                : "bg-tg-button text-tg-button-text hover:opacity-80"
+            }`}
+          >
+            Previous
+          </button>
+
+          <span className="text-tg-hint">Page {page}</span>
+
+          <button
+            onClick={handleNextPage}
+            disabled={!hasMore}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              !hasMore
+                ? "bg-tg-secondary text-tg-hint cursor-not-allowed"
+                : "bg-tg-button text-tg-button-text hover:opacity-80"
+            }`}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

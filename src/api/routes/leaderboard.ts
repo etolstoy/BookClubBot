@@ -77,15 +77,21 @@ router.get("/yearly", async (req, res) => {
 // GET /api/leaderboard/books - Most reviewed books (overall)
 router.get("/books", async (req, res) => {
   try {
-    const { limit = "10" } = req.query;
+    const { limit = "10", offset = "0" } = req.query;
     const parsedLimit = parseInt(limit as string, 10);
+    const parsedOffset = parseInt(offset as string, 10);
 
     if (isNaN(parsedLimit) || parsedLimit < 1) {
       res.status(400).json({ error: "Invalid limit parameter" });
       return;
     }
 
-    const leaderboard = await getMostReviewedBooks(parsedLimit);
+    if (isNaN(parsedOffset) || parsedOffset < 0) {
+      res.status(400).json({ error: "Invalid offset parameter" });
+      return;
+    }
+
+    const leaderboard = await getMostReviewedBooks(parsedLimit, parsedOffset);
 
     res.json({ leaderboard });
   } catch (error) {
@@ -97,20 +103,27 @@ router.get("/books", async (req, res) => {
 // GET /api/leaderboard/books/monthly - Monthly most reviewed books
 router.get("/books/monthly", async (req, res) => {
   try {
-    const { year, month, limit = "10" } = req.query;
+    const { year, month, limit = "10", offset = "0" } = req.query;
 
     const now = new Date();
     const targetYear = year ? parseInt(year as string, 10) : now.getFullYear();
     const targetMonth = month ? parseInt(month as string, 10) : now.getMonth() + 1;
     const parsedLimit = parseInt(limit as string, 10);
+    const parsedOffset = parseInt(offset as string, 10);
 
     if (isNaN(parsedLimit) || parsedLimit < 1) {
       res.status(400).json({ error: "Invalid limit parameter" });
       return;
     }
 
+    if (isNaN(parsedOffset) || parsedOffset < 0) {
+      res.status(400).json({ error: "Invalid offset parameter" });
+      return;
+    }
+
     const leaderboard = await getMostReviewedBooks(
       parsedLimit,
+      parsedOffset,
       { type: 'monthly', year: targetYear, month: targetMonth }
     );
 
@@ -131,19 +144,26 @@ router.get("/books/monthly", async (req, res) => {
 // GET /api/leaderboard/books/yearly - Yearly most reviewed books
 router.get("/books/yearly", async (req, res) => {
   try {
-    const { year, limit = "10" } = req.query;
+    const { year, limit = "10", offset = "0" } = req.query;
 
     const now = new Date();
     const targetYear = year ? parseInt(year as string, 10) : now.getFullYear();
     const parsedLimit = parseInt(limit as string, 10);
+    const parsedOffset = parseInt(offset as string, 10);
 
     if (isNaN(parsedLimit) || parsedLimit < 1) {
       res.status(400).json({ error: "Invalid limit parameter" });
       return;
     }
 
+    if (isNaN(parsedOffset) || parsedOffset < 0) {
+      res.status(400).json({ error: "Invalid offset parameter" });
+      return;
+    }
+
     const leaderboard = await getMostReviewedBooks(
       parsedLimit,
+      parsedOffset,
       { type: 'yearly', year: targetYear }
     );
 

@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getBooks, searchBooks as searchBooksApi, type Book } from "../api/client";
 import BookCard from "../components/BookCard";
 import SearchBar from "../components/SearchBar";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
 
-type SortOption = "reviewCount" | "recentlyReviewed" | "alphabetical";
+type SortOption = "recentlyReviewed" | "alphabetical";
 
 export default function BrowseBooks() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,9 +67,9 @@ export default function BrowseBooks() {
 
   return (
     <div className="p-4">
-      <Link to="/" className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; Back to home
-      </Link>
+      <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
+        &larr; Back
+      </button>
 
       <h1 className="text-2xl font-bold text-tg-text mb-4">Browse All Books</h1>
 
@@ -96,7 +97,6 @@ export default function BrowseBooks() {
             className="px-3 py-2 rounded-lg bg-tg-secondary text-tg-text border-none outline-none"
           >
             <option value="recentlyReviewed">Recently Reviewed</option>
-            <option value="reviewCount">Most Reviews</option>
             <option value="alphabetical">Alphabetical</option>
           </select>
         </div>

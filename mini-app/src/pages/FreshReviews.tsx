@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { getRecentReviews, type Review } from "../api/client";
 import ReviewCard from "../components/ReviewCard";
 import Loading from "../components/Loading";
@@ -8,6 +8,7 @@ import ErrorMessage from "../components/ErrorMessage";
 const REVIEWS_PER_PAGE = 20;
 
 export default function FreshReviews() {
+  const navigate = useNavigate();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,9 +52,9 @@ export default function FreshReviews() {
 
   return (
     <div className="p-4">
-      <Link to="/" className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; Back to home
-      </Link>
+      <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
+        &larr; Back
+      </button>
 
       <h1 className="text-2xl font-bold text-tg-text mb-4">Fresh Reviews</h1>
 
