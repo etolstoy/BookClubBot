@@ -67,7 +67,7 @@ export default function BrowseBooks() {
 
   return (
     <div className="p-4">
-      <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
+      <button onClick={() => navigate('/')} className="text-tg-link hover:underline mb-4 inline-block">
         &larr; Back
       </button>
 

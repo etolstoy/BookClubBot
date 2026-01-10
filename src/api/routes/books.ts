@@ -79,13 +79,37 @@ router.get("/search", async (req, res) => {
     const books = await searchBooks(q, parsedLimit);
 
     res.json({
-      books: books.map((book: { id: number; title: string; author: string | null; coverUrl: string | null; _count: { reviews: number } }) => ({
-        id: book.id,
-        title: book.title,
-        author: book.author,
-        coverUrl: book.coverUrl,
-        reviewCount: book._count.reviews,
-      })),
+      books: books.map((book: {
+        id: number;
+        title: string;
+        author: string | null;
+        coverUrl: string | null;
+        genres: string | null;
+        publicationYear: number | null;
+        reviews: Array<{ sentiment: string | null }>;
+        _count: { reviews: number };
+      }) => {
+        const sentiments = book.reviews.reduce(
+          (acc: { positive: number; negative: number; neutral: number }, r: { sentiment: string | null }) => {
+            if (r.sentiment === "positive") acc.positive++;
+            else if (r.sentiment === "negative") acc.negative++;
+            else if (r.sentiment === "neutral") acc.neutral++;
+            return acc;
+          },
+          { positive: 0, negative: 0, neutral: 0 }
+        );
+
+        return {
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          coverUrl: book.coverUrl,
+          genres: book.genres ? JSON.parse(book.genres) : [],
+          publicationYear: book.publicationYear,
+          reviewCount: book._count.reviews,
+          sentiments,
+        };
+      }),
     });
   } catch (error) {
     console.error("Error searching books:", error);
