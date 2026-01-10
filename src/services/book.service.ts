@@ -1,6 +1,6 @@
 import prisma from "../lib/prisma.js";
-import { searchBookByTitleAndAuthor, type BookSearchResult } from "./googlebooks.js";
-import { extractBookInfo } from "./llm.js";
+import { searchBookByTitleAndAuthor, searchBookWithFallbacks, searchBookByISBN, type BookSearchResult } from "./googlebooks.js";
+import { extractBookInfo, type ExtractedBookInfo } from "./llm.js";
 
 export interface CreateBookInput {
   title: string;
@@ -105,7 +105,9 @@ export async function createBook(input: CreateBookInput) {
 
 export async function findOrCreateBook(
   title: string,
-  author?: string | null
+  author?: string | null,
+  titleVariants?: string[],
+  authorVariants?: string[]
 ): Promise<{ id: number; isNew: boolean }> {
   // First, try to find an existing similar book
   const existingBook = await findSimilarBook(title, author);
@@ -113,8 +115,13 @@ export async function findOrCreateBook(
     return { id: existingBook.id, isNew: false };
   }
 
-  // Search Google Books for metadata
-  const googleBook = await searchBookByTitleAndAuthor(title, author || undefined);
+  // Search Google Books with cascading fallbacks
+  const googleBook = await searchBookWithFallbacks(
+    title,
+    author || undefined,
+    titleVariants,
+    authorVariants
+  );
 
   if (googleBook) {
     // Check if we already have this Google Books ID
@@ -147,6 +154,45 @@ export async function findOrCreateBook(
   const book = await createBook({
     title,
     author,
+  });
+
+  return { id: book.id, isNew: true };
+}
+
+/**
+ * Create book from ISBN (most reliable)
+ */
+export async function findOrCreateBookByISBN(
+  isbn: string
+): Promise<{ id: number; isNew: boolean } | null> {
+  // Search Google Books by ISBN
+  const googleBook = await searchBookByISBN(isbn);
+
+  if (!googleBook) {
+    return null;
+  }
+
+  // Check if we already have this Google Books ID
+  const existing = await prisma.book.findUnique({
+    where: { googleBooksId: googleBook.googleBooksId },
+  });
+
+  if (existing) {
+    return { id: existing.id, isNew: false };
+  }
+
+  // Create new book with Google Books data
+  const book = await createBook({
+    title: googleBook.title,
+    author: googleBook.author,
+    googleBooksId: googleBook.googleBooksId,
+    googleBooksUrl: googleBook.googleBooksUrl,
+    coverUrl: googleBook.coverUrl,
+    genres: googleBook.genres,
+    publicationYear: googleBook.publicationYear,
+    description: googleBook.description,
+    isbn: googleBook.isbn,
+    pageCount: googleBook.pageCount,
   });
 
   return { id: book.id, isNew: true };
@@ -266,26 +312,76 @@ export async function getAllBooks(options?: {
 }
 
 export async function searchBooks(query: string, limit = 20) {
-  return prisma.book.findMany({
-    where: {
-      OR: [
-        { title: { contains: query } },
-        { author: { contains: query } },
-      ],
-    },
-    include: {
-      _count: {
-        select: { reviews: true },
-      },
-    },
-    take: limit,
-  });
+  // SQLite doesn't support case-insensitive search for Unicode/Cyrillic with COLLATE NOCASE
+  // So we search with multiple case variants to handle both ASCII and Cyrillic
+  const queryLower = query.toLowerCase();
+  const queryUpper = query.toUpperCase();
+  const queryTitle = query.charAt(0).toUpperCase() + query.slice(1).toLowerCase();
+
+  const books = await prisma.$queryRaw<Array<{
+    id: number;
+    google_books_id: string | null;
+    title: string;
+    author: string | null;
+    isbn: string | null;
+    description: string | null;
+    genres: string | null;
+    publication_year: number | null;
+    page_count: number | null;
+    cover_url: string | null;
+    google_books_url: string | null;
+    created_at: Date;
+    updated_at: Date;
+  }>>`
+    SELECT * FROM books
+    WHERE title LIKE ${'%' + query + '%'}
+       OR title LIKE ${'%' + queryLower + '%'}
+       OR title LIKE ${'%' + queryUpper + '%'}
+       OR title LIKE ${'%' + queryTitle + '%'}
+       OR author LIKE ${'%' + query + '%'}
+       OR author LIKE ${'%' + queryLower + '%'}
+       OR author LIKE ${'%' + queryUpper + '%'}
+       OR author LIKE ${'%' + queryTitle + '%'}
+    LIMIT ${limit}
+  `;
+
+  // Fetch review counts and sentiments for each book
+  const booksWithReviews = await Promise.all(
+    books.map(async (book) => {
+      const reviews = await prisma.review.findMany({
+        where: { bookId: book.id },
+        select: { sentiment: true },
+      });
+
+      // Map snake_case to camelCase
+      return {
+        id: book.id,
+        googleBooksId: book.google_books_id,
+        title: book.title,
+        author: book.author,
+        isbn: book.isbn,
+        description: book.description,
+        genres: book.genres,
+        publicationYear: book.publication_year,
+        pageCount: book.page_count,
+        coverUrl: book.cover_url,
+        googleBooksUrl: book.google_books_url,
+        createdAt: book.created_at,
+        updatedAt: book.updated_at,
+        reviews,
+        _count: { reviews: reviews.length },
+      };
+    })
+  );
+
+  return booksWithReviews;
 }
 
 export async function processReviewText(reviewText: string): Promise<{
   bookId: number;
   isNewBook: boolean;
   bookTitle: string;
+  bookInfo: ExtractedBookInfo;
 } | null> {
   // Extract book info from review text using LLM
   const bookInfo = await extractBookInfo(reviewText);
@@ -295,8 +391,13 @@ export async function processReviewText(reviewText: string): Promise<{
     return null;
   }
 
-  // Find or create the book
-  const { id, isNew } = await findOrCreateBook(bookInfo.title, bookInfo.author);
+  // Find or create the book using enhanced search with variants
+  const { id, isNew } = await findOrCreateBook(
+    bookInfo.title,
+    bookInfo.author,
+    bookInfo.titleVariants,
+    bookInfo.authorVariants
+  );
 
   const book = await prisma.book.findUnique({
     where: { id },
@@ -307,6 +408,7 @@ export async function processReviewText(reviewText: string): Promise<{
     bookId: id,
     isNewBook: isNew,
     bookTitle: book?.title || bookInfo.title,
+    bookInfo,
   };
 }
 
