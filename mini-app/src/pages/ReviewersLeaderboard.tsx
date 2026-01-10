@@ -1,22 +1,22 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  getMonthlyReviewersLeaderboard,
-  getYearlyReviewersLeaderboard,
   getReviewersLeaderboard,
+  getLast30DaysReviewersLeaderboard,
+  getLast365DaysReviewersLeaderboard,
   type LeaderboardEntry,
 } from "../api/client";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
 
-type Tab = "monthly" | "yearly" | "overall";
+type Tab = "overall" | "last30days" | "last365days";
 
 export default function ReviewersLeaderboard() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("monthly");
-  const [monthlyData, setMonthlyData] = useState<LeaderboardEntry[]>([]);
-  const [yearlyData, setYearlyData] = useState<LeaderboardEntry[]>([]);
+  const [tab, setTab] = useState<Tab>("overall");
   const [overallData, setOverallData] = useState<LeaderboardEntry[]>([]);
+  const [last30DaysData, setLast30DaysData] = useState<LeaderboardEntry[]>([]);
+  const [last365DaysData, setLast365DaysData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,15 +26,15 @@ export default function ReviewersLeaderboard() {
       setError(null);
 
       try {
-        const [monthly, yearly, overall] = await Promise.all([
-          getMonthlyReviewersLeaderboard({ limit: 20 }),
-          getYearlyReviewersLeaderboard({ limit: 20 }),
+        const [overall, last30days, last365days] = await Promise.all([
           getReviewersLeaderboard(20),
+          getLast30DaysReviewersLeaderboard(20),
+          getLast365DaysReviewersLeaderboard(20),
         ]);
 
-        setMonthlyData(monthly.leaderboard);
-        setYearlyData(yearly.leaderboard);
         setOverallData(overall.leaderboard);
+        setLast30DaysData(last30days.leaderboard);
+        setLast365DaysData(last365days.leaderboard);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load leaderboard");
       } finally {
@@ -55,7 +55,7 @@ export default function ReviewersLeaderboard() {
   if (loading) return <Loading />;
   if (error) return <ErrorMessage message={error} />;
 
-  const currentData = tab === "monthly" ? monthlyData : tab === "yearly" ? yearlyData : overallData;
+  const currentData = tab === "overall" ? overallData : tab === "last30days" ? last30DaysData : last365DaysData;
 
   return (
     <div className="p-4">
@@ -67,26 +67,6 @@ export default function ReviewersLeaderboard() {
 
       <div className="flex gap-2 mb-6">
         <button
-          onClick={() => setTab("monthly")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
-            tab === "monthly"
-              ? "bg-tg-button text-tg-button-text"
-              : "bg-tg-secondary text-tg-hint"
-          }`}
-        >
-          This Month
-        </button>
-        <button
-          onClick={() => setTab("yearly")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
-            tab === "yearly"
-              ? "bg-tg-button text-tg-button-text"
-              : "bg-tg-secondary text-tg-hint"
-          }`}
-        >
-          This Year
-        </button>
-        <button
           onClick={() => setTab("overall")}
           className={`px-4 py-2 rounded-lg text-sm font-medium ${
             tab === "overall"
@@ -95,6 +75,26 @@ export default function ReviewersLeaderboard() {
           }`}
         >
           Overall
+        </button>
+        <button
+          onClick={() => setTab("last30days")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            tab === "last30days"
+              ? "bg-tg-button text-tg-button-text"
+              : "bg-tg-secondary text-tg-hint"
+          }`}
+        >
+          30D
+        </button>
+        <button
+          onClick={() => setTab("last365days")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            tab === "last365days"
+              ? "bg-tg-button text-tg-button-text"
+              : "bg-tg-secondary text-tg-hint"
+          }`}
+        >
+          365D
         </button>
       </div>
 

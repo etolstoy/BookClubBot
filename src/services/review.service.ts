@@ -1,6 +1,7 @@
 import prisma from "../lib/prisma.js";
 import { analyzeSentiment, type Sentiment } from "./sentiment.js";
 import { processReviewText } from "./book.service.js";
+import type { ExtractedBookInfo } from "./llm.js";
 
 export interface CreateReviewInput {
   bookId?: number | null;
@@ -45,23 +46,14 @@ export async function processAndCreateReview(input: {
   review: Awaited<ReturnType<typeof createReview>>;
   isNewBook: boolean;
   reviewCount: number;
+  bookInfo?: ExtractedBookInfo;
 } | null> {
   // Process the review text to extract and find/create the book
   const bookResult = await processReviewText(input.reviewText);
 
   if (!bookResult) {
-    // Could not identify book, save review without book association
-    const review = await createReview({
-      ...input,
-      bookId: null,
-      sentiment: null,
-    });
-
-    return {
-      review,
-      isNewBook: false,
-      reviewCount: 0,
-    };
+    // Could not identify book - return null to trigger ISBN prompt
+    return null;
   }
 
   // Analyze sentiment
@@ -83,6 +75,7 @@ export async function processAndCreateReview(input: {
     review,
     isNewBook: bookResult.isNewBook,
     reviewCount,
+    bookInfo: bookResult.bookInfo,
   };
 }
 
@@ -232,6 +225,91 @@ export async function getYearlyLeaderboard(year: number, limit = 10) {
   }));
 }
 
+export async function getOverallLeaderboard(limit = 10) {
+  const results = await prisma.review.groupBy({
+    by: ["telegramUserId", "telegramUsername", "telegramDisplayName"],
+    _count: {
+      id: true,
+    },
+    orderBy: {
+      _count: {
+        id: "desc",
+      },
+    },
+    take: limit,
+  });
+
+  return results.map((r: { telegramUserId: bigint; telegramUsername: string | null; telegramDisplayName: string | null; _count: { id: number } }, index: number) => ({
+    rank: index + 1,
+    telegramUserId: r.telegramUserId.toString(),
+    username: r.telegramUsername,
+    displayName: r.telegramDisplayName,
+    reviewCount: r._count.id,
+  }));
+}
+
+export async function getLast30DaysLeaderboard(limit = 10) {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+
+  const results = await prisma.review.groupBy({
+    by: ["telegramUserId", "telegramUsername", "telegramDisplayName"],
+    where: {
+      reviewedAt: {
+        gte: startDate,
+      },
+    },
+    _count: {
+      id: true,
+    },
+    orderBy: {
+      _count: {
+        id: "desc",
+      },
+    },
+    take: limit,
+  });
+
+  return results.map((r: { telegramUserId: bigint; telegramUsername: string | null; telegramDisplayName: string | null; _count: { id: number } }, index: number) => ({
+    rank: index + 1,
+    telegramUserId: r.telegramUserId.toString(),
+    username: r.telegramUsername,
+    displayName: r.telegramDisplayName,
+    reviewCount: r._count.id,
+  }));
+}
+
+export async function getLast365DaysLeaderboard(limit = 10) {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 365);
+
+  const results = await prisma.review.groupBy({
+    by: ["telegramUserId", "telegramUsername", "telegramDisplayName"],
+    where: {
+      reviewedAt: {
+        gte: startDate,
+      },
+    },
+    _count: {
+      id: true,
+    },
+    orderBy: {
+      _count: {
+        id: "desc",
+      },
+    },
+    take: limit,
+  });
+
+  return results.map((r: { telegramUserId: bigint; telegramUsername: string | null; telegramDisplayName: string | null; _count: { id: number } }, index: number) => ({
+    rank: index + 1,
+    telegramUserId: r.telegramUserId.toString(),
+    username: r.telegramUsername,
+    displayName: r.telegramDisplayName,
+    reviewCount: r._count.id,
+  }));
+}
+
 export async function getMostReviewedBooks(limit = 10, offset = 0, period?: { type: 'monthly' | 'yearly'; year: number; month?: number }) {
   let whereClause = {};
 
@@ -289,6 +367,86 @@ export async function getMostReviewedBooks(limit = 10, offset = 0, period?: { ty
     coverUrl: book.coverUrl,
     reviewCount: book._count.reviews,
   }));
+}
+
+export async function getLast30DaysMostReviewedBooks(limit = 10, offset = 0) {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+
+  // Group reviews by book to get counts within the period
+  const reviewCounts = await prisma.review.groupBy({
+    by: ['bookId'],
+    where: {
+      bookId: { not: null },
+      reviewedAt: { gte: startDate },
+    },
+    _count: { id: true },
+    orderBy: { _count: { id: 'desc' } },
+    take: limit,
+    skip: offset,
+  });
+
+  // Get book details for the top reviewed books
+  const bookIds = reviewCounts.map(r => r.bookId).filter((id): id is number => id !== null);
+  const books = await prisma.book.findMany({
+    where: { id: { in: bookIds } },
+  });
+
+  // Create a map for easy lookup
+  const bookMap = new Map(books.map(book => [book.id, book]));
+
+  // Combine the data maintaining the order
+  return reviewCounts.map((rc, index) => {
+    const book = bookMap.get(rc.bookId!);
+    return {
+      rank: offset + index + 1,
+      bookId: rc.bookId!,
+      title: book?.title || 'Unknown',
+      author: book?.author || null,
+      coverUrl: book?.coverUrl || null,
+      reviewCount: rc._count.id,
+    };
+  });
+}
+
+export async function getLast365DaysMostReviewedBooks(limit = 10, offset = 0) {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 365);
+
+  // Group reviews by book to get counts within the period
+  const reviewCounts = await prisma.review.groupBy({
+    by: ['bookId'],
+    where: {
+      bookId: { not: null },
+      reviewedAt: { gte: startDate },
+    },
+    _count: { id: true },
+    orderBy: { _count: { id: 'desc' } },
+    take: limit,
+    skip: offset,
+  });
+
+  // Get book details for the top reviewed books
+  const bookIds = reviewCounts.map(r => r.bookId).filter((id): id is number => id !== null);
+  const books = await prisma.book.findMany({
+    where: { id: { in: bookIds } },
+  });
+
+  // Create a map for easy lookup
+  const bookMap = new Map(books.map(book => [book.id, book]));
+
+  // Combine the data maintaining the order
+  return reviewCounts.map((rc, index) => {
+    const book = bookMap.get(rc.bookId!);
+    return {
+      rank: offset + index + 1,
+      bookId: rc.bookId!,
+      title: book?.title || 'Unknown',
+      author: book?.author || null,
+      coverUrl: book?.coverUrl || null,
+      reviewCount: rc._count.id,
+    };
+  });
 }
 
 export async function getStats() {
