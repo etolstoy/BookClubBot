@@ -36,6 +36,12 @@ export default function Reviewer() {
     loadReviewer();
   }, [userId]);
 
+  const handleReviewUpdated = (updatedReview: Review) => {
+    setReviews((prev) =>
+      prev.map((r) => (r.id === updatedReview.id ? updatedReview : r))
+    );
+  };
+
   if (loading) return <Loading />;
   if (error) return <ErrorMessage message={error} />;
   if (!reviewer) return <ErrorMessage message={t("reviewer.notFound")} />;
@@ -86,7 +92,12 @@ export default function Reviewer() {
           <p className="text-center text-tg-hint py-4">{t("reviewer.noReviews")}</p>
         ) : (
           reviews.map((review) => (
-            <ReviewCard key={review.id} review={review} showBook />
+            <ReviewCard
+              key={review.id}
+              review={review}
+              showBook
+              onReviewUpdated={handleReviewUpdated}
+            />
           ))
         )}
       </div>

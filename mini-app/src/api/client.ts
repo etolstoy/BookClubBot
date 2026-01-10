@@ -1,10 +1,24 @@
 const API_BASE = "/api";
 
+function getTelegramInitData(): string | null {
+  if (typeof window === "undefined") return null;
+
+  const tg = window.Telegram?.WebApp;
+  if (!tg) return null;
+
+  // The full initData string is available via tg.initData
+  // Note: This is NOT initDataUnsafe - it's the raw signed string
+  return (tg as any).initData || null;
+}
+
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const initData = getTelegramInitData();
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(initData ? { Authorization: `Bearer ${initData}` } : {}),
       ...options?.headers,
     },
   });
@@ -314,4 +328,27 @@ export async function getRecentReviews(options?: {
 
   const query = params.toString();
   return fetchApi(`/reviews/recent${query ? `?${query}` : ""}`);
+}
+
+export interface UpdateReviewInput {
+  reviewText?: string;
+  sentiment?: "positive" | "negative" | "neutral";
+  bookId?: number;
+}
+
+export async function updateReview(
+  reviewId: number,
+  data: UpdateReviewInput
+): Promise<{ review: Review; message: string }> {
+  return fetchApi(`/reviews/${reviewId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function getCurrentUserId(): string | null {
+  if (typeof window === "undefined") return null;
+
+  const tg = window.Telegram?.WebApp;
+  return tg?.initDataUnsafe?.user?.id?.toString() || null;
 }

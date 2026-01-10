@@ -52,6 +52,12 @@ export default function FreshReviews() {
     }
   };
 
+  const handleReviewUpdated = (updatedReview: Review) => {
+    setReviews((prev) =>
+      prev.map((r) => (r.id === updatedReview.id ? updatedReview : r))
+    );
+  };
+
   return (
     <div className="p-4">
       <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
@@ -72,7 +78,12 @@ export default function FreshReviews() {
         <>
           <div className="flex flex-col gap-3 mb-6">
             {reviews.map((review) => (
-              <ReviewCard key={review.id} review={review} showBook />
+              <ReviewCard
+                key={review.id}
+                review={review}
+                showBook
+                onReviewUpdated={handleReviewUpdated}
+              />
             ))}
           </div>
 

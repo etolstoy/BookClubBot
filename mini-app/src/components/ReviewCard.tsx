@@ -1,58 +1,110 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { Review } from "../api/client";
+import { getCurrentUserId } from "../api/client";
 import SentimentBadge from "./SentimentBadge";
+import EditReviewModal from "./EditReviewModal";
 import { useTranslation } from "../i18n/index.js";
 
 interface ReviewCardProps {
   review: Review;
   showBook?: boolean;
+  onReviewUpdated?: (updatedReview: Review) => void;
 }
 
-export default function ReviewCard({ review, showBook = false }: ReviewCardProps) {
+export default function ReviewCard({
+  review,
+  showBook = false,
+  onReviewUpdated,
+}: ReviewCardProps) {
   const { t } = useTranslation();
-  const formattedDate = new Date(review.reviewedAt).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [currentReview, setCurrentReview] = useState(review);
+
+  const currentUserId = getCurrentUserId();
+  const isOwner = currentUserId === currentReview.telegramUserId;
+
+  const formattedDate = new Date(currentReview.reviewedAt).toLocaleDateString(
+    undefined,
+    {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }
+  );
+
+  const handleReviewUpdated = (updatedReview: Review) => {
+    setCurrentReview(updatedReview);
+    if (onReviewUpdated) {
+      onReviewUpdated(updatedReview);
+    }
+  };
 
   return (
-    <div className="p-4 rounded-lg bg-tg-secondary">
-      <div className="flex items-center justify-between mb-2">
-        <Link
-          to={`/reviewer/${review.telegramUserId}`}
-          className="font-medium text-tg-link hover:underline"
-        >
-          {review.reviewerName}
-        </Link>
-        <div className="flex items-center gap-2">
-          {review.sentiment && <SentimentBadge sentiment={review.sentiment} />}
-          <span className="text-xs text-tg-hint">{formattedDate}</span>
-        </div>
-      </div>
-
-      {showBook && review.book && (
-        <Link
-          to={`/book/${review.book.id}`}
-          className="flex items-center gap-2 mb-2 text-sm"
-        >
-          {review.book.coverUrl && (
-            <img
-              src={review.book.coverUrl}
-              alt={review.book.title}
-              className="w-8 h-12 object-cover rounded"
-            />
-          )}
-          <div>
-            <span className="text-tg-link font-medium">{review.book.title}</span>
-            {review.book.author && (
-              <span className="text-tg-hint"> {t("common.by")} {review.book.author}</span>
+    <>
+      <div className="p-4 rounded-lg bg-tg-secondary">
+        <div className="flex items-center justify-between mb-2">
+          <Link
+            to={`/reviewer/${currentReview.telegramUserId}`}
+            className="font-medium text-tg-link hover:underline"
+          >
+            {currentReview.reviewerName}
+          </Link>
+          <div className="flex items-center gap-2">
+            {currentReview.sentiment && (
+              <SentimentBadge sentiment={currentReview.sentiment} />
+            )}
+            <span className="text-xs text-tg-hint">{formattedDate}</span>
+            {isOwner && (
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="ml-2 text-xs text-tg-link hover:underline"
+                title={t("review.edit")}
+              >
+                ✏️ {t("review.edit")}
+              </button>
             )}
           </div>
-        </Link>
-      )}
+        </div>
 
-      <p className="text-sm text-tg-text whitespace-pre-wrap">{review.reviewText}</p>
-    </div>
+        {showBook && currentReview.book && (
+          <Link
+            to={`/book/${currentReview.book.id}`}
+            className="flex items-center gap-2 mb-2 text-sm"
+          >
+            {currentReview.book.coverUrl && (
+              <img
+                src={currentReview.book.coverUrl}
+                alt={currentReview.book.title}
+                className="w-8 h-12 object-cover rounded"
+              />
+            )}
+            <div>
+              <span className="text-tg-link font-medium">
+                {currentReview.book.title}
+              </span>
+              {currentReview.book.author && (
+                <span className="text-tg-hint">
+                  {" "}
+                  {t("common.by")} {currentReview.book.author}
+                </span>
+              )}
+            </div>
+          </Link>
+        )}
+
+        <p className="text-sm text-tg-text whitespace-pre-wrap">
+          {currentReview.reviewText}
+        </p>
+      </div>
+
+      {showEditModal && (
+        <EditReviewModal
+          review={currentReview}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={handleReviewUpdated}
+        />
+      )}
+    </>
   );
 }

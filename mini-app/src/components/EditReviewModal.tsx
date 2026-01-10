@@ -1,0 +1,339 @@
+import { useState, useEffect } from "react";
+import {
+  searchBooks,
+  updateReview,
+  type Book,
+  type Review,
+  type UpdateReviewInput,
+} from "../api/client";
+import { useTranslation } from "../i18n/index.js";
+
+interface EditReviewModalProps {
+  review: Review;
+  onClose: () => void;
+  onSuccess: (updatedReview: Review) => void;
+}
+
+export default function EditReviewModal({
+  review,
+  onClose,
+  onSuccess,
+}: EditReviewModalProps) {
+  const { t } = useTranslation();
+  const [reviewText, setReviewText] = useState(review.reviewText);
+  const [sentiment, setSentiment] = useState<
+    "positive" | "negative" | "neutral" | null
+  >(review.sentiment);
+  const [selectedBook, setSelectedBook] = useState(review.book);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Book[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showBookSearch, setShowBookSearch] = useState(false);
+
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const result = await searchBooks(query);
+      setSearchResults(result.books);
+    } catch (err) {
+      console.error("Search error:", err);
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery) {
+        handleSearch(searchQuery);
+      }
+    }, 300); // Debounce search
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const handleSave = async () => {
+    if (!reviewText.trim()) {
+      setError(t("editReview.errors.emptyText"));
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const updateData: UpdateReviewInput = {};
+
+      // Check what changed
+      if (reviewText !== review.reviewText) {
+        updateData.reviewText = reviewText;
+      }
+
+      if (sentiment !== review.sentiment) {
+        updateData.sentiment = sentiment || undefined;
+      }
+
+      if (selectedBook?.id !== review.book?.id) {
+        updateData.bookId = selectedBook?.id;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        onClose();
+        return;
+      }
+
+      const result = await updateReview(review.id, updateData);
+      onSuccess(result.review);
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("editReview.errors.saveFailed")
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-tg-bg rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-4 border-b border-tg-secondary sticky top-0 bg-tg-bg">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-tg-text">
+              {t("editReview.title")}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-tg-hint hover:text-tg-text"
+              disabled={saving}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-500 bg-opacity-20 rounded-lg text-red-500 text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Review Text */}
+          <div>
+            <label className="block text-sm font-medium text-tg-text mb-2">
+              {t("editReview.reviewText")}
+            </label>
+            <textarea
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              className="w-full p-3 rounded-lg bg-tg-secondary text-tg-text border-none outline-none resize-none"
+              rows={6}
+              placeholder={t("editReview.reviewTextPlaceholder")}
+              disabled={saving}
+            />
+          </div>
+
+          {/* Sentiment Selector */}
+          <div>
+            <label className="block text-sm font-medium text-tg-text mb-2">
+              {t("editReview.sentiment")}
+            </label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSentiment("positive")}
+                className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
+                  sentiment === "positive"
+                    ? "border-green-500 bg-green-500 bg-opacity-20"
+                    : "border-tg-secondary bg-tg-secondary"
+                }`}
+                disabled={saving}
+              >
+                <div className="text-2xl">👍</div>
+                <div className="text-xs text-tg-hint mt-1">
+                  {t("sentiment.positive")}
+                </div>
+              </button>
+              <button
+                onClick={() => setSentiment("neutral")}
+                className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
+                  sentiment === "neutral"
+                    ? "border-yellow-500 bg-yellow-500 bg-opacity-20"
+                    : "border-tg-secondary bg-tg-secondary"
+                }`}
+                disabled={saving}
+              >
+                <div className="text-2xl">😐</div>
+                <div className="text-xs text-tg-hint mt-1">
+                  {t("sentiment.neutral")}
+                </div>
+              </button>
+              <button
+                onClick={() => setSentiment("negative")}
+                className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
+                  sentiment === "negative"
+                    ? "border-red-500 bg-red-500 bg-opacity-20"
+                    : "border-tg-secondary bg-tg-secondary"
+                }`}
+                disabled={saving}
+              >
+                <div className="text-2xl">👎</div>
+                <div className="text-xs text-tg-hint mt-1">
+                  {t("sentiment.negative")}
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Book Assignment */}
+          <div>
+            <label className="block text-sm font-medium text-tg-text mb-2">
+              {t("editReview.book")}
+            </label>
+
+            {selectedBook ? (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-tg-secondary">
+                {selectedBook.coverUrl && (
+                  <img
+                    src={selectedBook.coverUrl}
+                    alt={selectedBook.title}
+                    className="w-12 h-16 object-cover rounded"
+                  />
+                )}
+                <div className="flex-1">
+                  <div className="font-medium text-tg-text">
+                    {selectedBook.title}
+                  </div>
+                  {selectedBook.author && (
+                    <div className="text-sm text-tg-hint">
+                      {selectedBook.author}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowBookSearch(true)}
+                  className="text-sm text-tg-link hover:underline"
+                  disabled={saving}
+                >
+                  {t("editReview.changeBook")}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowBookSearch(true)}
+                className="w-full p-3 rounded-lg bg-tg-secondary text-tg-link hover:bg-opacity-80 transition-colors"
+                disabled={saving}
+              >
+                {t("editReview.selectBook")}
+              </button>
+            )}
+          </div>
+
+          {/* Book Search */}
+          {showBookSearch && (
+            <div className="border-t border-tg-secondary pt-4">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t("editReview.searchBookPlaceholder")}
+                className="w-full p-3 rounded-lg bg-tg-secondary text-tg-text border-none outline-none mb-3"
+                disabled={saving}
+              />
+
+              {searchLoading && (
+                <div className="text-center text-tg-hint py-4">
+                  {t("common.loading")}
+                </div>
+              )}
+
+              {!searchLoading && searchResults.length > 0 && (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {searchResults.map((book) => (
+                    <button
+                      key={book.id}
+                      onClick={() => {
+                        setSelectedBook(book);
+                        setShowBookSearch(false);
+                        setSearchQuery("");
+                        setSearchResults([]);
+                      }}
+                      className="w-full flex items-center gap-3 p-2 rounded-lg bg-tg-secondary hover:bg-opacity-80 transition-colors text-left"
+                      disabled={saving}
+                    >
+                      {book.coverUrl && (
+                        <img
+                          src={book.coverUrl}
+                          alt={book.title}
+                          className="w-10 h-14 object-cover rounded"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <div className="font-medium text-tg-text text-sm">
+                          {book.title}
+                        </div>
+                        {book.author && (
+                          <div className="text-xs text-tg-hint">
+                            {book.author}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!searchLoading &&
+                searchQuery &&
+                searchResults.length === 0 && (
+                  <div className="text-center text-tg-hint py-4">
+                    {t("editReview.noBookResults")}
+                  </div>
+                )}
+
+              <button
+                onClick={() => {
+                  setShowBookSearch(false);
+                  setSearchQuery("");
+                  setSearchResults([]);
+                }}
+                className="mt-3 text-sm text-tg-hint hover:text-tg-text"
+                disabled={saving}
+              >
+                {t("common.cancel")}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="p-4 border-t border-tg-secondary flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 rounded-lg bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors"
+            disabled={saving}
+          >
+            {t("common.cancel")}
+          </button>
+          <button
+            onClick={handleSave}
+            className="flex-1 px-4 py-2 rounded-lg bg-tg-button text-tg-button-text hover:bg-opacity-90 transition-colors disabled:opacity-50"
+            disabled={saving || !reviewText.trim()}
+          >
+            {saving ? t("common.saving") : t("common.save")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
