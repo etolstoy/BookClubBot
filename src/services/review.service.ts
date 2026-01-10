@@ -232,7 +232,7 @@ export async function getYearlyLeaderboard(year: number, limit = 10) {
   }));
 }
 
-export async function getMostReviewedBooks(limit = 10, period?: { type: 'monthly' | 'yearly'; year: number; month?: number }) {
+export async function getMostReviewedBooks(limit = 10, offset = 0, period?: { type: 'monthly' | 'yearly'; year: number; month?: number }) {
   let whereClause = {};
 
   if (period) {
@@ -278,10 +278,11 @@ export async function getMostReviewedBooks(limit = 10, period?: { type: 'monthly
       },
     },
     take: limit,
+    skip: offset,
   });
 
   return results.map((book: { id: number; title: string; author: string | null; coverUrl: string | null; _count: { reviews: number } }, index: number) => ({
-    rank: index + 1,
+    rank: offset + index + 1,
     bookId: book.id,
     title: book.title,
     author: book.author,

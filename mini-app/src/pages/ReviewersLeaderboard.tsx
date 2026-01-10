@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   getMonthlyReviewersLeaderboard,
   getYearlyReviewersLeaderboard,
@@ -12,6 +12,7 @@ import ErrorMessage from "../components/ErrorMessage";
 type Tab = "monthly" | "yearly" | "overall";
 
 export default function ReviewersLeaderboard() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("monthly");
   const [monthlyData, setMonthlyData] = useState<LeaderboardEntry[]>([]);
   const [yearlyData, setYearlyData] = useState<LeaderboardEntry[]>([]);
@@ -58,9 +59,9 @@ export default function ReviewersLeaderboard() {
 
   return (
     <div className="p-4">
-      <Link to="/" className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; Back to home
-      </Link>
+      <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
+        &larr; Back
+      </button>
 
       <h1 className="text-2xl font-bold text-tg-text mb-4">Top Reviewers</h1>
 
@@ -102,10 +103,10 @@ export default function ReviewersLeaderboard() {
           <p className="text-center text-tg-hint py-4">No reviews yet</p>
         ) : (
           currentData.map((entry) => (
-            <Link
+            <div
               key={entry.telegramUserId}
-              to={`/reviewer/${entry.telegramUserId}`}
-              className="flex items-center gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity"
+              onClick={() => navigate(`/reviewer/${entry.telegramUserId}`)}
+              className="flex items-center gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity cursor-pointer"
             >
               <span className="w-8 text-center text-lg">{getMedal(entry.rank)}</span>
               <div className="flex-1">
@@ -116,7 +117,7 @@ export default function ReviewersLeaderboard() {
               <span className="text-tg-hint">
                 {entry.reviewCount} review{entry.reviewCount !== 1 ? "s" : ""}
               </span>
-            </Link>
+            </div>
           ))
         )}
       </div>

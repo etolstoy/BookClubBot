@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { getReviewer, type Reviewer as ReviewerType, type Review } from "../api/client";
 import ReviewCard from "../components/ReviewCard";
 import Loading from "../components/Loading";
@@ -7,6 +7,7 @@ import ErrorMessage from "../components/ErrorMessage";
 
 export default function Reviewer() {
   const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
   const [reviewer, setReviewer] = useState<ReviewerType | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,9 +43,9 @@ export default function Reviewer() {
 
   return (
     <div className="p-4">
-      <Link to="/" className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; Back to catalog
-      </Link>
+      <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
+        &larr; Back
+      </button>
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-tg-text">{displayName}</h1>

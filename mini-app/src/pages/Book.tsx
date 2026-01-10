@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { getBook, type BookDetail, type Review } from "../api/client";
 import ReviewCard from "../components/ReviewCard";
 import SentimentBadge from "../components/SentimentBadge";
@@ -8,6 +8,7 @@ import ErrorMessage from "../components/ErrorMessage";
 
 export default function Book() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [book, setBook] = useState<BookDetail | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,9 +48,9 @@ export default function Book() {
 
   return (
     <div className="p-4">
-      <Link to="/" className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; Back to catalog
-      </Link>
+      <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
+        &larr; Back
+      </button>
 
       <div className="flex gap-4 mb-6">
         <div className="w-24 h-36 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
