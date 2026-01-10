@@ -10,6 +10,13 @@ export interface ExtractedBookInfo {
   title: string;
   author: string | null;
   additionalContext: string | null;
+  titleVariants?: string[];
+  authorVariants?: string[];
+  confidence?: "high" | "medium" | "low";
+  alternativeBooks?: Array<{
+    title: string;
+    author: string | null;
+  }>;
 }
 
 /**
@@ -67,21 +74,36 @@ export async function extractBookInfo(
   reviewText: string
 ): Promise<ExtractedBookInfo | null> {
   const systemPrompt = `You are a helpful assistant that extracts book information from review texts.
-Extract the book title and author from the given review text.
-Respond in JSON format only, with no additional text.
+Extract the PRIMARY book being reviewed, along with any alternative spellings/transliterations and other mentioned books.
 
-Response format:
+Respond with JSON only. Response format:
 {
-  "title": "Book Title",
+  "title": "Primary Book Title",
   "author": "Author Name or null if not found",
-  "additionalContext": "Any additional context like translator, edition, etc. or null"
+  "additionalContext": "Any additional context like translator, edition, etc. or null",
+  "titleVariants": ["Alternative Title Spelling", "Transliterated Title", ...],
+  "authorVariants": ["Alternative Author Spelling", "Transliterated Name", ...],
+  "confidence": "high" | "medium" | "low",
+  "alternativeBooks": [
+    {"title": "Other Mentioned Book", "author": "Author or null"},
+    ...
+  ]
 }
 
-If you cannot identify a book title, respond with:
+Guidelines:
+- "title" is the PRIMARY book being reviewed (the main subject)
+- Include transliterations (e.g., Russian ↔ English) in variants
+- Include common alternative spellings in variants
+- "alternativeBooks" are books mentioned for comparison/reference but NOT the primary subject
+- "confidence" indicates how certain you are about the primary book identification
+- Set confidence to "low" if multiple books seem equally important
+
+If you cannot identify any book, respond with:
 {
   "title": null,
   "author": null,
-  "additionalContext": null
+  "additionalContext": null,
+  "confidence": "low"
 }`;
 
   try {
@@ -116,6 +138,10 @@ If you cannot identify a book title, respond with:
       title: parsed.title,
       author: parsed.author || null,
       additionalContext: parsed.additionalContext || null,
+      titleVariants: parsed.titleVariants || [],
+      authorVariants: parsed.authorVariants || [],
+      confidence: parsed.confidence || "medium",
+      alternativeBooks: parsed.alternativeBooks || [],
     };
   } catch (error) {
     console.error("Error extracting book info:", error);

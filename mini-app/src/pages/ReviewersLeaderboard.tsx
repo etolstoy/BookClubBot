@@ -8,11 +8,13 @@ import {
 } from "../api/client";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
+import { useTranslation } from "../i18n/index.js";
 
 type Tab = "overall" | "last30days" | "last365days";
 
 export default function ReviewersLeaderboard() {
   const navigate = useNavigate();
+  const { t, plural } = useTranslation();
   const [tab, setTab] = useState<Tab>("overall");
   const [overallData, setOverallData] = useState<LeaderboardEntry[]>([]);
   const [last30DaysData, setLast30DaysData] = useState<LeaderboardEntry[]>([]);
@@ -36,7 +38,7 @@ export default function ReviewersLeaderboard() {
         setLast30DaysData(last30days.leaderboard);
         setLast365DaysData(last365days.leaderboard);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load leaderboard");
+        setError(err instanceof Error ? err.message : t("errors.loadLeaderboard"));
       } finally {
         setLoading(false);
       }
@@ -60,10 +62,10 @@ export default function ReviewersLeaderboard() {
   return (
     <div className="p-4">
       <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; Back
+        &larr; {t("common.back")}
       </button>
 
-      <h1 className="text-2xl font-bold text-tg-text mb-4">Top Reviewers</h1>
+      <h1 className="text-2xl font-bold text-tg-text mb-4">{t("reviewersLeaderboard.topReviewers")}</h1>
 
       <div className="flex gap-2 mb-6">
         <button
@@ -74,7 +76,7 @@ export default function ReviewersLeaderboard() {
               : "bg-tg-secondary text-tg-hint"
           }`}
         >
-          Overall
+          {t("reviewersLeaderboard.tabs.overall")}
         </button>
         <button
           onClick={() => setTab("last30days")}
@@ -84,7 +86,7 @@ export default function ReviewersLeaderboard() {
               : "bg-tg-secondary text-tg-hint"
           }`}
         >
-          30D
+          {t("reviewersLeaderboard.tabs.last30days")}
         </button>
         <button
           onClick={() => setTab("last365days")}
@@ -94,13 +96,13 @@ export default function ReviewersLeaderboard() {
               : "bg-tg-secondary text-tg-hint"
           }`}
         >
-          365D
+          {t("reviewersLeaderboard.tabs.last365days")}
         </button>
       </div>
 
       <div className="flex flex-col gap-2">
         {currentData.length === 0 ? (
-          <p className="text-center text-tg-hint py-4">No reviews yet</p>
+          <p className="text-center text-tg-hint py-4">{t("reviewersLeaderboard.noReviews")}</p>
         ) : (
           currentData.map((entry) => (
             <div
@@ -111,11 +113,11 @@ export default function ReviewersLeaderboard() {
               <span className="w-8 text-center text-lg">{getMedal(entry.rank)}</span>
               <div className="flex-1">
                 <span className="font-medium text-tg-text">
-                  {entry.displayName || entry.username || "Anonymous"}
+                  {entry.displayName || entry.username || t("common.anonymous")}
                 </span>
               </div>
               <span className="text-tg-hint">
-                {entry.reviewCount} review{entry.reviewCount !== 1 ? "s" : ""}
+                {plural("plurals.reviews", entry.reviewCount)}
               </span>
             </div>
           ))

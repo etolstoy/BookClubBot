@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { Review } from "../api/client";
 import SentimentBadge from "./SentimentBadge";
+import { useTranslation } from "../i18n/index.js";
 
 interface ReviewCardProps {
   review: Review;
@@ -8,6 +9,7 @@ interface ReviewCardProps {
 }
 
 export default function ReviewCard({ review, showBook = false }: ReviewCardProps) {
+  const { t } = useTranslation();
   const formattedDate = new Date(review.reviewedAt).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
@@ -44,7 +46,7 @@ export default function ReviewCard({ review, showBook = false }: ReviewCardProps
           <div>
             <span className="text-tg-link font-medium">{review.book.title}</span>
             {review.book.author && (
-              <span className="text-tg-hint"> by {review.book.author}</span>
+              <span className="text-tg-hint"> {t("common.by")} {review.book.author}</span>
             )}
           </div>
         </Link>

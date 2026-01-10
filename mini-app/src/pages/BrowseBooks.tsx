@@ -5,11 +5,13 @@ import BookCard from "../components/BookCard";
 import SearchBar from "../components/SearchBar";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
+import { useTranslation } from "../i18n/index.js";
 
 type SortOption = "recentlyReviewed" | "alphabetical";
 
 export default function BrowseBooks() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ export default function BrowseBooks() {
         setBooks(result.books);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load books");
+      setError(err instanceof Error ? err.message : t("errors.loadBooks"));
     } finally {
       setLoading(false);
     }
@@ -68,10 +70,10 @@ export default function BrowseBooks() {
   return (
     <div className="p-4">
       <button onClick={() => navigate('/')} className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; Back
+        &larr; {t("common.back")}
       </button>
 
-      <h1 className="text-2xl font-bold text-tg-text mb-4">Browse All Books</h1>
+      <h1 className="text-2xl font-bold text-tg-text mb-4">{t("browseBooks.title")}</h1>
 
       <div className="mb-4">
         <SearchBar onSearch={handleSearch} />
@@ -80,13 +82,13 @@ export default function BrowseBooks() {
       {searchQuery ? (
         <div className="mb-4 flex items-center justify-between">
           <span className="text-tg-hint">
-            Results for "{searchQuery}"
+            {t("browseBooks.resultsFor", { query: searchQuery })}
           </span>
           <button
             onClick={clearSearch}
             className="text-sm text-tg-link hover:underline"
           >
-            Clear
+            {t("common.clear")}
           </button>
         </div>
       ) : (
@@ -96,8 +98,8 @@ export default function BrowseBooks() {
             onChange={handleSortChange}
             className="px-3 py-2 rounded-lg bg-tg-secondary text-tg-text border-none outline-none"
           >
-            <option value="recentlyReviewed">Recently Reviewed</option>
-            <option value="alphabetical">Alphabetical</option>
+            <option value="recentlyReviewed">{t("browseBooks.sortBy.recentlyReviewed")}</option>
+            <option value="alphabetical">{t("browseBooks.sortBy.alphabetical")}</option>
           </select>
         </div>
       )}
@@ -107,7 +109,7 @@ export default function BrowseBooks() {
       {error && <ErrorMessage message={error} />}
 
       {!loading && !error && books.length === 0 && (
-        <p className="text-center text-tg-hint py-8">No books found</p>
+        <p className="text-center text-tg-hint py-8">{t("browseBooks.noBooks")}</p>
       )}
 
       {!loading && !error && books.length > 0 && (

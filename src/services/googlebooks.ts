@@ -1,5 +1,53 @@
 import { config } from "../lib/config.js";
 
+// Rate limiting configuration (configurable via environment)
+const GOOGLE_BOOKS_DELAY_MS = parseInt(process.env.GOOGLE_BOOKS_DELAY_MS || '200'); // Delay between requests
+const MAX_RETRIES = parseInt(process.env.GOOGLE_BOOKS_MAX_RETRIES || '3');
+const INITIAL_BACKOFF_MS = parseInt(process.env.GOOGLE_BOOKS_BACKOFF_MS || '1000'); // Start with 1 second
+
+// Track last request time for rate limiting
+let lastRequestTime = 0;
+
+/**
+ * Wait to respect rate limiting
+ */
+async function waitForRateLimit(): Promise<void> {
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+
+  if (timeSinceLastRequest < GOOGLE_BOOKS_DELAY_MS) {
+    const waitTime = GOOGLE_BOOKS_DELAY_MS - timeSinceLastRequest;
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+
+  lastRequestTime = Date.now();
+}
+
+/**
+ * Fetch with retry logic and exponential backoff for 429 errors
+ */
+async function fetchWithRetry(url: string, retryCount = 0): Promise<Response> {
+  await waitForRateLimit();
+
+  const response = await fetch(url);
+
+  if (response.status === 429) {
+    if (retryCount >= MAX_RETRIES) {
+      console.error(`[Google Books] Rate limit exceeded after ${MAX_RETRIES} retries`);
+      throw new Error(`Rate limit exceeded after ${MAX_RETRIES} retries`);
+    }
+
+    // Exponential backoff: 1s, 2s, 4s
+    const backoffTime = INITIAL_BACKOFF_MS * Math.pow(2, retryCount);
+    console.log(`[Google Books] Rate limit hit (429). Retrying in ${backoffTime}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+
+    await new Promise(resolve => setTimeout(resolve, backoffTime));
+    return fetchWithRetry(url, retryCount + 1);
+  }
+
+  return response;
+}
+
 export interface GoogleBookResult {
   id: string;
   title: string;
@@ -81,7 +129,7 @@ export async function searchBooks(query: string): Promise<BookSearchResult[]> {
   const url = `https://www.googleapis.com/books/v1/volumes?${params}`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
 
     if (!response.ok) {
       console.error(`Google Books API error: ${response.status}`);
@@ -133,7 +181,7 @@ export async function getBookById(
   const url = `https://www.googleapis.com/books/v1/volumes/${volumeId}?${params}`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
 
     if (!response.ok) {
       console.error(`Google Books API error: ${response.status}`);
@@ -175,4 +223,99 @@ export async function searchBookByTitleAndAuthor(
 
   const results = await searchBooks(query);
   return results[0] ?? null;
+}
+
+/**
+ * Search with cascading fallbacks to handle variations and typos
+ */
+export async function searchBookWithFallbacks(
+  title: string,
+  author?: string,
+  titleVariants?: string[],
+  authorVariants?: string[]
+): Promise<BookSearchResult | null> {
+  try {
+    // Try 1: Exact match with primary title and author
+    if (author) {
+      let result = await searchBookByTitleAndAuthor(title, author);
+      if (result) {
+        console.log('[Google Books] Found with exact match (title + author)');
+        return result;
+      }
+    }
+
+    // Try 2: Primary title only (handles author typos)
+    let result = await searchBookByTitleAndAuthor(title);
+    if (result) {
+      console.log('[Google Books] Found with primary title only');
+      return result;
+    }
+
+    // Try 3: Title variants with author
+    if (titleVariants && titleVariants.length > 0 && author) {
+      for (const variant of titleVariants) {
+        result = await searchBookByTitleAndAuthor(variant, author);
+        if (result) {
+          console.log(`[Google Books] Found with title variant: "${variant}"`);
+          return result;
+        }
+      }
+    }
+
+    // Try 4: Title variants without author
+    if (titleVariants && titleVariants.length > 0) {
+      for (const variant of titleVariants) {
+        result = await searchBookByTitleAndAuthor(variant);
+        if (result) {
+          console.log(`[Google Books] Found with title variant (no author): "${variant}"`);
+          return result;
+        }
+      }
+    }
+
+    // Try 5: Primary title with author variants
+    if (authorVariants && authorVariants.length > 0) {
+      for (const authorVariant of authorVariants) {
+        result = await searchBookByTitleAndAuthor(title, authorVariant);
+        if (result) {
+          console.log(`[Google Books] Found with author variant: "${authorVariant}"`);
+          return result;
+        }
+      }
+    }
+
+    // Try 6: Fuzzy search (general query, less precise)
+    const fuzzyQuery = `${title} ${author || ''}`.trim();
+    const fuzzyResults = await searchBooks(fuzzyQuery);
+    if (fuzzyResults.length > 0) {
+      console.log('[Google Books] Found with fuzzy search');
+      return fuzzyResults[0];
+    }
+
+    console.log('[Google Books] No results found after all fallbacks');
+    return null;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
+      console.error('[Google Books] Rate limit exceeded during cascading search. Stopping fallbacks.');
+      throw error; // Propagate to caller
+    }
+    console.error('[Google Books] Error during cascading search:', error);
+    return null;
+  }
+}
+
+/**
+ * Search book by ISBN (most precise)
+ */
+export async function searchBookByISBN(isbn: string): Promise<BookSearchResult | null> {
+  const query = `isbn:${isbn.replace(/[-\s]/g, '')}`;
+  const results = await searchBooks(query);
+
+  if (results.length > 0) {
+    console.log(`[Google Books] Found book by ISBN: ${isbn}`);
+    return results[0];
+  }
+
+  console.log(`[Google Books] No book found for ISBN: ${isbn}`);
+  return null;
 }
