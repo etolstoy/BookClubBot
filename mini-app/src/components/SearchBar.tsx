@@ -1,12 +1,15 @@
 import { useState, useCallback } from "react";
+import { useTranslation } from "../i18n/index.js";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
   placeholder?: string;
 }
 
-export default function SearchBar({ onSearch, placeholder = "Search books..." }: SearchBarProps) {
+export default function SearchBar({ onSearch, placeholder }: SearchBarProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState("");
+  const defaultPlaceholder = placeholder || t("home.searchPlaceholder");
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -31,14 +34,14 @@ export default function SearchBar({ onSearch, placeholder = "Search books..." }:
         type="text"
         value={value}
         onChange={handleChange}
-        placeholder={placeholder}
+        placeholder={defaultPlaceholder}
         className="flex-1 px-4 py-2 rounded-lg bg-tg-secondary text-tg-text placeholder-tg-hint border-none outline-none focus:ring-2 focus:ring-tg-button"
       />
       <button
         type="submit"
         className="px-4 py-2 rounded-lg bg-tg-button text-tg-button-text font-medium"
       >
-        Search
+        {t("common.search")}
       </button>
     </form>
   );

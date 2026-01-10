@@ -5,6 +5,7 @@ import {
   processAndCreateReview,
   checkDuplicateReview,
 } from "../../services/review.service.js";
+import { storePendingReview } from "./book-selection.js";
 
 function getDisplayName(from: Message["from"]): string | null {
   if (!from) return null;
@@ -131,16 +132,91 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
     }
 
     if (!result) {
+      // Book extraction failed - prompt for ISBN instead of saving without book
+      const userId = message.from.id.toString();
+
+      const stored = storePendingReview(userId, {
+        telegramUserId,
+        telegramUsername: message.from.username,
+        telegramDisplayName: getDisplayName(message.from),
+        reviewText: message.text,
+        messageId,
+        chatId: message.chat ? BigInt(message.chat.id) : null,
+        reviewedAt: new Date(message.date * 1000),
+      });
+
+      if (!stored) {
+        await ctx.reply(
+          "⚠️ You already have a pending review. Please complete it first or send /cancel to abort.",
+          { reply_parameters: { message_id: message.message_id } }
+        );
+        return;
+      }
+
       await ctx.reply(
-        "Could not identify a book in this review. The review was saved without book association.",
+        "❌ Could not identify a book in this review.\n\n" +
+        "📖 Please send the ISBN of the book (ISBN-10 or ISBN-13) to save this review.\n\n" +
+        "Example: 978-0-7475-3269-9\n\n" +
+        "Send /cancel to abort.",
         { reply_parameters: { message_id: message.message_id } }
       );
       return;
     }
 
-    const { review, isNewBook, reviewCount } = result;
+    const { review, isNewBook, reviewCount, bookInfo } = result;
     const bookTitle = review.book?.title || "Unknown Book";
 
+    // Check if multiple books were detected and confidence is low
+    const hasAlternativeBooks = bookInfo?.alternativeBooks && bookInfo.alternativeBooks.length > 0;
+    const isLowConfidence = bookInfo?.confidence === "low";
+
+    if ((hasAlternativeBooks || isLowConfidence) && bookInfo) {
+      // Show book selection menu
+      const buttons = [];
+
+      // Primary book button
+      buttons.push([
+        Markup.button.callback(
+          `📖 ${bookInfo.title}${bookInfo.author ? ` by ${bookInfo.author}` : ""}`,
+          `book_confirmed:${review.id}`
+        ),
+      ]);
+
+      // Alternative books buttons
+      if (hasAlternativeBooks) {
+        bookInfo.alternativeBooks!.forEach((altBook, index) => {
+          buttons.push([
+            Markup.button.callback(
+              `📚 ${altBook.title}${altBook.author ? ` by ${altBook.author}` : ""}`,
+              `book_alternative:${review.id}:${index}`
+            ),
+          ]);
+        });
+      }
+
+      // ISBN input button
+      buttons.push([
+        Markup.button.callback("🔢 Enter ISBN manually", `book_isbn:${review.id}`),
+      ]);
+
+      // Keep current book button
+      buttons.push([
+        Markup.button.callback("✅ Keep current choice", `book_confirmed:${review.id}`),
+      ]);
+
+      const keyboard = Markup.inlineKeyboard(buttons);
+
+      await ctx.reply(
+        `⚠️ Multiple books detected in your review!\n\nPrimary book: "${bookTitle}"\n\nPlease confirm which book you're reviewing:`,
+        {
+          reply_parameters: { message_id: message.message_id },
+          ...keyboard,
+        }
+      );
+      return;
+    }
+
+    // Standard success message
     let responseText: string;
     let keyboard;
 

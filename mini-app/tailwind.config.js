@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Ubuntu', 'system-ui', '-apple-system', 'sans-serif'],
+      },
       colors: {
         tg: {
           bg: "var(--tg-theme-bg-color, #ffffff)",

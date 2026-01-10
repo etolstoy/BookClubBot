@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
 import type { Book } from "../api/client";
 import SentimentBadge from "./SentimentBadge";
+import { useTranslation } from "../i18n/index.js";
 
 interface BookCardProps {
   book: Book;
 }
 
 export default function BookCard({ book }: BookCardProps) {
+  const { t, plural } = useTranslation();
   const totalSentiments =
     book.sentiments.positive + book.sentiments.negative + book.sentiments.neutral;
   const dominantSentiment =
@@ -33,7 +35,7 @@ export default function BookCard({ book }: BookCardProps) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs text-center p-1">
-            No cover
+            {t("common.noCover")}
           </div>
         )}
       </div>
@@ -45,7 +47,7 @@ export default function BookCard({ book }: BookCardProps) {
         )}
         <div className="flex items-center gap-2 mt-2">
           <span className="text-sm text-tg-hint">
-            {book.reviewCount} review{book.reviewCount !== 1 ? "s" : ""}
+            {plural("plurals.reviews", book.reviewCount)}
           </span>
           {dominantSentiment && <SentimentBadge sentiment={dominantSentiment} />}
         </div>

@@ -5,7 +5,7 @@ import SearchBar from "../components/SearchBar";
 import SentimentBadge from "../components/SentimentBadge";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
-import { useTranslation } from "../i18n/index.js";
+import { useTranslation } from "../i18n";
 
 export default function Home() {
   const navigate = useNavigate();

@@ -4,11 +4,13 @@ import { getRecentReviews, type Review } from "../api/client";
 import ReviewCard from "../components/ReviewCard";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
+import { useTranslation } from "../i18n/index.js";
 
 const REVIEWS_PER_PAGE = 20;
 
 export default function FreshReviews() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,8 +29,8 @@ export default function FreshReviews() {
         setReviews(result.reviews);
         setHasMore(result.reviews.length === REVIEWS_PER_PAGE);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load reviews");
-      } finally {
+        setError(err instanceof Error ? err.message : t("errors.loadReviews"));
+      } finally{
         setLoading(false);
       }
     }
@@ -53,17 +55,17 @@ export default function FreshReviews() {
   return (
     <div className="p-4">
       <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; Back
+        &larr; {t("common.back")}
       </button>
 
-      <h1 className="text-2xl font-bold text-tg-text mb-4">Fresh Reviews</h1>
+      <h1 className="text-2xl font-bold text-tg-text mb-4">{t("freshReviews.title")}</h1>
 
       {loading && <Loading />}
 
       {error && <ErrorMessage message={error} />}
 
       {!loading && !error && reviews.length === 0 && (
-        <p className="text-center text-tg-hint py-8">No reviews yet</p>
+        <p className="text-center text-tg-hint py-8">{t("freshReviews.noReviews")}</p>
       )}
 
       {!loading && !error && reviews.length > 0 && (
@@ -84,10 +86,10 @@ export default function FreshReviews() {
                   : "bg-tg-button text-tg-button-text hover:opacity-80"
               }`}
             >
-              Previous
+              {t("common.previous")}
             </button>
 
-            <span className="text-tg-hint">Page {page}</span>
+            <span className="text-tg-hint">{t("common.page")} {page}</span>
 
             <button
               onClick={handleNextPage}
@@ -98,7 +100,7 @@ export default function FreshReviews() {
                   : "bg-tg-button text-tg-button-text hover:opacity-80"
               }`}
             >
-              Next
+              {t("common.next")}
             </button>
           </div>
         </>

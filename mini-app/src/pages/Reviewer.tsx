@@ -4,10 +4,12 @@ import { getReviewer, type Reviewer as ReviewerType, type Review } from "../api/
 import ReviewCard from "../components/ReviewCard";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
+import { useTranslation } from "../i18n/index.js";
 
 export default function Reviewer() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [reviewer, setReviewer] = useState<ReviewerType | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export default function Reviewer() {
         setReviewer(result.reviewer);
         setReviews(result.reviews);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load reviewer");
+        setError(err instanceof Error ? err.message : t("errors.loadReviewer"));
       } finally {
         setLoading(false);
       }
@@ -36,15 +38,15 @@ export default function Reviewer() {
 
   if (loading) return <Loading />;
   if (error) return <ErrorMessage message={error} />;
-  if (!reviewer) return <ErrorMessage message="Reviewer not found" />;
+  if (!reviewer) return <ErrorMessage message={t("reviewer.notFound")} />;
 
-  const displayName = reviewer.displayName || reviewer.username || "Anonymous";
+  const displayName = reviewer.displayName || reviewer.username || t("common.anonymous");
   const { positive, negative, neutral } = reviewer.sentiments;
 
   return (
     <div className="p-4">
       <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; Back
+        &larr; {t("common.back")}
       </button>
 
       <div className="mb-6">
@@ -57,7 +59,7 @@ export default function Reviewer() {
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-4 rounded-lg bg-tg-secondary text-center">
           <div className="text-2xl font-bold text-tg-text">{reviewer.totalReviews}</div>
-          <div className="text-sm text-tg-hint">Total Reviews</div>
+          <div className="text-sm text-tg-hint">{t("reviewer.totalReviews")}</div>
         </div>
         <div className="p-4 rounded-lg bg-tg-secondary">
           <div className="flex justify-center gap-4">
@@ -77,11 +79,11 @@ export default function Reviewer() {
         </div>
       </div>
 
-      <h2 className="font-semibold text-tg-text mb-3">Review History</h2>
+      <h2 className="font-semibold text-tg-text mb-3">{t("reviewer.reviewHistory")}</h2>
 
       <div className="flex flex-col gap-3">
         {reviews.length === 0 ? (
-          <p className="text-center text-tg-hint py-4">No reviews yet</p>
+          <p className="text-center text-tg-hint py-4">{t("reviewer.noReviews")}</p>
         ) : (
           reviews.map((review) => (
             <ReviewCard key={review.id} review={review} showBook />
