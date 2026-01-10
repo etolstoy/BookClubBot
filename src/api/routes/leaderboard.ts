@@ -2,7 +2,12 @@ import { Router } from "express";
 import {
   getMonthlyLeaderboard,
   getYearlyLeaderboard,
+  getOverallLeaderboard,
+  getLast30DaysLeaderboard,
+  getLast365DaysLeaderboard,
   getMostReviewedBooks,
+  getLast30DaysMostReviewedBooks,
+  getLast365DaysMostReviewedBooks,
 } from "../../services/review.service.js";
 
 const router = Router();
@@ -180,6 +185,58 @@ router.get("/books/yearly", async (req, res) => {
   }
 });
 
+// GET /api/leaderboard/books/last30days - Most reviewed books in last 30 days
+router.get("/books/last30days", async (req, res) => {
+  try {
+    const { limit = "10", offset = "0" } = req.query;
+    const parsedLimit = parseInt(limit as string, 10);
+    const parsedOffset = parseInt(offset as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      res.status(400).json({ error: "Invalid limit parameter" });
+      return;
+    }
+
+    if (isNaN(parsedOffset) || parsedOffset < 0) {
+      res.status(400).json({ error: "Invalid offset parameter" });
+      return;
+    }
+
+    const leaderboard = await getLast30DaysMostReviewedBooks(parsedLimit, parsedOffset);
+
+    res.json({ leaderboard });
+  } catch (error) {
+    console.error("Error fetching last 30 days book leaderboard:", error);
+    res.status(500).json({ error: "Failed to fetch leaderboard" });
+  }
+});
+
+// GET /api/leaderboard/books/last365days - Most reviewed books in last 365 days
+router.get("/books/last365days", async (req, res) => {
+  try {
+    const { limit = "10", offset = "0" } = req.query;
+    const parsedLimit = parseInt(limit as string, 10);
+    const parsedOffset = parseInt(offset as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      res.status(400).json({ error: "Invalid limit parameter" });
+      return;
+    }
+
+    if (isNaN(parsedOffset) || parsedOffset < 0) {
+      res.status(400).json({ error: "Invalid offset parameter" });
+      return;
+    }
+
+    const leaderboard = await getLast365DaysMostReviewedBooks(parsedLimit, parsedOffset);
+
+    res.json({ leaderboard });
+  } catch (error) {
+    console.error("Error fetching last 365 days book leaderboard:", error);
+    res.status(500).json({ error: "Failed to fetch leaderboard" });
+  }
+});
+
 // GET /api/leaderboard/reviewers/monthly - Monthly top reviewers
 router.get("/reviewers/monthly", async (req, res) => {
   try {
@@ -258,12 +315,51 @@ router.get("/reviewers", async (req, res) => {
       return;
     }
 
-    // Use yearly leaderboard with a very old year to get all-time stats
-    const leaderboard = await getYearlyLeaderboard(1970, parsedLimit);
+    const leaderboard = await getOverallLeaderboard(parsedLimit);
 
     res.json({ leaderboard });
   } catch (error) {
     console.error("Error fetching overall reviewers leaderboard:", error);
+    res.status(500).json({ error: "Failed to fetch leaderboard" });
+  }
+});
+
+// GET /api/leaderboard/reviewers/last30days - Last 30 days top reviewers
+router.get("/reviewers/last30days", async (req, res) => {
+  try {
+    const { limit = "10" } = req.query;
+    const parsedLimit = parseInt(limit as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      res.status(400).json({ error: "Invalid limit parameter" });
+      return;
+    }
+
+    const leaderboard = await getLast30DaysLeaderboard(parsedLimit);
+
+    res.json({ leaderboard });
+  } catch (error) {
+    console.error("Error fetching last 30 days reviewers leaderboard:", error);
+    res.status(500).json({ error: "Failed to fetch leaderboard" });
+  }
+});
+
+// GET /api/leaderboard/reviewers/last365days - Last 365 days top reviewers
+router.get("/reviewers/last365days", async (req, res) => {
+  try {
+    const { limit = "10" } = req.query;
+    const parsedLimit = parseInt(limit as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      res.status(400).json({ error: "Invalid limit parameter" });
+      return;
+    }
+
+    const leaderboard = await getLast365DaysLeaderboard(parsedLimit);
+
+    res.json({ leaderboard });
+  } catch (error) {
+    console.error("Error fetching last 365 days reviewers leaderboard:", error);
     res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
 });

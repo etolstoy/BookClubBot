@@ -1,23 +1,23 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  getMonthlyBookLeaderboard,
-  getYearlyBookLeaderboard,
+  getLast30DaysBookLeaderboard,
+  getLast365DaysBookLeaderboard,
   getBookLeaderboard,
   type BookLeaderboardEntry,
 } from "../api/client";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
 
-type Tab = "monthly" | "yearly" | "overall";
+type Tab = "overall" | "last30days" | "last365days";
 
 const ITEMS_PER_PAGE = 20;
 
 export default function Leaderboard() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("overall");
-  const [monthlyData, setMonthlyData] = useState<BookLeaderboardEntry[]>([]);
-  const [yearlyData, setYearlyData] = useState<BookLeaderboardEntry[]>([]);
+  const [last30DaysData, setLast30DaysData] = useState<BookLeaderboardEntry[]>([]);
+  const [last365DaysData, setLast365DaysData] = useState<BookLeaderboardEntry[]>([]);
   const [overallData, setOverallData] = useState<BookLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,20 +33,20 @@ export default function Leaderboard() {
         const offset = (page - 1) * ITEMS_PER_PAGE;
         let data: BookLeaderboardEntry[];
 
-        if (tab === "monthly") {
-          const result = await getMonthlyBookLeaderboard({
+        if (tab === "last30days") {
+          const result = await getLast30DaysBookLeaderboard({
             limit: ITEMS_PER_PAGE,
             offset
           });
           data = result.leaderboard;
-          setMonthlyData(data);
-        } else if (tab === "yearly") {
-          const result = await getYearlyBookLeaderboard({
+          setLast30DaysData(data);
+        } else if (tab === "last365days") {
+          const result = await getLast365DaysBookLeaderboard({
             limit: ITEMS_PER_PAGE,
             offset
           });
           data = result.leaderboard;
-          setYearlyData(data);
+          setLast365DaysData(data);
         } else {
           const result = await getBookLeaderboard({
             limit: ITEMS_PER_PAGE,
@@ -96,7 +96,7 @@ export default function Leaderboard() {
   if (loading) return <Loading />;
   if (error) return <ErrorMessage message={error} />;
 
-  const currentData = tab === "monthly" ? monthlyData : tab === "yearly" ? yearlyData : overallData;
+  const currentData = tab === "last30days" ? last30DaysData : tab === "last365days" ? last365DaysData : overallData;
 
   return (
     <div className="p-4">
@@ -118,9 +118,9 @@ export default function Leaderboard() {
           Overall
         </button>
         <button
-          onClick={() => handleTabChange("monthly")}
+          onClick={() => handleTabChange("last30days")}
           className={`px-4 py-2 rounded-lg text-sm font-medium ${
-            tab === "monthly"
+            tab === "last30days"
               ? "bg-tg-button text-tg-button-text"
               : "bg-tg-secondary text-tg-hint"
           }`}
@@ -128,9 +128,9 @@ export default function Leaderboard() {
           30D
         </button>
         <button
-          onClick={() => handleTabChange("yearly")}
+          onClick={() => handleTabChange("last365days")}
           className={`px-4 py-2 rounded-lg text-sm font-medium ${
-            tab === "yearly"
+            tab === "last365days"
               ? "bg-tg-button text-tg-button-text"
               : "bg-tg-secondary text-tg-hint"
           }`}
