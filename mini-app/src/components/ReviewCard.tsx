@@ -46,7 +46,7 @@ export default function ReviewCard({
         <div className="flex items-center justify-between mb-2">
           <Link
             to={`/reviewer/${currentReview.telegramUserId}`}
-            className="font-medium text-tg-link no-underline"
+            className="font-medium text-tg-text no-underline"
           >
             {currentReview.reviewerName}
           </Link>
@@ -58,7 +58,7 @@ export default function ReviewCard({
             {isOwner && (
               <button
                 onClick={() => setShowEditModal(true)}
-                className="ml-2 text-xs text-tg-link no-underline"
+                className="ml-2 text-xs text-tg-text no-underline"
                 title={t("review.edit")}
               >
                 ✏️ {t("review.edit")}
@@ -70,7 +70,7 @@ export default function ReviewCard({
         {showBook && currentReview.book && (
           <Link
             to={`/book/${currentReview.book.id}`}
-            className="flex items-center gap-2 mb-2 text-sm no-underline"
+            className="flex items-start gap-2 mb-2 text-sm no-underline"
           >
             {currentReview.book.coverUrl && (
               <img
@@ -79,14 +79,13 @@ export default function ReviewCard({
                 className="w-8 h-12 object-cover rounded"
               />
             )}
-            <div>
-              <span className="text-tg-link font-medium">
+            <div className="flex flex-col">
+              <span className="text-tg-text font-medium">
                 {currentReview.book.title}
               </span>
               {currentReview.book.author && (
-                <span className="text-tg-hint">
-                  {" "}
-                  {t("common.by")} {currentReview.book.author}
+                <span className="text-tg-hint text-xs">
+                  {currentReview.book.author}
                 </span>
               )}
             </div>

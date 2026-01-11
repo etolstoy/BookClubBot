@@ -276,7 +276,7 @@ export default function EditReviewModal({
                 </div>
                 <button
                   onClick={() => setShowBookSearch(true)}
-                  className="text-sm text-tg-link no-underline"
+                  className="text-sm text-tg-text no-underline"
                   disabled={saving}
                 >
                   {t("editReview.changeBook")}
@@ -285,7 +285,7 @@ export default function EditReviewModal({
             ) : (
               <button
                 onClick={() => setShowBookSearch(true)}
-                className="w-full p-3 rounded-[16px] bg-tg-secondary text-tg-link hover:bg-opacity-80 transition-colors"
+                className="w-full p-3 rounded-[16px] bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors"
                 disabled={saving}
               >
                 {t("editReview.selectBook")}
@@ -413,7 +413,7 @@ export default function EditReviewModal({
                               {book.author}
                             </div>
                           )}
-                          <div className="text-xs text-tg-link">
+                          <div className="text-xs text-tg-text">
                             {t("editReview.fromGoogleBooks")}
                           </div>
                         </div>

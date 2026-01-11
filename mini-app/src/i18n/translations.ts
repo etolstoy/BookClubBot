@@ -20,14 +20,14 @@ export const translations = {
     title: "Вастрик.Книги",
     searchPlaceholder: "Поиск книг...",
     statistics: {
-      text: "У нас {{booksCount}} книг, {{reviewsCount}} рецензий и {{reviewersCount}} рецензентов",
+      text: "У нас {{booksCount}} книг, {{reviewsCount}} рецензий и {{reviewersCount}} клубней",
     },
     sections: {
       recentReviews: "Последние рецензии",
     },
     navigation: {
       topBooks: "Топ книг",
-      topReviewers: "Топ рецензентов",
+      topReviewers: "Топ клубней",
       freshReviews: "Свежие рецензии",
       browseAllBooks: "Все книги",
     },
@@ -51,7 +51,7 @@ export const translations = {
     totalReviews: "Всего рецензий",
     reviewHistory: "История рецензий",
     noReviews: "Рецензий пока нет",
-    notFound: "Рецензент не найден",
+    notFound: "Клубень не найден",
   },
 
   leaderboard: {
@@ -65,7 +65,7 @@ export const translations = {
   },
 
   reviewersLeaderboard: {
-    topReviewers: "Топ рецензентов",
+    topReviewers: "Топ клубней",
     tabs: {
       overall: "За всё время",
       last30days: "За 30 дней",
@@ -92,7 +92,7 @@ export const translations = {
   errors: {
     loadData: "Не удалось загрузить данные",
     loadBook: "Не удалось загрузить книгу",
-    loadReviewer: "Не удалось загрузить рецензента",
+    loadReviewer: "Не удалось загрузить клубня",
     loadLeaderboard: "Не удалось загрузить рейтинг",
     loadReviews: "Не удалось загрузить рецензии",
     loadBooks: "Не удалось загрузить книги",
@@ -108,6 +108,11 @@ export const translations = {
       one: "{{count}} книга",
       few: "{{count}} книги",
       many: "{{count}} книг",
+    },
+    reviewers: {
+      one: "{{count}} клубень",
+      few: "{{count}} клубня",
+      many: "{{count}} клубней",
     },
   },
 

@@ -35,7 +35,7 @@ export default function SearchBar({ onSearch, placeholder }: SearchBarProps) {
         value={value}
         onChange={handleChange}
         placeholder={defaultPlaceholder}
-        className="flex-1 px-4 py-2 rounded-lg bg-tg-secondary text-tg-text placeholder-tg-hint border-none outline-none focus:ring-2 focus:ring-tg-button"
+        className="flex-1 px-4 py-2 rounded-lg bg-tg-secondary text-tg-text placeholder-tg-hint border-none outline-none focus:ring-2 focus:ring-black"
       />
       <button
         type="submit"
