@@ -35,6 +35,10 @@ npm-debug.log*
 prisma/*.db
 prisma/*.db-journal
 
+# Telegram exports
+tg-export.json
+*-export.json
+
 # Coverage
 coverage/
 
