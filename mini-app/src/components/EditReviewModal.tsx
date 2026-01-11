@@ -206,7 +206,7 @@ export default function EditReviewModal({
             <div className="flex gap-2">
               <button
                 onClick={() => setSentiment("positive")}
-                className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
+                className={`flex-1 p-3 rounded-[16px] border-2 transition-colors ${
                   sentiment === "positive"
                     ? "border-green-500 bg-green-500 bg-opacity-20"
                     : "border-tg-secondary bg-tg-secondary"
@@ -220,7 +220,7 @@ export default function EditReviewModal({
               </button>
               <button
                 onClick={() => setSentiment("neutral")}
-                className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
+                className={`flex-1 p-3 rounded-[16px] border-2 transition-colors ${
                   sentiment === "neutral"
                     ? "border-yellow-500 bg-yellow-500 bg-opacity-20"
                     : "border-tg-secondary bg-tg-secondary"
@@ -234,7 +234,7 @@ export default function EditReviewModal({
               </button>
               <button
                 onClick={() => setSentiment("negative")}
-                className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
+                className={`flex-1 p-3 rounded-[16px] border-2 transition-colors ${
                   sentiment === "negative"
                     ? "border-red-500 bg-red-500 bg-opacity-20"
                     : "border-tg-secondary bg-tg-secondary"
@@ -285,7 +285,7 @@ export default function EditReviewModal({
             ) : (
               <button
                 onClick={() => setShowBookSearch(true)}
-                className="w-full p-3 rounded-lg bg-tg-secondary text-tg-link hover:bg-opacity-80 transition-colors"
+                className="w-full p-3 rounded-[16px] bg-tg-secondary text-tg-link hover:bg-opacity-80 transition-colors"
                 disabled={saving}
               >
                 {t("editReview.selectBook")}
@@ -368,7 +368,7 @@ export default function EditReviewModal({
                   <button
                     onClick={handleGoogleBooksSearch}
                     disabled={googleBooksLoading || saving}
-                    className="w-full p-3 rounded-lg bg-tg-button text-tg-button-text hover:bg-opacity-90 transition-colors disabled:opacity-50 mb-3"
+                    className="w-full p-3 rounded-[16px] bg-tg-button text-tg-button-text hover:bg-opacity-90 transition-colors disabled:opacity-50 mb-3"
                   >
                     {googleBooksLoading
                       ? t("editReview.searchingGoogleBooks")
@@ -461,14 +461,14 @@ export default function EditReviewModal({
         <div className="p-4 border-t border-tg-secondary flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 rounded-lg bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors"
+            className="flex-1 px-4 py-3 rounded-[16px] bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors"
             disabled={saving}
           >
             {t("common.cancel")}
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 px-4 py-2 rounded-lg bg-tg-button text-tg-button-text hover:bg-opacity-90 transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-3 rounded-[16px] bg-tg-button text-tg-button-text hover:bg-opacity-90 transition-colors disabled:opacity-50"
             disabled={saving || !reviewText.trim()}
           >
             {saving ? t("common.saving") : t("common.save")}

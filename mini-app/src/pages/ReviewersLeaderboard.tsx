@@ -61,8 +61,9 @@ export default function ReviewersLeaderboard() {
 
   return (
     <div className="p-4">
-      <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; {t("common.back")}
+      <button onClick={() => navigate(-1)} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
+        <span>&larr;</span>
+        <span>{t("common.back")}</span>
       </button>
 
       <h1 className="text-2xl font-bold text-tg-text mb-4">{t("reviewersLeaderboard.topReviewers")}</h1>
@@ -70,7 +71,7 @@ export default function ReviewersLeaderboard() {
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setTab("overall")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "overall"
               ? "bg-tg-button text-tg-button-text"
               : "bg-tg-secondary text-tg-hint"
@@ -80,7 +81,7 @@ export default function ReviewersLeaderboard() {
         </button>
         <button
           onClick={() => setTab("last30days")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last30days"
               ? "bg-tg-button text-tg-button-text"
               : "bg-tg-secondary text-tg-hint"
@@ -90,7 +91,7 @@ export default function ReviewersLeaderboard() {
         </button>
         <button
           onClick={() => setTab("last365days")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last365days"
               ? "bg-tg-button text-tg-button-text"
               : "bg-tg-secondary text-tg-hint"
