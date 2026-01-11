@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
 import {
   searchBooks,
+  searchGoogleBooks,
   updateReview,
   type Book,
+  type GoogleBook,
+  type SelectedBook,
   type Review,
   type UpdateReviewInput,
+  isDatabaseBook,
+  isGoogleBook,
 } from "../api/client";
 import { useTranslation } from "../i18n/index.js";
 
@@ -24,36 +29,72 @@ export default function EditReviewModal({
   const [sentiment, setSentiment] = useState<
     "positive" | "negative" | "neutral" | null
   >(review.sentiment);
-  const [selectedBook, setSelectedBook] = useState(review.book);
+  const [selectedBook, setSelectedBook] = useState<SelectedBook | null>(
+    (review.book as SelectedBook) || null
+  );
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Book[]>([]);
+  const [databaseResults, setDatabaseResults] = useState<Book[]>([]);
+  const [googleBooksResults, setGoogleBooksResults] = useState<GoogleBook[]>(
+    []
+  );
   const [searchLoading, setSearchLoading] = useState(false);
+  const [googleBooksLoading, setGoogleBooksLoading] = useState(false);
+  const [showGoogleBooksButton, setShowGoogleBooksButton] = useState(false);
+  const [googleBooksSearched, setGoogleBooksSearched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBookSearch, setShowBookSearch] = useState(false);
 
-  const handleSearch = async (query: string) => {
+  const handleDatabaseSearch = async (query: string) => {
     if (!query.trim()) {
-      setSearchResults([]);
+      setDatabaseResults([]);
+      setGoogleBooksResults([]);
+      setShowGoogleBooksButton(false);
+      setGoogleBooksSearched(false);
       return;
     }
 
     setSearchLoading(true);
+    setGoogleBooksSearched(false);
+    setGoogleBooksResults([]);
+
     try {
       const result = await searchBooks(query);
-      setSearchResults(result.books);
+      setDatabaseResults(result.books);
+
+      // Always show Google Books button after database search completes
+      setShowGoogleBooksButton(true);
     } catch (err) {
-      console.error("Search error:", err);
-      setSearchResults([]);
+      console.error("Database search error:", err);
+      setDatabaseResults([]);
+      setShowGoogleBooksButton(true);
     } finally {
       setSearchLoading(false);
+    }
+  };
+
+  const handleGoogleBooksSearch = async () => {
+    if (!searchQuery.trim() || googleBooksSearched) return;
+
+    setGoogleBooksLoading(true);
+
+    try {
+      const result = await searchGoogleBooks(searchQuery);
+      setGoogleBooksResults(result.books);
+      setGoogleBooksSearched(true);
+    } catch (err) {
+      console.error("Google Books search error:", err);
+      setError(t("editReview.errors.googleBooksSearchFailed"));
+      setGoogleBooksResults([]);
+    } finally {
+      setGoogleBooksLoading(false);
     }
   };
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchQuery) {
-        handleSearch(searchQuery);
+        handleDatabaseSearch(searchQuery);
       }
     }, 300); // Debounce search
 
@@ -81,8 +122,23 @@ export default function EditReviewModal({
         updateData.sentiment = sentiment || undefined;
       }
 
-      if (selectedBook?.id !== review.book?.id) {
-        updateData.bookId = selectedBook?.id;
+      // Handle book assignment
+      if (selectedBook) {
+        if (isDatabaseBook(selectedBook)) {
+          // Book already exists in database
+          if (selectedBook.id !== review.book?.id) {
+            updateData.bookId = selectedBook.id;
+          }
+        } else if (isGoogleBook(selectedBook)) {
+          // Book is from Google Books - send data for server to create
+          const currentBookGoogleId =
+            review.book && "googleBooksId" in review.book
+              ? (review.book as any).googleBooksId
+              : null;
+          if (selectedBook.googleBooksId !== currentBookGoogleId) {
+            updateData.googleBooksData = selectedBook;
+          }
+        }
       }
 
       if (Object.keys(updateData).length === 0) {
@@ -95,9 +151,7 @@ export default function EditReviewModal({
       onClose();
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : t("editReview.errors.saveFailed")
+        err instanceof Error ? err.message : t("editReview.errors.saveFailed")
       );
     } finally {
       setSaving(false);
@@ -251,61 +305,148 @@ export default function EditReviewModal({
                 disabled={saving}
               />
 
+              {/* Database Search Loading */}
               {searchLoading && (
                 <div className="text-center text-tg-hint py-4">
-                  {t("common.loading")}
+                  {t("editReview.searchingDatabase")}
                 </div>
               )}
 
-              {!searchLoading && searchResults.length > 0 && (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {searchResults.map((book) => (
-                    <button
-                      key={book.id}
-                      onClick={() => {
-                        setSelectedBook(book);
-                        setShowBookSearch(false);
-                        setSearchQuery("");
-                        setSearchResults([]);
-                      }}
-                      className="w-full flex items-center gap-3 p-2 rounded-lg bg-tg-secondary hover:bg-opacity-80 transition-colors text-left"
-                      disabled={saving}
-                    >
-                      {book.coverUrl && (
-                        <img
-                          src={book.coverUrl}
-                          alt={book.title}
-                          className="w-10 h-14 object-cover rounded"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <div className="font-medium text-tg-text text-sm">
-                          {book.title}
-                        </div>
-                        {book.author && (
-                          <div className="text-xs text-tg-hint">
-                            {book.author}
-                          </div>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
+              {/* Database Results */}
               {!searchLoading &&
+                databaseResults.length > 0 &&
+                !googleBooksSearched && (
+                  <>
+                    <div className="text-xs text-tg-hint mb-2">
+                      {t("editReview.databaseResults")}
+                    </div>
+                    <div className="space-y-2 max-h-60 overflow-y-auto mb-3">
+                      {databaseResults.map((book) => (
+                        <button
+                          key={book.id}
+                          onClick={() => {
+                            setSelectedBook(book);
+                            setShowBookSearch(false);
+                            setSearchQuery("");
+                            setDatabaseResults([]);
+                            setGoogleBooksResults([]);
+                            setGoogleBooksSearched(false);
+                          }}
+                          className="w-full flex items-center gap-3 p-2 rounded-lg bg-tg-secondary hover:bg-opacity-80 transition-colors text-left"
+                          disabled={saving}
+                        >
+                          {book.coverUrl && (
+                            <img
+                              src={book.coverUrl}
+                              alt={book.title}
+                              className="w-10 h-14 object-cover rounded"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <div className="font-medium text-tg-text text-sm">
+                              {book.title}
+                            </div>
+                            {book.author && (
+                              <div className="text-xs text-tg-hint">
+                                {book.author}
+                              </div>
+                            )}
+                            <div className="text-xs text-tg-hint">
+                              {t("editReview.inOurDatabase")}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+              {/* Google Books Button */}
+              {showGoogleBooksButton &&
+                !googleBooksSearched &&
+                searchQuery.trim() && (
+                  <button
+                    onClick={handleGoogleBooksSearch}
+                    disabled={googleBooksLoading || saving}
+                    className="w-full p-3 rounded-lg bg-tg-button text-tg-button-text hover:bg-opacity-90 transition-colors disabled:opacity-50 mb-3"
+                  >
+                    {googleBooksLoading
+                      ? t("editReview.searchingGoogleBooks")
+                      : t("editReview.searchGoogleBooks")}
+                  </button>
+                )}
+
+              {/* Google Books Results */}
+              {googleBooksSearched && googleBooksResults.length > 0 && (
+                <>
+                  <div className="text-xs text-tg-hint mb-2">
+                    {t("editReview.googleBooksResults")}
+                  </div>
+                  <div className="space-y-2 max-h-60 overflow-y-auto mb-3">
+                    {googleBooksResults.map((book) => (
+                      <button
+                        key={book.googleBooksId}
+                        onClick={() => {
+                          setSelectedBook(book);
+                          setShowBookSearch(false);
+                          setSearchQuery("");
+                          setDatabaseResults([]);
+                          setGoogleBooksResults([]);
+                          setGoogleBooksSearched(false);
+                        }}
+                        className="w-full flex items-center gap-3 p-2 rounded-lg bg-tg-secondary hover:bg-opacity-80 transition-colors text-left"
+                        disabled={saving}
+                      >
+                        {book.coverUrl && (
+                          <img
+                            src={book.coverUrl}
+                            alt={book.title}
+                            className="w-10 h-14 object-cover rounded"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <div className="font-medium text-tg-text text-sm">
+                            {book.title}
+                          </div>
+                          {book.author && (
+                            <div className="text-xs text-tg-hint">
+                              {book.author}
+                            </div>
+                          )}
+                          <div className="text-xs text-tg-link">
+                            {t("editReview.fromGoogleBooks")}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* No Results Messages */}
+              {!searchLoading &&
+                !googleBooksLoading &&
                 searchQuery &&
-                searchResults.length === 0 && (
+                databaseResults.length === 0 &&
+                !googleBooksSearched && (
                   <div className="text-center text-tg-hint py-4">
                     {t("editReview.noBookResults")}
                   </div>
                 )}
 
+              {googleBooksSearched && googleBooksResults.length === 0 && (
+                <div className="text-center text-tg-hint py-4">
+                  {t("editReview.noGoogleBooksResults")}
+                </div>
+              )}
+
               <button
                 onClick={() => {
                   setShowBookSearch(false);
                   setSearchQuery("");
-                  setSearchResults([]);
+                  setDatabaseResults([]);
+                  setGoogleBooksResults([]);
+                  setGoogleBooksSearched(false);
                 }}
                 className="mt-3 text-sm text-tg-hint hover:text-tg-text"
                 disabled={saving}
