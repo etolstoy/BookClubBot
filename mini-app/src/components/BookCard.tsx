@@ -24,7 +24,7 @@ export default function BookCard({ book }: BookCardProps) {
   return (
     <Link
       to={`/book/${book.id}`}
-      className="flex gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity"
+      className="flex gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity no-underline"
     >
       <div className="w-16 h-24 flex-shrink-0 rounded overflow-hidden bg-gray-200">
         {book.coverUrl ? (

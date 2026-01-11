@@ -39,7 +39,7 @@ export default function SearchBar({ onSearch, placeholder }: SearchBarProps) {
       />
       <button
         type="submit"
-        className="px-4 py-2 rounded-lg bg-tg-button text-tg-button-text font-medium"
+        className="px-4 py-2 rounded-lg bg-[#3D3D3D] text-white font-medium hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors border-2 border-transparent"
       >
         {t("common.search")}
       </button>

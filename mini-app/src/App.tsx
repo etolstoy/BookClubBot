@@ -5,6 +5,7 @@ import Book from "./pages/Book";
 import Reviewer from "./pages/Reviewer";
 import Leaderboard from "./pages/Leaderboard";
 import ReviewersLeaderboard from "./pages/ReviewersLeaderboard";
+import BrowseBooks from "./pages/BrowseBooks";
 import FreshReviews from "./pages/FreshReviews";
 
 declare global {
@@ -66,6 +67,7 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/browse" element={<BrowseBooks />} />
       <Route path="/book/:id" element={<Book />} />
       <Route path="/reviewer/:userId" element={<Reviewer />} />
       <Route path="/top-books" element={<Leaderboard />} />

@@ -114,7 +114,7 @@ export default function Leaderboard() {
           onClick={() => handleTabChange("overall")}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "overall"
-              ? "bg-tg-button text-tg-button-text"
+              ? "bg-[#3D3D3D] text-white"
               : "bg-tg-secondary text-tg-hint"
           }`}
         >
@@ -124,7 +124,7 @@ export default function Leaderboard() {
           onClick={() => handleTabChange("last30days")}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last30days"
-              ? "bg-tg-button text-tg-button-text"
+              ? "bg-[#3D3D3D] text-white"
               : "bg-tg-secondary text-tg-hint"
           }`}
         >
@@ -134,7 +134,7 @@ export default function Leaderboard() {
           onClick={() => handleTabChange("last365days")}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last365days"
-              ? "bg-tg-button text-tg-button-text"
+              ? "bg-[#3D3D3D] text-white"
               : "bg-tg-secondary text-tg-hint"
           }`}
         >
@@ -182,7 +182,7 @@ export default function Leaderboard() {
             className={`px-5 py-2 rounded-full font-medium transition-colors ${
               page === 1
                 ? "bg-tg-secondary text-tg-hint cursor-not-allowed"
-                : "bg-tg-button text-tg-button-text hover:opacity-80"
+                : "bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black border-2 border-transparent"
             }`}
           >
             {t("common.previous")}
@@ -196,7 +196,7 @@ export default function Leaderboard() {
             className={`px-5 py-2 rounded-full font-medium transition-colors ${
               !hasMore
                 ? "bg-tg-secondary text-tg-hint cursor-not-allowed"
-                : "bg-tg-button text-tg-button-text hover:opacity-80"
+                : "bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black border-2 border-transparent"
             }`}
           >
             {t("common.next")}

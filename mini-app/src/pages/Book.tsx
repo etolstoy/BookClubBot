@@ -132,7 +132,7 @@ export default function Book() {
             href={book.goodreadsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-tg-link hover:underline"
+            className="text-sm text-tg-link no-underline"
           >
             {t("book.viewOnGoodreads")}
           </a>
@@ -149,7 +149,7 @@ export default function Book() {
             onClick={() => setSentimentFilter(null)}
             className={`px-3 py-1 rounded-full text-sm transition-colors ${
               !sentimentFilter
-                ? "bg-tg-button text-tg-button-text"
+                ? "bg-[#3D3D3D] text-white"
                 : "bg-tg-secondary text-tg-hint"
             }`}
           >
@@ -159,7 +159,7 @@ export default function Book() {
             onClick={() => setSentimentFilter("positive")}
             className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 transition-colors ${
               sentimentFilter === "positive"
-                ? "bg-tg-button text-tg-button-text"
+                ? "bg-[#3D3D3D] text-white"
                 : "bg-tg-secondary text-tg-hint"
             }`}
           >
@@ -169,7 +169,7 @@ export default function Book() {
             onClick={() => setSentimentFilter("negative")}
             className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 transition-colors ${
               sentimentFilter === "negative"
-                ? "bg-tg-button text-tg-button-text"
+                ? "bg-[#3D3D3D] text-white"
                 : "bg-tg-secondary text-tg-hint"
             }`}
           >
@@ -179,7 +179,7 @@ export default function Book() {
             onClick={() => setSentimentFilter("neutral")}
             className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 transition-colors ${
               sentimentFilter === "neutral"
-                ? "bg-tg-button text-tg-button-text"
+                ? "bg-[#3D3D3D] text-white"
                 : "bg-tg-secondary text-tg-hint"
             }`}
           >

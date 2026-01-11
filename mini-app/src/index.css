@@ -19,10 +19,6 @@ a {
   text-decoration: none;
 }
 
-a:hover {
-  text-decoration: underline;
-}
-
 /* Hide scrollbar for horizontal carousel */
 .overflow-x-auto::-webkit-scrollbar {
   display: none;
