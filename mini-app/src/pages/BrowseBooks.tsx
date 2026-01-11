@@ -87,7 +87,7 @@ export default function BrowseBooks() {
           </span>
           <button
             onClick={clearSearch}
-            className="text-sm text-tg-link"
+            className="text-sm text-tg-text"
           >
             {t("common.clear")}
           </button>

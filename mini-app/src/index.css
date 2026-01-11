@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force light theme - override Telegram theme variables */
+:root {
+  --tg-theme-bg-color: #ffffff !important;
+  --tg-theme-text-color: #000000 !important;
+  --tg-theme-hint-color: #999999 !important;
+  --tg-theme-link-color: #000000 !important;
+  --tg-theme-button-color: #000000 !important;
+  --tg-theme-button-text-color: #ffffff !important;
+  --tg-theme-secondary-bg-color: #f0f0f0 !important;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -15,7 +26,7 @@ body {
 }
 
 a {
-  color: var(--tg-theme-link-color, #2481cc);
+  color: var(--tg-theme-text-color, #000000);
   text-decoration: none;
 }
 

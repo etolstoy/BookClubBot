@@ -93,7 +93,7 @@ export default function Book() {
         <div className="flex-1">
           <h1 className="text-xl font-bold text-tg-text">{book.title}</h1>
           {book.author && (
-            <p className="text-tg-hint mt-1">{t("common.by")} {book.author}</p>
+            <p className="text-tg-hint mt-1">{book.author}</p>
           )}
           {book.publicationYear && (
             <p className="text-sm text-tg-hint">{book.publicationYear}</p>
@@ -132,7 +132,7 @@ export default function Book() {
             href={book.goodreadsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-tg-link no-underline"
+            className="text-sm text-tg-text no-underline"
           >
             {t("book.viewOnGoodreads")}
           </a>

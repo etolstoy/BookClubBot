@@ -93,7 +93,7 @@ export default function Home() {
                         <div className="flex items-center justify-between mb-2">
                           <Link
                             to={`/reviewer/${review.telegramUserId}`}
-                            className="font-medium text-tg-link no-underline"
+                            className="font-medium text-tg-text no-underline"
                           >
                             {review.reviewerName}
                           </Link>
@@ -106,7 +106,7 @@ export default function Home() {
                         {review.book && (
                           <Link
                             to={`/book/${review.book.id}`}
-                            className="flex items-center gap-2 mb-2 text-sm"
+                            className="flex items-start gap-2 mb-2 text-sm"
                           >
                             {review.book.coverUrl && (
                               <img
@@ -115,10 +115,10 @@ export default function Home() {
                                 className="w-8 h-12 object-cover rounded flex-shrink-0"
                               />
                             )}
-                            <div className="min-w-0">
-                              <span className="text-tg-link font-medium">{review.book.title}</span>
+                            <div className="min-w-0 flex flex-col">
+                              <span className="text-tg-text font-medium">{review.book.title}</span>
                               {review.book.author && (
-                                <span className="text-tg-hint"> {t("common.by")} {review.book.author}</span>
+                                <span className="text-tg-hint text-xs">{review.book.author}</span>
                               )}
                             </div>
                           </Link>
@@ -131,7 +131,7 @@ export default function Home() {
                         {review.book && (
                           <Link
                             to={`/book/${review.book.id}`}
-                            className="text-sm text-tg-link mt-auto no-underline"
+                            className="text-sm text-tg-hint mt-auto no-underline"
                           >
                             {t("common.readMore")}
                           </Link>
