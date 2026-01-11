@@ -1,4 +1,5 @@
 import { config } from "../lib/config.js";
+import { sendWarningNotification } from "./notification.service.js";
 
 // Rate limiting configuration (configurable via environment)
 const GOOGLE_BOOKS_DELAY_MS = parseInt(process.env.GOOGLE_BOOKS_DELAY_MS || '200'); // Delay between requests
@@ -33,8 +34,21 @@ async function fetchWithRetry(url: string, retryCount = 0): Promise<Response> {
 
   if (response.status === 429) {
     if (retryCount >= MAX_RETRIES) {
-      console.error(`[Google Books] Rate limit exceeded after ${MAX_RETRIES} retries`);
-      throw new Error(`Rate limit exceeded after ${MAX_RETRIES} retries`);
+      const errorMessage = `Rate limit exceeded after ${MAX_RETRIES} retries`;
+      console.error(`[Google Books] ${errorMessage}`);
+
+      // Send notification to admin chat
+      await sendWarningNotification(
+        'Google Books API rate limit exceeded',
+        {
+          operation: 'Google Books API request',
+          additionalInfo: `Failed after ${MAX_RETRIES} retry attempts. Consider increasing delay or reducing request frequency.`
+        }
+      ).catch(err => {
+        console.error('[Google Books] Failed to send rate limit notification:', err);
+      });
+
+      throw new Error(errorMessage);
     }
 
     // Exponential backoff: 1s, 2s, 4s

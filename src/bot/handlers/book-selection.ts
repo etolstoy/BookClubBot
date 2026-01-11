@@ -57,22 +57,38 @@ export async function handleBookAlternative(ctx: Context) {
 
   const altBook = bookInfo.alternativeBooks[altIndex];
 
-  // Find or create the alternative book
-  const { id: bookId } = await findOrCreateBook(
-    altBook.title,
-    altBook.author
-  );
+  try {
+    // Find or create the alternative book
+    const { id: bookId } = await findOrCreateBook(
+      altBook.title,
+      altBook.author
+    );
 
-  // Update the review to point to the new book
-  await prisma.review.update({
-    where: { id: reviewId },
-    data: { bookId },
-  });
+    // Update the review to point to the new book
+    await prisma.review.update({
+      where: { id: reviewId },
+      data: { bookId },
+    });
 
-  await ctx.answerCbQuery("✅ Книга обновлена!");
-  await ctx.editMessageText(
-    `✅ Рецензия обновлена на: "${altBook.title}"${altBook.author ? ` (${altBook.author})` : ""}`
-  );
+    await ctx.answerCbQuery("✅ Книга обновлена!");
+    await ctx.editMessageText(
+      `✅ Рецензия обновлена на: "${altBook.title}"${altBook.author ? ` (${altBook.author})` : ""}`
+    );
+  } catch (error) {
+    const isRateLimitError = error instanceof Error &&
+      error.message.includes('Rate limit exceeded');
+
+    if (isRateLimitError) {
+      await ctx.answerCbQuery("❌ Ошибка");
+      await ctx.editMessageText(
+        "Кажется, у нас закончились лимиты в Google Books API – попробуем импортнуть все завтра! 📚💤"
+      );
+      return;
+    }
+
+    await ctx.answerCbQuery("❌ Ошибка");
+    await ctx.editMessageText("❌ Произошла ошибка при обновлении книги.");
+  }
 }
 
 export async function handleBookISBN(ctx: Context) {
@@ -158,6 +174,18 @@ export async function handleISBNInput(ctx: Context) {
   } catch (error) {
     console.error("Error processing ISBN:", error);
     await ctx.telegram.deleteMessage(ctx.chat!.id, processingMsg.message_id);
+
+    const isRateLimitError = error instanceof Error &&
+      error.message.includes('Rate limit exceeded');
+
+    if (isRateLimitError) {
+      await ctx.reply(
+        "Кажется, у нас закончились лимиты в Google Books API – попробуем импортнуть все завтра! 📚💤",
+        { reply_parameters: { message_id: message.message_id } }
+      );
+      return;
+    }
+
     await ctx.reply(
       "❌ Ошибка при обработке ISBN. Пожалуйста, попробуйте ещё раз.",
       { reply_parameters: { message_id: message.message_id } }
@@ -270,6 +298,19 @@ export async function handlePendingReviewISBN(ctx: Context) {
   } catch (error) {
     console.error("Error processing ISBN for pending review:", error);
     await ctx.telegram.deleteMessage(ctx.chat!.id, processingMsg.message_id);
+
+    const isRateLimitError = error instanceof Error &&
+      error.message.includes('Rate limit exceeded');
+
+    if (isRateLimitError) {
+      await ctx.reply(
+        "Кажется, у нас закончились лимиты в Google Books API – попробуем импортнуть все завтра! 📚💤",
+        { reply_parameters: { message_id: message.message_id } }
+      );
+      // Don't restore pending review on rate limit - it's a temporary issue
+      return true;
+    }
+
     await ctx.reply(
       "❌ Ошибка при обработке ISBN. Пожалуйста, попробуйте ещё раз.",
       { reply_parameters: { message_id: message.message_id } }

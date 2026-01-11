@@ -273,6 +273,18 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
       // Ignore if can't delete
     }
 
+    // Check if this is a Google Books rate limit error
+    const isRateLimitError = error instanceof Error &&
+      error.message.includes('Rate limit exceeded');
+
+    if (isRateLimitError) {
+      await ctx.reply(
+        "Кажется, у нас закончились лимиты в Google Books API – попробуем импортнуть все завтра! 📚💤",
+        { reply_parameters: { message_id: message.message_id } }
+      );
+      return;
+    }
+
     await ctx.reply("Извините, произошла ошибка при обработке этой рецензии. Пожалуйста, попробуйте ещё раз.", {
       reply_parameters: { message_id: message.message_id },
     });
