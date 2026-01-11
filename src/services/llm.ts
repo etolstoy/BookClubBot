@@ -71,8 +71,10 @@ function extractBookInfoWithRegex(reviewText: string): ExtractedBookInfo | null 
 }
 
 export async function extractBookInfo(
-  reviewText: string
+  reviewText: string,
+  options?: { skipRegexFallback?: boolean }
 ): Promise<ExtractedBookInfo | null> {
+  const skipRegexFallback = options?.skipRegexFallback || false;
   const systemPrompt = `You are a helpful assistant that extracts book information from review texts.
 Extract the PRIMARY book being reviewed, along with any alternative spellings/transliterations and other mentioned books.
 
@@ -123,6 +125,15 @@ If you cannot identify any book, respond with:
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
+      if (skipRegexFallback) {
+        console.log('[OpenAI] No content in response, marking for manual review');
+        return {
+          title: "[Manual review required]",
+          author: null,
+          additionalContext: "OpenAI returned no content",
+          confidence: "low",
+        };
+      }
       console.log('[OpenAI] No content in response, trying regex fallback');
       return extractBookInfoWithRegex(reviewText);
     }
@@ -130,6 +141,15 @@ If you cannot identify any book, respond with:
     const parsed = JSON.parse(content);
 
     if (!parsed.title) {
+      if (skipRegexFallback) {
+        console.log('[OpenAI] No title found, marking for manual review');
+        return {
+          title: "[Manual review required]",
+          author: parsed.author || null,
+          additionalContext: "OpenAI could not identify a book title",
+          confidence: "low",
+        };
+      }
       console.log('[OpenAI] No title found, trying regex fallback');
       return extractBookInfoWithRegex(reviewText);
     }
@@ -145,6 +165,34 @@ If you cannot identify any book, respond with:
     };
   } catch (error) {
     console.error("Error extracting book info:", error);
+
+    if (skipRegexFallback) {
+      console.log('[OpenAI] Error occurred, marking for manual review');
+      // Send notification for critical errors (rate limit, API errors, etc.)
+      if (error instanceof Error) {
+        const isRateLimit = error.message.includes('429') || error.message.includes('rate limit');
+        const isQuotaExceeded = error.message.includes('quota') || error.message.includes('insufficient_quota');
+
+        if (isRateLimit || isQuotaExceeded) {
+          await sendErrorNotification(error, {
+            operation: "OpenAI Book Extraction",
+            additionalInfo: "Marked for manual review. Consider checking OpenAI billing.",
+          });
+        } else {
+          await sendWarningNotification("OpenAI extraction failed", {
+            operation: "Book Info Extraction",
+            additionalInfo: `Error: ${error.message}. Marked for manual review.`,
+          });
+        }
+      }
+      return {
+        title: "[Manual review required]",
+        author: null,
+        additionalContext: error instanceof Error ? `Error: ${error.message}` : "Unknown error",
+        confidence: "low",
+      };
+    }
+
     console.log('[OpenAI] Error occurred, trying regex fallback');
 
     // Send notification for critical errors (rate limit, API errors, etc.)
