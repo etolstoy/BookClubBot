@@ -10,6 +10,7 @@ import {
 import { authenticateTelegramWebApp } from "../middleware/telegram-auth.js";
 import { sendInfoNotification } from "../../services/notification.service.js";
 import { analyzeSentiment } from "../../services/sentiment.js";
+import { findOrCreateBookFromGoogleBooks } from "../../services/book.service.js";
 
 const router = Router();
 
@@ -126,10 +127,18 @@ router.get("/recent", async (req, res) => {
 router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
   try {
     const reviewId = parseInt(req.params.id, 10);
-    const { reviewText, sentiment, bookId } = req.body;
+    const { reviewText, sentiment, bookId, googleBooksData } = req.body;
 
     if (isNaN(reviewId)) {
       res.status(400).json({ error: "Invalid review ID" });
+      return;
+    }
+
+    // Validate mutually exclusive book assignment methods
+    if (bookId !== undefined && googleBooksData !== undefined) {
+      res
+        .status(400)
+        .json({ error: "Cannot specify both bookId and googleBooksData" });
       return;
     }
 
@@ -181,7 +190,33 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
       updateData.sentiment = sentiment;
     }
 
-    if (bookId !== undefined) {
+    // Handle Google Books data - create book first if needed
+    if (googleBooksData) {
+      try {
+        const { id: createdBookId, isNew } =
+          await findOrCreateBookFromGoogleBooks(googleBooksData);
+        updateData.bookId = createdBookId;
+
+        if (isNew) {
+          console.log(
+            `[ReviewUpdate] Created new book from Google Books: ${googleBooksData.title}`
+          );
+        } else {
+          console.log(
+            `[ReviewUpdate] Found existing book: ${googleBooksData.title}`
+          );
+        }
+      } catch (error) {
+        console.error(
+          "[ReviewUpdate] Error creating book from Google Books:",
+          error
+        );
+        res
+          .status(500)
+          .json({ error: "Failed to create book from Google Books data" });
+        return;
+      }
+    } else if (bookId !== undefined) {
       updateData.bookId = bookId;
     }
 
@@ -189,7 +224,11 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
     const updatedReview = await updateReview(reviewId, updateData);
 
     // Cleanup orphan books if book was reassigned
-    if (bookId !== undefined && oldBookId && oldBookId !== bookId) {
+    if (
+      (bookId !== undefined || googleBooksData !== undefined) &&
+      oldBookId &&
+      oldBookId !== updatedReview.bookId
+    ) {
       const orphansDeleted = await cleanupOrphanBooks();
 
       if (orphansDeleted > 0) {
@@ -208,14 +247,15 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
     const changes: string[] = [];
     if (reviewText !== undefined) changes.push("text");
     if (sentiment !== undefined) changes.push("sentiment");
-    if (bookId !== undefined) changes.push("book assignment");
+    if (bookId !== undefined || googleBooksData !== undefined)
+      changes.push("book assignment");
 
     await sendInfoNotification(
       `Review #${reviewId} edited by ${userName}`,
       {
         operation: "Review Update",
         additionalInfo: `Changes: ${changes.join(", ")}${
-          bookId !== undefined
+          bookId !== undefined || googleBooksData !== undefined
             ? `\nNew book: ${updatedReview.book?.title || "None"}`
             : ""
         }`,

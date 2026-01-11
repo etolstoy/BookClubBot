@@ -46,6 +46,28 @@ export interface Book {
   };
 }
 
+export interface GoogleBook {
+  googleBooksId: string;
+  title: string;
+  author: string | null;
+  description: string | null;
+  coverUrl: string | null;
+  genres: string[];
+  publicationYear: number | null;
+  isbn: string | null;
+  pageCount: number | null;
+}
+
+export type SelectedBook = Book | GoogleBook;
+
+export function isDatabaseBook(book: SelectedBook): book is Book {
+  return "id" in book && typeof book.id === "number";
+}
+
+export function isGoogleBook(book: SelectedBook): book is GoogleBook {
+  return "googleBooksId" in book && !("id" in book);
+}
+
 export interface BookDetail {
   id: number;
   title: string;
@@ -136,6 +158,12 @@ export async function getBook(id: number): Promise<{ book: BookDetail; reviews: 
 
 export async function searchBooks(query: string): Promise<{ books: Book[] }> {
   return fetchApi(`/books/search?q=${encodeURIComponent(query)}`);
+}
+
+export async function searchGoogleBooks(
+  query: string
+): Promise<{ books: GoogleBook[] }> {
+  return fetchApi(`/books/search-google?q=${encodeURIComponent(query)}`);
 }
 
 export async function getReviewer(userId: string): Promise<{ reviewer: Reviewer; reviews: Review[] }> {
@@ -334,6 +362,7 @@ export interface UpdateReviewInput {
   reviewText?: string;
   sentiment?: "positive" | "negative" | "neutral";
   bookId?: number;
+  googleBooksData?: GoogleBook;
 }
 
 export async function updateReview(

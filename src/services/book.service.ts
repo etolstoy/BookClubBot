@@ -198,6 +198,63 @@ export async function findOrCreateBookByISBN(
   return { id: book.id, isNew: true };
 }
 
+/**
+ * Find or create book from Google Books API data
+ * Used when user selects a book from Google Books in the frontend
+ */
+export async function findOrCreateBookFromGoogleBooks(googleBooksData: {
+  googleBooksId: string;
+  title: string;
+  author?: string | null;
+  description?: string | null;
+  coverUrl?: string | null;
+  genres?: string[];
+  publicationYear?: number | null;
+  isbn?: string | null;
+  pageCount?: number | null;
+}): Promise<{ id: number; isNew: boolean }> {
+  // First check if book with this Google Books ID already exists
+  const existingByGoogleId = await prisma.book.findUnique({
+    where: { googleBooksId: googleBooksData.googleBooksId },
+  });
+
+  if (existingByGoogleId) {
+    console.log(
+      `[BookService] Found existing book by Google Books ID: ${googleBooksData.googleBooksId}`
+    );
+    return { id: existingByGoogleId.id, isNew: false };
+  }
+
+  // Check for similar book by title/author (avoid duplicates)
+  const similar = await findSimilarBook(
+    googleBooksData.title,
+    googleBooksData.author
+  );
+  if (similar) {
+    console.log(`[BookService] Found similar book: ${similar.title}`);
+    return { id: similar.id, isNew: false };
+  }
+
+  // Create new book with Google Books data
+  const book = await createBook({
+    title: googleBooksData.title,
+    author: googleBooksData.author,
+    googleBooksId: googleBooksData.googleBooksId,
+    googleBooksUrl: `https://books.google.com/books?id=${googleBooksData.googleBooksId}`,
+    coverUrl: googleBooksData.coverUrl,
+    genres: googleBooksData.genres,
+    publicationYear: googleBooksData.publicationYear,
+    description: googleBooksData.description,
+    isbn: googleBooksData.isbn,
+    pageCount: googleBooksData.pageCount,
+  });
+
+  console.log(
+    `[BookService] Created new book from Google Books: ${book.title}`
+  );
+  return { id: book.id, isNew: true };
+}
+
 export async function getBookById(id: number) {
   return prisma.book.findUnique({
     where: { id },

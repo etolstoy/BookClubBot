@@ -5,6 +5,11 @@ import {
   searchBooks,
 } from "../../services/book.service.js";
 import { getReviewsByBookId } from "../../services/review.service.js";
+import {
+  searchBooks as searchGoogleBooks,
+  searchBookByISBN,
+  type BookSearchResult,
+} from "../../services/googlebooks.js";
 
 const router = Router();
 
@@ -23,6 +28,21 @@ function generateGoodreadsUrl(
   const query = author ? `${title} ${author}` : title;
   const encodedQuery = encodeURIComponent(query);
   return `https://www.goodreads.com/search?q=${encodedQuery}`;
+}
+
+function detectISBN(query: string): string | null {
+  // Remove hyphens and spaces
+  const cleaned = query.replace(/[-\s]/g, "");
+
+  // Check for ISBN-10 (10 digits) or ISBN-13 (13 digits)
+  const isbn10Pattern = /^\d{10}$/;
+  const isbn13Pattern = /^\d{13}$/;
+
+  if (isbn10Pattern.test(cleaned) || isbn13Pattern.test(cleaned)) {
+    return cleaned;
+  }
+
+  return null;
 }
 
 // GET /api/books - List all books
@@ -114,6 +134,62 @@ router.get("/search", async (req, res) => {
   } catch (error) {
     console.error("Error searching books:", error);
     res.status(500).json({ error: "Failed to search books" });
+  }
+});
+
+// GET /api/books/search-google - Search Google Books API
+router.get("/search-google", async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || typeof q !== "string") {
+      res.status(400).json({ error: "Search query is required" });
+      return;
+    }
+
+    // Check if query is an ISBN
+    const isbn = detectISBN(q);
+    let results: BookSearchResult[];
+
+    if (isbn) {
+      // ISBN search (most precise)
+      console.log(`[API] Searching Google Books by ISBN: ${isbn}`);
+      const result = await searchBookByISBN(isbn);
+      results = result ? [result] : [];
+    } else {
+      // Regular title/author search
+      console.log(`[API] Searching Google Books by query: ${q}`);
+      results = await searchGoogleBooks(q);
+    }
+
+    // Map to frontend format
+    res.json({
+      books: results.map((book) => ({
+        googleBooksId: book.googleBooksId,
+        title: book.title,
+        author: book.author,
+        description: book.description,
+        coverUrl: book.coverUrl,
+        genres: book.genres,
+        publicationYear: book.publicationYear,
+        isbn: book.isbn,
+        pageCount: book.pageCount,
+      })),
+    });
+  } catch (error) {
+    console.error("Error searching Google Books:", error);
+
+    // Check for rate limit error
+    if (error instanceof Error && error.message.includes("Rate limit exceeded")) {
+      res
+        .status(429)
+        .json({
+          error: "Google Books rate limit exceeded. Please try again later.",
+        });
+      return;
+    }
+
+    res.status(500).json({ error: "Failed to search Google Books" });
   }
 });
 
