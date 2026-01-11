@@ -102,8 +102,9 @@ export default function Leaderboard() {
 
   return (
     <div className="p-4">
-      <button onClick={() => navigate(-1)} className="text-tg-link hover:underline mb-4 inline-block">
-        &larr; {t("common.back")}
+      <button onClick={() => navigate(-1)} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
+        <span>&larr;</span>
+        <span>{t("common.back")}</span>
       </button>
 
       <h1 className="text-2xl font-bold text-tg-text mb-4">{t("leaderboard.topBooks")}</h1>
@@ -111,7 +112,7 @@ export default function Leaderboard() {
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => handleTabChange("overall")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "overall"
               ? "bg-tg-button text-tg-button-text"
               : "bg-tg-secondary text-tg-hint"
@@ -121,7 +122,7 @@ export default function Leaderboard() {
         </button>
         <button
           onClick={() => handleTabChange("last30days")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last30days"
               ? "bg-tg-button text-tg-button-text"
               : "bg-tg-secondary text-tg-hint"
@@ -131,7 +132,7 @@ export default function Leaderboard() {
         </button>
         <button
           onClick={() => handleTabChange("last365days")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last365days"
               ? "bg-tg-button text-tg-button-text"
               : "bg-tg-secondary text-tg-hint"
@@ -178,7 +179,7 @@ export default function Leaderboard() {
           <button
             onClick={handlePrevPage}
             disabled={page === 1}
-            className={`px-4 py-2 rounded-lg font-medium ${
+            className={`px-5 py-2 rounded-full font-medium transition-colors ${
               page === 1
                 ? "bg-tg-secondary text-tg-hint cursor-not-allowed"
                 : "bg-tg-button text-tg-button-text hover:opacity-80"
@@ -192,7 +193,7 @@ export default function Leaderboard() {
           <button
             onClick={handleNextPage}
             disabled={!hasMore}
-            className={`px-4 py-2 rounded-lg font-medium ${
+            className={`px-5 py-2 rounded-full font-medium transition-colors ${
               !hasMore
                 ? "bg-tg-secondary text-tg-hint cursor-not-allowed"
                 : "bg-tg-button text-tg-button-text hover:opacity-80"
