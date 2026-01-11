@@ -211,6 +211,15 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
           "[ReviewUpdate] Error creating book from Google Books:",
           error
         );
+
+        // Check for rate limit error
+        if (error instanceof Error && error.message.includes("Rate limit exceeded")) {
+          res
+            .status(429)
+            .json({ error: "Google Books rate limit exceeded. Please try again later." });
+          return;
+        }
+
         res
           .status(500)
           .json({ error: "Failed to create book from Google Books data" });
