@@ -46,7 +46,7 @@ export default function ReviewCard({
         <div className="flex items-center justify-between mb-2">
           <Link
             to={`/reviewer/${currentReview.telegramUserId}`}
-            className="font-medium text-tg-link hover:underline"
+            className="font-medium text-tg-link no-underline"
           >
             {currentReview.reviewerName}
           </Link>
@@ -58,7 +58,7 @@ export default function ReviewCard({
             {isOwner && (
               <button
                 onClick={() => setShowEditModal(true)}
-                className="ml-2 text-xs text-tg-link hover:underline"
+                className="ml-2 text-xs text-tg-link no-underline"
                 title={t("review.edit")}
               >
                 ✏️ {t("review.edit")}
@@ -70,7 +70,7 @@ export default function ReviewCard({
         {showBook && currentReview.book && (
           <Link
             to={`/book/${currentReview.book.id}`}
-            className="flex items-center gap-2 mb-2 text-sm"
+            className="flex items-center gap-2 mb-2 text-sm no-underline"
           >
             {currentReview.book.coverUrl && (
               <img

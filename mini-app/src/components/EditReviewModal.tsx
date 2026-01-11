@@ -276,7 +276,7 @@ export default function EditReviewModal({
                 </div>
                 <button
                   onClick={() => setShowBookSearch(true)}
-                  className="text-sm text-tg-link hover:underline"
+                  className="text-sm text-tg-link no-underline"
                   disabled={saving}
                 >
                   {t("editReview.changeBook")}
@@ -368,7 +368,7 @@ export default function EditReviewModal({
                   <button
                     onClick={handleGoogleBooksSearch}
                     disabled={googleBooksLoading || saving}
-                    className="w-full p-3 rounded-[16px] bg-tg-button text-tg-button-text hover:bg-opacity-90 transition-colors disabled:opacity-50 mb-3"
+                    className="w-full p-3 rounded-[16px] bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors disabled:opacity-50 mb-3 border-2 border-transparent"
                   >
                     {googleBooksLoading
                       ? t("editReview.searchingGoogleBooks")
@@ -448,7 +448,7 @@ export default function EditReviewModal({
                   setGoogleBooksResults([]);
                   setGoogleBooksSearched(false);
                 }}
-                className="mt-3 text-sm text-tg-hint hover:text-tg-text"
+                className="mt-3 text-sm text-tg-hint hover:text-tg-text no-underline"
                 disabled={saving}
               >
                 {t("common.cancel")}
@@ -468,7 +468,7 @@ export default function EditReviewModal({
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 px-4 py-3 rounded-[16px] bg-tg-button text-tg-button-text hover:bg-opacity-90 transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-3 rounded-[16px] bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors disabled:opacity-50 border-2 border-transparent"
             disabled={saving || !reviewText.trim()}
           >
             {saving ? t("common.saving") : t("common.save")}

@@ -73,7 +73,7 @@ export default function ReviewersLeaderboard() {
           onClick={() => setTab("overall")}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "overall"
-              ? "bg-tg-button text-tg-button-text"
+              ? "bg-[#3D3D3D] text-white"
               : "bg-tg-secondary text-tg-hint"
           }`}
         >
@@ -83,7 +83,7 @@ export default function ReviewersLeaderboard() {
           onClick={() => setTab("last30days")}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last30days"
-              ? "bg-tg-button text-tg-button-text"
+              ? "bg-[#3D3D3D] text-white"
               : "bg-tg-secondary text-tg-hint"
           }`}
         >
@@ -93,7 +93,7 @@ export default function ReviewersLeaderboard() {
           onClick={() => setTab("last365days")}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last365days"
-              ? "bg-tg-button text-tg-button-text"
+              ? "bg-[#3D3D3D] text-white"
               : "bg-tg-secondary text-tg-hint"
           }`}
         >
