@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getRecentReviews, type Review } from "../api/client";
 import ReviewCard from "../components/ReviewCard";
 import Loading from "../components/Loading";
@@ -11,10 +11,14 @@ const REVIEWS_PER_PAGE = 20;
 export default function FreshReviews() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    const pageParam = searchParams.get("page");
+    return pageParam ? parseInt(pageParam, 10) : 1;
+  });
   const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
@@ -40,14 +44,18 @@ export default function FreshReviews() {
 
   const handlePrevPage = () => {
     if (page > 1) {
-      setPage(page - 1);
+      const newPage = page - 1;
+      setPage(newPage);
+      setSearchParams({ page: newPage.toString() });
       window.scrollTo(0, 0);
     }
   };
 
   const handleNextPage = () => {
     if (hasMore) {
-      setPage(page + 1);
+      const newPage = page + 1;
+      setPage(newPage);
+      setSearchParams({ page: newPage.toString() });
       window.scrollTo(0, 0);
     }
   };
@@ -60,7 +68,7 @@ export default function FreshReviews() {
 
   return (
     <div className="p-4">
-      <button onClick={() => navigate(-1)} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
+      <button onClick={() => navigate("/")} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
         <span>&larr;</span>
         <span>{t("common.back")}</span>
       </button>

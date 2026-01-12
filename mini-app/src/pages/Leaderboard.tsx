@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   getLast30DaysBookLeaderboard,
   getLast365DaysBookLeaderboard,
@@ -17,13 +17,20 @@ const ITEMS_PER_PAGE = 20;
 export default function Leaderboard() {
   const navigate = useNavigate();
   const { t, plural } = useTranslation();
-  const [tab, setTab] = useState<Tab>("overall");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => {
+    const tabParam = searchParams.get("tab");
+    return (tabParam === "last30days" || tabParam === "last365days") ? tabParam : "overall";
+  });
   const [last30DaysData, setLast30DaysData] = useState<BookLeaderboardEntry[]>([]);
   const [last365DaysData, setLast365DaysData] = useState<BookLeaderboardEntry[]>([]);
   const [overallData, setOverallData] = useState<BookLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    const pageParam = searchParams.get("page");
+    return pageParam ? parseInt(pageParam, 10) : 1;
+  });
   const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
@@ -79,18 +86,23 @@ export default function Leaderboard() {
   const handleTabChange = (newTab: Tab) => {
     setTab(newTab);
     setPage(1);
+    setSearchParams({ tab: newTab, page: "1" });
   };
 
   const handlePrevPage = () => {
     if (page > 1) {
-      setPage(page - 1);
+      const newPage = page - 1;
+      setPage(newPage);
+      setSearchParams({ tab, page: newPage.toString() });
       window.scrollTo(0, 0);
     }
   };
 
   const handleNextPage = () => {
     if (hasMore) {
-      setPage(page + 1);
+      const newPage = page + 1;
+      setPage(newPage);
+      setSearchParams({ tab, page: newPage.toString() });
       window.scrollTo(0, 0);
     }
   };
@@ -102,7 +114,7 @@ export default function Leaderboard() {
 
   return (
     <div className="p-4">
-      <button onClick={() => navigate(-1)} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
+      <button onClick={() => navigate("/")} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
         <span>&larr;</span>
         <span>{t("common.back")}</span>
       </button>
