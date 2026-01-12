@@ -46,11 +46,6 @@ export default function Home() {
 
   return (
     <div className="p-4">
-      <div className="flex items-center gap-2 mb-6">
-        <img src="/logo.png" alt="Вастрик.Книги" className="h-8 w-8" />
-        <h1 className="text-2xl font-bold text-tg-text">Вастрик.Книги</h1>
-      </div>
-
       {/* Search Bar */}
       <div className="mb-4">
         <SearchBar onSearch={handleSearch} placeholder={t("home.searchPlaceholder")} />

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Book from "./pages/Book";
 import Reviewer from "./pages/Reviewer";
@@ -65,17 +66,19 @@ function AppContent() {
   }, [navigate]);
 
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/browse" element={<BrowseBooks />} />
-      <Route path="/book/:id" element={<Book />} />
-      <Route path="/reviewer/:userId" element={<Reviewer />} />
-      <Route path="/top-books" element={<Leaderboard />} />
-      <Route path="/top-reviewers" element={<ReviewersLeaderboard />} />
-      <Route path="/fresh-reviews" element={<FreshReviews />} />
-      {/* Legacy route for backward compatibility */}
-      <Route path="/leaderboard" element={<Leaderboard />} />
-    </Routes>
+    <Layout>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/browse" element={<BrowseBooks />} />
+        <Route path="/book/:id" element={<Book />} />
+        <Route path="/reviewer/:userId" element={<Reviewer />} />
+        <Route path="/top-books" element={<Leaderboard />} />
+        <Route path="/top-reviewers" element={<ReviewersLeaderboard />} />
+        <Route path="/fresh-reviews" element={<FreshReviews />} />
+        {/* Legacy route for backward compatibility */}
+        <Route path="/leaderboard" element={<Leaderboard />} />
+      </Routes>
+    </Layout>
   );
 }
 
