@@ -98,7 +98,7 @@ export default function FreshReviews() {
                   : "bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black border-2 border-transparent"
               }`}
             >
-              {t("common.previous")}
+              ←
             </button>
 
             <span className="text-tg-hint">{t("common.page")} {page}</span>
@@ -112,7 +112,7 @@ export default function FreshReviews() {
                   : "bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black border-2 border-transparent"
               }`}
             >
-              {t("common.next")}
+              →
             </button>
           </div>
         </>
