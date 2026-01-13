@@ -383,6 +383,20 @@ export async function deleteReview(
   });
 }
 
+export interface Config {
+  adminUserIds: string[];
+}
+
+export async function getConfig(): Promise<Config> {
+  return fetchApi("/config");
+}
+
+export function isCurrentUserAdmin(adminUserIds: string[]): boolean {
+  const userId = getCurrentUserId();
+  if (!userId) return false;
+  return adminUserIds.includes(userId);
+}
+
 export function getCurrentUserId(): string | null {
   if (typeof window === "undefined") return null;
 

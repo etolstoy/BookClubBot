@@ -3,6 +3,7 @@ import booksRouter from "./routes/books.js";
 import reviewersRouter from "./routes/reviewers.js";
 import reviewsRouter from "./routes/reviews.js";
 import leaderboardRouter from "./routes/leaderboard.js";
+import configRouter from "./routes/config.js";
 import { getStats } from "../services/review.service.js";
 
 const router = Router();
@@ -11,6 +12,7 @@ router.use("/books", booksRouter);
 router.use("/reviewers", reviewersRouter);
 router.use("/reviews", reviewsRouter);
 router.use("/leaderboard", leaderboardRouter);
+router.use("/config", configRouter);
 
 // Health check
 router.get("/health", (req, res) => {

@@ -1,4 +1,5 @@
 import prisma from "../lib/prisma.js";
+import { config } from "../lib/config.js";
 import { analyzeSentiment, type Sentiment } from "./sentiment.js";
 import { processReviewText } from "./book.service.js";
 import type { ExtractedBookInfo } from "./llm.js";
@@ -573,6 +574,13 @@ export async function isReviewOwner(
   });
 
   return review?.telegramUserId === telegramUserId;
+}
+
+/**
+ * Check if a user is an admin
+ */
+export function isAdmin(telegramUserId: bigint): boolean {
+  return config.adminUserIds.includes(telegramUserId);
 }
 
 /**
