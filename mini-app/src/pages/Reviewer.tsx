@@ -42,6 +42,31 @@ export default function Reviewer() {
     );
   };
 
+  const handleReviewDeleted = (reviewId: number, sentiment: string | null) => {
+    // Remove the review from the list
+    setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+
+    // Update reviewer stats to reflect the deleted review
+    if (reviewer) {
+      const updatedSentiments = { ...reviewer.sentiments };
+
+      // Decrease the count for the review's sentiment
+      if (sentiment === "positive") {
+        updatedSentiments.positive = Math.max(0, updatedSentiments.positive - 1);
+      } else if (sentiment === "negative") {
+        updatedSentiments.negative = Math.max(0, updatedSentiments.negative - 1);
+      } else if (sentiment === "neutral") {
+        updatedSentiments.neutral = Math.max(0, updatedSentiments.neutral - 1);
+      }
+
+      setReviewer({
+        ...reviewer,
+        totalReviews: Math.max(0, reviewer.totalReviews - 1),
+        sentiments: updatedSentiments,
+      });
+    }
+  };
+
   if (loading) return <Loading />;
   if (error) return <ErrorMessage message={error} />;
   if (!reviewer) return <ErrorMessage message={t("reviewer.notFound")} />;
@@ -98,6 +123,7 @@ export default function Reviewer() {
               review={review}
               showBook
               onReviewUpdated={handleReviewUpdated}
+              onReviewDeleted={() => handleReviewDeleted(review.id, review.sentiment)}
             />
           ))
         )}

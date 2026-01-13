@@ -10,12 +10,14 @@ interface ReviewCardProps {
   review: Review;
   showBook?: boolean;
   onReviewUpdated?: (updatedReview: Review) => void;
+  onReviewDeleted?: () => void;
 }
 
 export default function ReviewCard({
   review,
   showBook = false,
   onReviewUpdated,
+  onReviewDeleted,
 }: ReviewCardProps) {
   const { t } = useTranslation();
   const [showEditModal, setShowEditModal] = useState(false);
@@ -102,6 +104,7 @@ export default function ReviewCard({
           review={currentReview}
           onClose={() => setShowEditModal(false)}
           onSuccess={handleReviewUpdated}
+          onDelete={onReviewDeleted}
         />
       )}
     </>

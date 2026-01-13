@@ -375,6 +375,14 @@ export async function updateReview(
   });
 }
 
+export async function deleteReview(
+  reviewId: number
+): Promise<{ success: boolean; message: string }> {
+  return fetchApi(`/reviews/${reviewId}`, {
+    method: "DELETE",
+  });
+}
+
 export function getCurrentUserId(): string | null {
   if (typeof window === "undefined") return null;
 
