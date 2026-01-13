@@ -5,6 +5,7 @@ import {
   updateReview,
   deleteReview,
   isReviewOwner,
+  isAdmin,
   getReviewById,
   cleanupOrphanBooks,
 } from "../../services/review.service.js";
@@ -152,7 +153,8 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
 
     // Check ownership
     const isOwner = await isReviewOwner(reviewId, req.telegramUser!.id);
-    if (!isOwner) {
+    const userIsAdmin = isAdmin(req.telegramUser!.id);
+    if (!isOwner && !userIsAdmin) {
       res.status(403).json({ error: "You can only edit your own reviews" });
       return;
     }
@@ -260,11 +262,15 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
     if (bookId !== undefined || googleBooksData !== undefined)
       changes.push("book assignment");
 
+    const actionType = isOwner ? "edited" : "edited (ADMIN)";
+
     await sendInfoNotification(
-      `Review #${reviewId} edited by ${userName}`,
+      `Review #${reviewId} ${actionType} by ${userName}`,
       {
         operation: "Review Update",
         additionalInfo: `Changes: ${changes.join(", ")}${
+          !isOwner ? `\nAdmin edited review by @${existingReview.telegramUsername || 'unknown'}` : ''
+        }${
           bookId !== undefined || googleBooksData !== undefined
             ? `\nNew book: ${updatedReview.book?.title || "None"}`
             : ""
@@ -325,7 +331,8 @@ router.delete("/:id", authenticateTelegramWebApp, async (req, res) => {
 
     // Check ownership
     const isOwner = await isReviewOwner(reviewId, req.telegramUser!.id);
-    if (!isOwner) {
+    const userIsAdmin = isAdmin(req.telegramUser!.id);
+    if (!isOwner && !userIsAdmin) {
       res.status(403).json({ error: "You can only delete your own reviews" });
       return;
     }
@@ -358,12 +365,16 @@ router.delete("/:id", authenticateTelegramWebApp, async (req, res) => {
         ? deletedReview.reviewText.substring(0, 200) + "..."
         : deletedReview.reviewText;
 
+    const actionLabel = isOwner ? "Review Deleted" : "Review Deleted (ADMIN)";
+
     await sendInfoNotification(
-      `📕 Review Deleted\n\nUser: ${
+      `📕 ${actionLabel}\n\nUser: ${
         deletedReview.telegramUsername
           ? `@${deletedReview.telegramUsername}`
           : userName
-      } (${deletedReview.telegramDisplayName || "No display name"})\nBook: ${
+      } (${deletedReview.telegramDisplayName || "No display name"})${
+        !isOwner ? `\nDeleted by admin: @${req.telegramUser!.username || 'unknown'}` : ''
+      }\nBook: ${
         deletedReview.book
           ? `"${deletedReview.book.title}"${
               deletedReview.book.author ? ` by ${deletedReview.book.author}` : ""

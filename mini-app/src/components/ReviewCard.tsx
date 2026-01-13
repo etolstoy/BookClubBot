@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import type { Review } from "../api/client";
-import { getCurrentUserId } from "../api/client";
+import { getCurrentUserId, isCurrentUserAdmin } from "../api/client";
+import { ConfigContext } from "../App";
 import SentimentBadge from "./SentimentBadge";
 import EditReviewModal from "./EditReviewModal";
 import { useTranslation } from "../i18n/index.js";
@@ -20,11 +21,14 @@ export default function ReviewCard({
   onReviewDeleted,
 }: ReviewCardProps) {
   const { t } = useTranslation();
+  const config = useContext(ConfigContext);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentReview, setCurrentReview] = useState(review);
 
   const currentUserId = getCurrentUserId();
   const isOwner = currentUserId === currentReview.telegramUserId;
+  const isAdmin = config ? isCurrentUserAdmin(config.adminUserIds) : false;
+  const canEdit = isOwner || isAdmin;
 
   const formattedDate = new Date(currentReview.reviewedAt).toLocaleDateString(
     undefined,
@@ -57,7 +61,7 @@ export default function ReviewCard({
               <SentimentBadge sentiment={currentReview.sentiment} />
             )}
             <span className="text-xs text-tg-hint">{formattedDate}</span>
-            {isOwner && (
+            {canEdit && (
               <button
                 onClick={() => setShowEditModal(true)}
                 className="ml-2 text-xs text-tg-text no-underline"
