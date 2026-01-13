@@ -550,6 +550,17 @@ export async function updateReview(
 }
 
 /**
+ * Delete a review
+ * Returns the deleted review with book details for admin notification
+ */
+export async function deleteReview(reviewId: number) {
+  return prisma.review.delete({
+    where: { id: reviewId },
+    include: { book: true },
+  });
+}
+
+/**
  * Check if a review belongs to a user (for authorization)
  */
 export async function isReviewOwner(

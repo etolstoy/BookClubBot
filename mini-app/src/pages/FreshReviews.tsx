@@ -66,6 +66,11 @@ export default function FreshReviews() {
     );
   };
 
+  const handleReviewDeleted = (reviewId: number) => {
+    // Remove the review from the list
+    setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+  };
+
   return (
     <div className="p-4">
       <button onClick={() => navigate("/")} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
@@ -92,6 +97,7 @@ export default function FreshReviews() {
                 review={review}
                 showBook
                 onReviewUpdated={handleReviewUpdated}
+                onReviewDeleted={() => handleReviewDeleted(review.id)}
               />
             ))}
           </div>

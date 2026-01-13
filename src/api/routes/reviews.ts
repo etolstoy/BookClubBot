@@ -3,6 +3,7 @@ import {
   getRandomReviews,
   getRecentReviews,
   updateReview,
+  deleteReview,
   isReviewOwner,
   getReviewById,
   cleanupOrphanBooks,
@@ -302,6 +303,86 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
   } catch (error) {
     console.error("Error updating review:", error);
     res.status(500).json({ error: "Failed to update review" });
+  }
+});
+
+// DELETE /api/reviews/:id - Delete a review
+router.delete("/:id", authenticateTelegramWebApp, async (req, res) => {
+  try {
+    const reviewId = parseInt(req.params.id, 10);
+
+    if (isNaN(reviewId)) {
+      res.status(400).json({ error: "Invalid review ID" });
+      return;
+    }
+
+    // Check if review exists
+    const existingReview = await getReviewById(reviewId);
+    if (!existingReview) {
+      res.status(404).json({ error: "Review not found" });
+      return;
+    }
+
+    // Check ownership
+    const isOwner = await isReviewOwner(reviewId, req.telegramUser!.id);
+    if (!isOwner) {
+      res.status(403).json({ error: "You can only delete your own reviews" });
+      return;
+    }
+
+    // Store book ID for orphan cleanup
+    const bookId = existingReview.bookId;
+
+    // Delete the review
+    const deletedReview = await deleteReview(reviewId);
+
+    // Cleanup orphan books if the review had a book
+    if (bookId) {
+      const orphansDeleted = await cleanupOrphanBooks();
+
+      if (orphansDeleted > 0) {
+        console.log(
+          `[ReviewDelete] Cleaned up ${orphansDeleted} orphan book(s)`
+        );
+      }
+    }
+
+    // Send admin notification
+    const userName =
+      req.telegramUser!.username ||
+      req.telegramUser!.first_name ||
+      "Unknown User";
+
+    const reviewTextPreview =
+      deletedReview.reviewText.length > 200
+        ? deletedReview.reviewText.substring(0, 200) + "..."
+        : deletedReview.reviewText;
+
+    await sendInfoNotification(
+      `📕 Review Deleted\n\nUser: ${
+        deletedReview.telegramUsername
+          ? `@${deletedReview.telegramUsername}`
+          : userName
+      } (${deletedReview.telegramDisplayName || "No display name"})\nBook: ${
+        deletedReview.book
+          ? `"${deletedReview.book.title}"${
+              deletedReview.book.author ? ` by ${deletedReview.book.author}` : ""
+            }`
+          : "No book assigned"
+      }\nReview: ${reviewTextPreview}`,
+      {
+        operation: "Review Deletion",
+        additionalInfo: `Review ID: ${reviewId}`,
+      }
+    );
+
+    res.json({
+      success: true,
+      message: "Review deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting review:", error);
+    res.status(500).json({ error: "Failed to delete review" });
   }
 });
 

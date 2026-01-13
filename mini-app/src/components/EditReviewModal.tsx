@@ -3,6 +3,7 @@ import {
   searchBooks,
   searchGoogleBooks,
   updateReview,
+  deleteReview,
   type Book,
   type GoogleBook,
   type SelectedBook,
@@ -17,12 +18,14 @@ interface EditReviewModalProps {
   review: Review;
   onClose: () => void;
   onSuccess: (updatedReview: Review) => void;
+  onDelete?: () => void;
 }
 
 export default function EditReviewModal({
   review,
   onClose,
   onSuccess,
+  onDelete,
 }: EditReviewModalProps) {
   const { t } = useTranslation();
   const [reviewText, setReviewText] = useState(review.reviewText);
@@ -42,6 +45,7 @@ export default function EditReviewModal({
   const [showGoogleBooksButton, setShowGoogleBooksButton] = useState(false);
   const [googleBooksSearched, setGoogleBooksSearched] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBookSearch, setShowBookSearch] = useState(false);
 
@@ -158,6 +162,66 @@ export default function EditReviewModal({
     }
   };
 
+  const handleDelete = async () => {
+    const tg = window.Telegram?.WebApp as any;
+
+    // Show confirmation dialog
+    if (tg?.showConfirm) {
+      tg.showConfirm(
+        "⚠️ Delete Review?\n\nAre you sure you want to delete this review? This action cannot be undone.",
+        async (confirmed: boolean) => {
+          if (!confirmed) return;
+
+          setDeleting(true);
+          setError(null);
+
+          try {
+            await deleteReview(review.id);
+
+            // Show success message
+            if (tg?.showAlert) {
+              tg.showAlert("Review deleted successfully");
+            }
+
+            // Call onDelete callback and close modal
+            if (onDelete) {
+              onDelete();
+            }
+            onClose();
+          } catch (err) {
+            setError(
+              err instanceof Error ? err.message : "Failed to delete review"
+            );
+          } finally {
+            setDeleting(false);
+          }
+        }
+      );
+    } else {
+      // Fallback for non-Telegram environment
+      if (window.confirm("⚠️ Delete Review?\n\nAre you sure you want to delete this review? This action cannot be undone.")) {
+        setDeleting(true);
+        setError(null);
+
+        try {
+          await deleteReview(review.id);
+          alert("Review deleted successfully");
+
+          if (onDelete) {
+            onDelete();
+          }
+          onClose();
+        } catch (err) {
+          setError(
+            err instanceof Error ? err.message : "Failed to delete review"
+          );
+        } finally {
+          setDeleting(false);
+        }
+      }
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-tg-bg rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -169,7 +233,7 @@ export default function EditReviewModal({
             <button
               onClick={onClose}
               className="text-tg-hint hover:text-tg-text"
-              disabled={saving}
+              disabled={saving || deleting}
             >
               ✕
             </button>
@@ -194,7 +258,7 @@ export default function EditReviewModal({
               className="w-full p-3 rounded-lg bg-tg-secondary text-tg-text border-none outline-none resize-none"
               rows={6}
               placeholder={t("editReview.reviewTextPlaceholder")}
-              disabled={saving}
+              disabled={saving || deleting}
             />
           </div>
 
@@ -211,7 +275,7 @@ export default function EditReviewModal({
                     ? "border-green-500 bg-green-500 bg-opacity-20"
                     : "border-tg-secondary bg-tg-secondary"
                 }`}
-                disabled={saving}
+                disabled={saving || deleting}
               >
                 <div className="text-2xl">👍</div>
                 <div className="text-xs text-tg-hint mt-1">
@@ -225,7 +289,7 @@ export default function EditReviewModal({
                     ? "border-yellow-500 bg-yellow-500 bg-opacity-20"
                     : "border-tg-secondary bg-tg-secondary"
                 }`}
-                disabled={saving}
+                disabled={saving || deleting}
               >
                 <div className="text-2xl">😐</div>
                 <div className="text-xs text-tg-hint mt-1">
@@ -239,7 +303,7 @@ export default function EditReviewModal({
                     ? "border-red-500 bg-red-500 bg-opacity-20"
                     : "border-tg-secondary bg-tg-secondary"
                 }`}
-                disabled={saving}
+                disabled={saving || deleting}
               >
                 <div className="text-2xl">👎</div>
                 <div className="text-xs text-tg-hint mt-1">
@@ -277,7 +341,7 @@ export default function EditReviewModal({
                 <button
                   onClick={() => setShowBookSearch(true)}
                   className="text-sm text-tg-text no-underline"
-                  disabled={saving}
+                  disabled={saving || deleting}
                 >
                   {t("editReview.changeBook")}
                 </button>
@@ -286,7 +350,7 @@ export default function EditReviewModal({
               <button
                 onClick={() => setShowBookSearch(true)}
                 className="w-full p-3 rounded-[16px] bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors"
-                disabled={saving}
+                disabled={saving || deleting}
               >
                 {t("editReview.selectBook")}
               </button>
@@ -302,7 +366,7 @@ export default function EditReviewModal({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("editReview.searchBookPlaceholder")}
                 className="w-full p-3 rounded-lg bg-tg-secondary text-tg-text border-none outline-none mb-3"
-                disabled={saving}
+                disabled={saving || deleting}
               />
 
               {/* Database Search Loading */}
@@ -333,7 +397,7 @@ export default function EditReviewModal({
                             setGoogleBooksSearched(false);
                           }}
                           className="w-full flex items-center gap-3 p-2 rounded-lg bg-tg-secondary hover:bg-opacity-80 transition-colors text-left"
-                          disabled={saving}
+                          disabled={saving || deleting}
                         >
                           {book.coverUrl && (
                             <img
@@ -367,7 +431,7 @@ export default function EditReviewModal({
                 searchQuery.trim() && (
                   <button
                     onClick={handleGoogleBooksSearch}
-                    disabled={googleBooksLoading || saving}
+                    disabled={googleBooksLoading || saving || deleting}
                     className="w-full p-3 rounded-[16px] bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors disabled:opacity-50 mb-3 border-2 border-transparent"
                   >
                     {googleBooksLoading
@@ -395,7 +459,7 @@ export default function EditReviewModal({
                           setGoogleBooksSearched(false);
                         }}
                         className="w-full flex items-center gap-3 p-2 rounded-lg bg-tg-secondary hover:bg-opacity-80 transition-colors text-left"
-                        disabled={saving}
+                        disabled={saving || deleting}
                       >
                         {book.coverUrl && (
                           <img
@@ -449,7 +513,7 @@ export default function EditReviewModal({
                   setGoogleBooksSearched(false);
                 }}
                 className="mt-3 text-sm text-tg-hint hover:text-tg-text no-underline"
-                disabled={saving}
+                disabled={saving || deleting}
               >
                 {t("common.cancel")}
               </button>
@@ -458,20 +522,29 @@ export default function EditReviewModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="p-4 border-t border-tg-secondary flex gap-3">
+        <div className="p-4 border-t border-tg-secondary space-y-3">
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-3 rounded-[16px] bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors"
+              disabled={saving || deleting}
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              onClick={handleSave}
+              className="flex-1 px-4 py-3 rounded-[16px] bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors disabled:opacity-50 border-2 border-transparent"
+              disabled={saving || deleting || !reviewText.trim()}
+            >
+              {saving ? t("common.saving") : t("common.save")}
+            </button>
+          </div>
           <button
-            onClick={onClose}
-            className="flex-1 px-4 py-3 rounded-[16px] bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors"
-            disabled={saving}
+            onClick={handleDelete}
+            className="w-full px-4 py-3 rounded-[16px] bg-red-500 bg-opacity-20 text-red-500 border-2 border-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
+            disabled={saving || deleting}
           >
-            {t("common.cancel")}
-          </button>
-          <button
-            onClick={handleSave}
-            className="flex-1 px-4 py-3 rounded-[16px] bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors disabled:opacity-50 border-2 border-transparent"
-            disabled={saving || !reviewText.trim()}
-          >
-            {saving ? t("common.saving") : t("common.save")}
+            {deleting ? "Удаление..." : "🗑️ Удалить рецензию"}
           </button>
         </div>
       </div>
