@@ -78,7 +78,9 @@ export async function reviewEnrichments(filter?: string): Promise<void> {
   let reviewed = 0;
   let selected = 0;
   let isbnEntered = 0;
+  let manualEntry = 0;
   let skipped = 0;
+  let postponed = 0;
 
   while (currentIndex < enrichments.length) {
     const enrichment = enrichments[currentIndex];
@@ -103,7 +105,9 @@ export async function reviewEnrichments(filter?: string): Promise<void> {
       console.log();
       console.log(bold("Options:"));
       console.log("  [i] Enter ISBN to search");
+      console.log("  [m] Manual entry without ISBN (book not published)");
       console.log("  [s] Skip this book (no Book/Review created)");
+      console.log("  [p] Postpone (review later)");
       console.log("  [q] Quit (progress saved)");
       console.log();
 
@@ -121,6 +125,13 @@ export async function reviewEnrichments(filter?: string): Promise<void> {
           reviewed++;
           currentIndex++;
         }
+      } else if (choice === "m") {
+        const manualResult = await handleManualEntry(rl, prisma, enrichment);
+        if (manualResult) {
+          manualEntry++;
+          reviewed++;
+          currentIndex++;
+        }
       } else if (choice === "s") {
         await prisma.stagedEnrichment.update({
           where: { id: enrichment.id },
@@ -129,6 +140,15 @@ export async function reviewEnrichments(filter?: string): Promise<void> {
         skipped++;
         reviewed++;
         console.log(yellow("⊘ Skipped"));
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        currentIndex++;
+      } else if (choice === "p") {
+        await prisma.stagedEnrichment.update({
+          where: { id: enrichment.id },
+          data: { createdAt: new Date() },
+        });
+        postponed++;
+        console.log(blue("⏭ Postponed"));
         await new Promise((resolve) => setTimeout(resolve, 500));
         currentIndex++;
       } else {
@@ -189,7 +209,9 @@ export async function reviewEnrichments(filter?: string): Promise<void> {
         console.log("  [a] Accept this book");
       }
       console.log("  [i] Enter different ISBN");
+      console.log("  [m] Manual entry without ISBN (book not published)");
       console.log("  [s] Skip this book");
+      console.log("  [p] Postpone (review later)");
       console.log("  [q] Quit (progress saved)");
       console.log();
 
@@ -245,6 +267,13 @@ export async function reviewEnrichments(filter?: string): Promise<void> {
           reviewed++;
           currentIndex++;
         }
+      } else if (choice === "m") {
+        const manualResult = await handleManualEntry(rl, prisma, enrichment);
+        if (manualResult) {
+          manualEntry++;
+          reviewed++;
+          currentIndex++;
+        }
       } else if (choice === "s") {
         await prisma.stagedEnrichment.update({
           where: { id: enrichment.id },
@@ -253,6 +282,15 @@ export async function reviewEnrichments(filter?: string): Promise<void> {
         skipped++;
         reviewed++;
         console.log(yellow("⊘ Skipped"));
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        currentIndex++;
+      } else if (choice === "p") {
+        await prisma.stagedEnrichment.update({
+          where: { id: enrichment.id },
+          data: { createdAt: new Date() },
+        });
+        postponed++;
+        console.log(blue("⏭ Postponed"));
         await new Promise((resolve) => setTimeout(resolve, 500));
         currentIndex++;
       } else {
@@ -274,9 +312,82 @@ export async function reviewEnrichments(filter?: string): Promise<void> {
   console.log(`  Reviewed: ${reviewed}`);
   console.log(`  Selected: ${selected}`);
   console.log(`  ISBN entered: ${isbnEntered}`);
+  console.log(`  Manual entry: ${manualEntry}`);
   console.log(`  Skipped: ${skipped}`);
+  console.log(`  Postponed: ${postponed}`);
 
   await prisma.$disconnect();
+}
+
+async function handleManualEntry(
+  rl: readline.Interface,
+  prisma: PrismaClient,
+  enrichment: any
+): Promise<boolean> {
+  console.log();
+  console.log(yellow("Manual book entry (for unpublished books without ISBN)"));
+  console.log();
+  console.log(dim("Original search:"));
+  console.log(`  Title: "${enrichment.searchTitle}"`);
+  console.log(`  Author: ${enrichment.searchAuthor || "Unknown"}`);
+  console.log();
+
+  // Ask for title
+  const titleInput = await question(
+    rl,
+    `Enter book title (or press Enter to use "${enrichment.searchTitle}"): `
+  );
+  const finalTitle = titleInput.trim() || enrichment.searchTitle;
+
+  // Ask for author
+  const authorInput = await question(
+    rl,
+    `Enter author name (or press Enter to use "${enrichment.searchAuthor || "Unknown"}"): `
+  );
+  const finalAuthor = authorInput.trim() || enrichment.searchAuthor || null;
+
+  // Confirm
+  console.log();
+  console.log("Book to be saved:");
+  console.log(green(`  Title: "${finalTitle}"`));
+  console.log(green(`  Author: ${finalAuthor || "Unknown"}`));
+  console.log(yellow(`  Note: No ISBN, no Google Books data`));
+  console.log();
+
+  const confirm = await question(rl, "[a] Accept and save, [c] Cancel: ");
+  const confirmChoice = confirm.trim().toLowerCase();
+
+  if (confirmChoice === "a") {
+    // Create minimal book result without Google Books data
+    // Use a unique identifier for manual entries to prevent them from merging
+    const manualBookData: BookResult = {
+      title: finalTitle,
+      author: finalAuthor,
+      googleBooksId: `manual_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Unique ID for manual entries
+      googleBooksUrl: null,
+      coverUrl: null,
+      genres: [],
+      publicationYear: null,
+      description: null,
+      isbn: null,
+      pageCount: null,
+    };
+
+    await prisma.stagedEnrichment.update({
+      where: { id: enrichment.id },
+      data: {
+        status: "manual_entry",
+        selectedGoogleBooksId: null,
+        selectedBookData: JSON.stringify(manualBookData),
+        enteredIsbn: null,
+      },
+    });
+    console.log(green("✓ Book saved manually (no ISBN)"));
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return true;
+  }
+
+  return false;
 }
 
 async function handleIsbnEntry(
