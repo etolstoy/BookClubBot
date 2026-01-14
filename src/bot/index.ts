@@ -14,6 +14,13 @@ import {
   handleISBNInput,
   handlePendingReviewISBN,
 } from "./handlers/book-selection.js";
+import {
+  handleBookSelected,
+  handleIsbnRequested,
+  handleManualEntryRequested,
+  handleCancel,
+  handleTextInput as handleConfirmationTextInput,
+} from "./handlers/book-confirmation.js";
 import { initNotificationService, sendSuccessNotification } from "../services/notification.service.js";
 
 export function createBot() {
@@ -28,24 +35,37 @@ export function createBot() {
   bot.command("stats", handleStatsCommand);
   bot.command("review", handleReviewCommand);
 
-  // Callback query handlers for book selection
+  // Callback query handlers for book selection (old flow - kept for backward compatibility)
   bot.action(/^book_confirmed:/, handleBookConfirmed);
   bot.action(/^book_alternative:/, handleBookAlternative);
   bot.action(/^book_isbn:/, handleBookISBN);
 
+  // Callback query handlers for new confirmation flow
+  bot.action(/^confirm_book:/, handleBookSelected);
+  bot.action(/^confirm_isbn$/, handleIsbnRequested);
+  bot.action(/^confirm_manual$/, handleManualEntryRequested);
+  bot.action(/^confirm_cancel$/, handleCancel);
+
   // Message handlers
   // Handle text messages in priority order:
-  // 1. Pending review ISBN (when book extraction failed)
-  // 2. Existing review ISBN update (from book selection menu)
-  // 3. Regular review message
+  // 1. Confirmation flow input (ISBN/title/author from new flow)
+  // 2. Pending review ISBN (when book extraction failed - old flow)
+  // 3. Existing review ISBN update (from book selection menu - old flow)
+  // 4. Regular review message
   bot.on(message("text"), async (ctx, next) => {
-    // Check if this is an ISBN for a pending review (highest priority)
+    // Priority 1: Confirmation flow input (new flow)
+    const handledConfirmation = await handleConfirmationTextInput(ctx);
+    if (handledConfirmation) {
+      return; // Stop here, handled by confirmation flow
+    }
+
+    // Priority 2: Check if this is an ISBN for a pending review (old flow)
     const handledPendingReview = await handlePendingReviewISBN(ctx);
     if (handledPendingReview) {
       return; // Stop here, don't process as review
     }
 
-    // Check if this is an ISBN for updating an existing review
+    // Priority 3: Check if this is an ISBN for updating an existing review (old flow)
     await handleISBNInput(ctx);
 
     // Continue to review message handler
