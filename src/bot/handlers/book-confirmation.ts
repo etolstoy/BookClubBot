@@ -195,6 +195,94 @@ function generateAuthorPromptMessage(
 }
 
 /**
+ * Get Russian ordinal number (первой, второй, третьей, etc.)
+ */
+function getOrdinalNumber(n: number): string {
+  const ordinals: { [key: number]: string } = {
+    1: "первой",
+    2: "второй",
+    3: "третьей",
+    4: "четвертой",
+    5: "пятой",
+    6: "шестой",
+    7: "седьмой",
+    8: "восьмой",
+    9: "девятой",
+    10: "десятой",
+    11: "одиннадцатой",
+    12: "двенадцатой",
+    13: "тринадцатой",
+    14: "четырнадцатой",
+    15: "пятнадцатой",
+    16: "шестнадцатой",
+    17: "семнадцатой",
+    18: "восемнадцатой",
+    19: "девятнадцатой",
+    20: "двадцатой",
+  };
+
+  if (ordinals[n]) {
+    return ordinals[n];
+  }
+
+  // For numbers > 20, construct from tens + ones
+  const tens = Math.floor(n / 10) * 10;
+  const ones = n % 10;
+
+  const tensWords: { [key: number]: string } = {
+    20: "двадцать",
+    30: "тридцать",
+    40: "сорок",
+    50: "пятьдесят",
+    60: "шестьдесят",
+    70: "семьдесят",
+    80: "восемьдесят",
+    90: "девяносто",
+  };
+
+  const onesOrdinals: { [key: number]: string } = {
+    1: "первой",
+    2: "второй",
+    3: "третьей",
+    4: "четвертой",
+    5: "пятой",
+    6: "шестой",
+    7: "седьмой",
+    8: "восьмой",
+    9: "девятой",
+  };
+
+  if (ones === 0) {
+    // 20th, 30th, etc.
+    return tensWords[tens] + "ой";
+  }
+
+  return tensWords[tens] + " " + onesOrdinals[ones];
+}
+
+/**
+ * Get Russian plural form for "рецензия"
+ */
+function getReviewPlural(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+
+  if (mod100 >= 11 && mod100 <= 19) {
+    return "рецензий";
+  }
+
+  if (mod10 === 1) {
+    return "рецензия";
+  }
+
+  if (mod10 >= 2 && mod10 <= 4) {
+    return "рецензии";
+  }
+
+  return "рецензий";
+}
+
+/**
  * Generate success message
  */
 function generateSuccessMessage(
@@ -207,15 +295,15 @@ function generateSuccessMessage(
 } {
   let text: string;
   if (reviewCount === 1) {
-    text = `🎉 Поздравляю с первой рецензией на «${bookTitle}»!`;
+    text = `🎉 Поздравляю с ${getOrdinalNumber(reviewCount)} рецензией!\n\nЭто первая рецензия на «${bookTitle}».`;
   } else {
-    text = `🎉 Поздравляю с рецензией #${reviewCount}!\n\nВсего рецензий на эту книгу: ${reviewCount}`;
+    text = `🎉 Поздравляю с твоей ${getOrdinalNumber(reviewCount)} рецензией!\n\nНа «${bookTitle}» написано уже ${reviewCount} ${getReviewPlural(reviewCount)}.`;
   }
 
   return {
     text,
     keyboard: Markup.inlineKeyboard([
-      [Markup.button.url("📱 Открыть в Mini App", generateDeepLink(bookId))],
+      [Markup.button.url("Посмотреть в приложении", generateDeepLink(bookId))],
     ]),
   };
 }
