@@ -3,6 +3,7 @@
 import { extract } from "./import/extract.js";
 import { process as processMessages } from "./import/process.js";
 import { reviewExtractions } from "./import/review-extractions.js";
+import { autoReview } from "./import/auto-review.js";
 import { enrich } from "./import/enrich.js";
 import { reviewEnrichments } from "./import/review-enrichments.js";
 import { finalize } from "./import/finalize.js";
@@ -24,6 +25,9 @@ Commands:
   review-extractions [--filter low|medium|alternatives]
     Interactive CLI to review uncertain extractions
 
+  auto-review [--limit <N>] [--dry-run]
+    Automatically review extractions using GPT-4o (Step 2.5)
+
   enrich [--limit <N>]
     Search Google Books for confirmed extractions
 
@@ -41,6 +45,7 @@ Examples:
   npm run import -- extract --input tg-export.json --chat-id -123456789
   npm run import -- process --limit 10 --auto-confirm-high
   npm run import -- review-extractions --filter low
+  npm run import -- auto-review --limit 10 --dry-run
   npm run import -- enrich
   npm run import -- review-enrichments --filter multiple
   npm run import -- finalize --dry-run
@@ -93,6 +98,15 @@ async function main() {
       case "review-extractions": {
         const filter = getArgValue("--filter");
         await reviewExtractions(filter);
+        break;
+      }
+
+      case "auto-review": {
+        const limitStr = getArgValue("--limit");
+        const limit = limitStr ? parseInt(limitStr, 10) : undefined;
+        const dryRun = hasFlag("--dry-run");
+
+        await autoReview(limit, dryRun);
         break;
       }
 
