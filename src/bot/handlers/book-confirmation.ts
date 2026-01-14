@@ -6,7 +6,7 @@ import { searchBookByISBN } from "../../services/googlebooks.js";
 import { findOrCreateBook, createBook } from "../../services/book.service.js";
 import { createReview } from "../../services/review.service.js";
 import { analyzeSentiment } from "../../services/sentiment.js";
-import { enrichBookInfo } from "../../services/book-enrichment.service.js";
+import { enrichBookInfo, searchLocalBooks } from "../../services/book-enrichment.service.js";
 import type {
   BookConfirmationState,
   EnrichedBook,
@@ -515,23 +515,42 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
         // Ignore if can't delete (message might be too old or bot lacks permissions)
       }
 
-      // Save author and create book directly
+      // Save author
       const title = state.tempData.enteredTitle!;
       const author = text;
 
       try {
-        // Create book with manually entered data (no OpenAI normalization)
-        const book = await createBook({
-          title,
-          author,
-        });
+        // Check if book already exists in local DB with 100% similarity
+        const existingBooks = await searchLocalBooks(title, author, 1.0);
+
+        let bookId: number;
+        let isExistingBook = false;
+
+        if (existingBooks.length > 0) {
+          // Book exists with exact match, use it
+          bookId = existingBooks[0].id!;
+          isExistingBook = true;
+          console.log(
+            `[Confirmation] Found existing book with exact match: "${title}" by ${author} (ID: ${bookId})`
+          );
+        } else {
+          // Book doesn't exist, create new one
+          const book = await createBook({
+            title,
+            author,
+          });
+          bookId = book.id;
+          console.log(
+            `[Confirmation] Created new book: "${title}" by ${author} (ID: ${bookId})`
+          );
+        }
 
         // Analyze sentiment
         const sentiment = await analyzeSentiment(state.reviewData.reviewText);
 
         // Create review
         await createReview({
-          bookId: book.id,
+          bookId,
           telegramUserId: state.reviewData.telegramUserId,
           telegramUsername: state.reviewData.telegramUsername,
           telegramDisplayName: state.reviewData.telegramDisplayName,
@@ -542,16 +561,16 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
           sentiment,
         });
 
-        // Get review count (should be 1 since this is a new book)
+        // Get review count for this book
         const reviewCount = await prisma.review.count({
-          where: { bookId: book.id },
+          where: { bookId },
         });
 
         // Clear state
         clearConfirmationState(userId);
 
         // Send success message
-        const success = generateSuccessMessage(title, reviewCount, book.id);
+        const success = generateSuccessMessage(title, reviewCount, bookId);
         await ctx.telegram.editMessageText(
           ctx.chat!.id,
           state.statusMessageId,
