@@ -395,14 +395,28 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
   // Handle based on current state
   switch (state.state) {
     case "awaiting_isbn": {
+      // Delete user's message to keep chat clean
+      try {
+        await ctx.deleteMessage(message.message_id);
+      } catch {
+        // Ignore if can't delete (message might be too old or bot lacks permissions)
+      }
+
       // Validate ISBN format
       const isbnRegex =
         /^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$/;
 
       if (!isbnRegex.test(text)) {
-        await ctx.reply("❌ Неверный формат ISBN. Пожалуйста, попробуйте ещё раз.", {
-          reply_parameters: { message_id: message.message_id },
-        });
+        await ctx.telegram.editMessageText(
+          ctx.chat!.id,
+          state.statusMessageId,
+          undefined,
+          "❌ Неверный формат ISBN. Пожалуйста, попробуйте ещё раз.\n\n" +
+            "Пример: 978-0-7475-3269-9",
+          Markup.inlineKeyboard([
+            [Markup.button.callback("❌ Отмена", "confirm_cancel")],
+          ])
+        );
         return true;
       }
 
@@ -411,9 +425,17 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
         const result = await searchBookByISBN(text);
 
         if (!result) {
-          await ctx.reply(
-            "❌ Книга с этим ISBN не найдена в Google Books. Попробуйте ввести другой ISBN или используйте ручной ввод.",
-            { reply_parameters: { message_id: message.message_id } }
+          await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            state.statusMessageId,
+            undefined,
+            "❌ Книга с этим ISBN не найдена в Google Books.\n\n" +
+              "Попробуйте ввести другой ISBN или используйте ручной ввод.",
+            Markup.inlineKeyboard([
+              [Markup.button.callback("🔢 Ввести другой ISBN", "confirm_isbn")],
+              [Markup.button.callback("✏️ Ввести название и автора", "confirm_manual")],
+              [Markup.button.callback("❌ Отмена", "confirm_cancel")],
+            ])
           );
           return true;
         }
@@ -441,9 +463,15 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
         );
       } catch (error) {
         console.error("[Confirmation] Error processing ISBN:", error);
-        await ctx.reply(
+        await ctx.telegram.editMessageText(
+          ctx.chat!.id,
+          state.statusMessageId,
+          undefined,
           "❌ Ошибка при поиске книги. Пожалуйста, попробуйте ещё раз.",
-          { reply_parameters: { message_id: message.message_id } }
+          Markup.inlineKeyboard([
+            [Markup.button.callback("🔢 Ввести другой ISBN", "confirm_isbn")],
+            [Markup.button.callback("❌ Отмена", "confirm_cancel")],
+          ])
         );
       }
 
@@ -451,6 +479,13 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
     }
 
     case "awaiting_title": {
+      // Delete user's message to keep chat clean
+      try {
+        await ctx.deleteMessage(message.message_id);
+      } catch {
+        // Ignore if can't delete
+      }
+
       // Save title and move to author input
       state.tempData.enteredTitle = text;
       state.state = "awaiting_author";
@@ -470,6 +505,13 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
     }
 
     case "awaiting_author": {
+      // Delete user's message to keep chat clean
+      try {
+        await ctx.deleteMessage(message.message_id);
+      } catch {
+        // Ignore if can't delete
+      }
+
       // Save author and create book directly
       const title = state.tempData.enteredTitle!;
       const author = text;
