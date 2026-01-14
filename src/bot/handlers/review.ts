@@ -1,11 +1,14 @@
 import { Context, Markup } from "telegraf";
 import { Message } from "telegraf/types";
 import { config } from "../../lib/config.js";
+import { checkDuplicateReview } from "../../services/review.service.js";
+import { extractBookInfoGPT4o } from "../../services/book-extraction.service.js";
+import { enrichBookInfo } from "../../services/book-enrichment.service.js";
 import {
-  processAndCreateReview,
-  checkDuplicateReview,
-} from "../../services/review.service.js";
-import { storePendingReview } from "./book-selection.js";
+  storeConfirmationState,
+  getConfirmationState,
+} from "./book-confirmation.js";
+import type { BookConfirmationState } from "../types/confirmation-state.js";
 
 function getDisplayName(from: Message["from"]): string | null {
   if (!from) return null;
@@ -15,9 +18,82 @@ function getDisplayName(from: Message["from"]): string | null {
   return from.first_name || from.username || null;
 }
 
-function generateDeepLink(bookId: number): string {
-  const botUsername = config.miniAppUrl.split("/").pop() || "bookclubbot";
-  return `${config.miniAppUrl}?startapp=book_${bookId}`;
+/**
+ * Generate options message UI (helper for confirmation flow)
+ */
+function generateOptionsMessage(state: BookConfirmationState): {
+  text: string;
+  keyboard: ReturnType<typeof Markup.inlineKeyboard>;
+} {
+  const buttons = [];
+
+  // Show book suggestions if we have matches
+  if (state.enrichmentResults && state.enrichmentResults.matches.length > 0) {
+    const { source, matches } = state.enrichmentResults;
+
+    // Check if we have mixed sources
+    const hasLocalBooks = matches.some((m) => m.source === "local");
+    const hasGoogleBooks = matches.some((m) => m.source === "google");
+
+    let sourceLabel: string;
+    if (hasLocalBooks && hasGoogleBooks) {
+      sourceLabel = "базе данных";
+    } else if (source === "local") {
+      sourceLabel = "локальной БД";
+    } else {
+      sourceLabel = "Google Books";
+    }
+
+    let text = `📚 Найдены книги в ${sourceLabel}:\n\n`;
+    text += "Выберите нужную книгу:\n\n";
+
+    matches.forEach((book, index) => {
+      const authorText = book.author ? ` — ${book.author}` : "";
+
+      text += `${index + 1}. «${book.title}»${authorText}\n`;
+
+      buttons.push([
+        Markup.button.callback(
+          `📖 ${index + 1}. ${book.title}`,
+          `confirm_book:${index}`
+        ),
+      ]);
+    });
+
+    text += "\nИли выберите другой вариант:";
+
+    // Add manual entry buttons
+    buttons.push([Markup.button.callback("🔢 Введу ISBN", "confirm_isbn")]);
+    buttons.push([
+      Markup.button.callback("✏️ Введу название и автора", "confirm_manual"),
+    ]);
+    buttons.push([Markup.button.callback("❌ Отмена", "confirm_cancel")]);
+
+    return {
+      text,
+      keyboard: Markup.inlineKeyboard(buttons),
+    };
+  }
+
+  // No matches found - show manual entry options only
+  let text = "❌ Книга не найдена автоматически.\n\n";
+  if (state.extractedInfo) {
+    text += `Искали: «${state.extractedInfo.title}»${
+      state.extractedInfo.author ? ` — ${state.extractedInfo.author}` : ""
+    }\n\n`;
+  }
+  text += "Выберите способ ввода:";
+
+  buttons.push([Markup.button.callback("🔢 Введу ISBN", "confirm_isbn")]);
+  buttons.push([
+    Markup.button.callback("✏️ Введу название и автора", "confirm_manual"),
+  ]);
+  buttons.push([Markup.button.callback("❌ Отмена", "confirm_cancel")]);
+
+  return {
+    text,
+    keyboard: Markup.inlineKeyboard(buttons),
+  };
 }
 
 export async function handleReviewMessage(ctx: Context) {
@@ -63,6 +139,10 @@ export async function handleReviewCommand(ctx: Context) {
     return;
   }
 
+  // Check if command has parameters (e.g., /review Title – Author)
+  const commandMatch = message.text.match(/^\/review\s+(.+)$/);
+  const commandParams = commandMatch ? commandMatch[1].trim() : undefined;
+
   if (!message || !("reply_to_message" in message) || !message.reply_to_message) {
     await ctx.reply(
       "Пожалуйста, используйте /review как ответ на сообщение, которое хотите отметить как рецензию."
@@ -77,40 +157,21 @@ export async function handleReviewCommand(ctx: Context) {
     return;
   }
 
-  // Validate that the replied message looks like a book review
-  // It should be substantial (not just a short greeting) and mention a book
-  const text = replyMessage.text.trim();
-  if (text.length < 20) {
-    await ctx.reply(
-      "Сообщение слишком короткое для рецензии. Рецензии должны содержать минимум 20 символов.",
-      { reply_parameters: { message_id: message.message_id } }
-    );
-    return;
-  }
-
-  // Check if the message contains common book-related patterns
-  const hasBookIndicators = /(?:book|author|read|novel|story|chapter|page|ISBN|publication|книга|автор|читал|роман|история|глава|страниц|издание)/i.test(text) ||
-    /["«»""]/.test(text); // Check for quotes which often indicate book titles
-
-  if (!hasBookIndicators) {
-    await ctx.reply(
-      "Это сообщение не похоже на рецензию. Рецензии должны упоминать книгу, автора или связанные термины.\n\n" +
-      "Совет: используйте хештег " + config.reviewHashtag + " для автоматического определения рецензий.",
-      { reply_parameters: { message_id: message.message_id } }
-    );
-    return;
-  }
-
-  await processReview(ctx, replyMessage);
+  await processReview(ctx, replyMessage, commandParams);
 }
 
-async function processReview(ctx: Context, message: Message.TextMessage) {
+async function processReview(
+  ctx: Context,
+  message: Message.TextMessage,
+  commandParams?: string
+) {
   if (!message.from) {
     return;
   }
 
   const telegramUserId = BigInt(message.from.id);
   const messageId = BigInt(message.message_id);
+  const userId = message.from.id.toString();
 
   // Check for duplicate
   const isDuplicate = await checkDuplicateReview(telegramUserId, messageId);
@@ -121,34 +182,74 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
     return;
   }
 
+  // Check if user already has a pending confirmation
+  const existingState = getConfirmationState(userId);
+  if (existingState) {
+    await ctx.reply(
+      "⚠️ У вас уже есть незавершённая рецензия. Пожалуйста, завершите её сначала или отмените.",
+      { reply_parameters: { message_id: message.message_id } }
+    );
+    return;
+  }
+
   // Send processing message
-  const processingMsg = await ctx.reply("Обрабатываю рецензию... 📖", {
+  const processingMsg = await ctx.reply("📖 Извлекаю информацию о книге...", {
     reply_parameters: { message_id: message.message_id },
   });
 
   try {
-    const result = await processAndCreateReview({
-      telegramUserId,
-      telegramUsername: message.from.username,
-      telegramDisplayName: getDisplayName(message.from),
-      reviewText: message.text,
-      messageId,
-      chatId: message.chat ? BigInt(message.chat.id) : null,
-      reviewedAt: new Date(message.date * 1000),
-    });
+    // Step 1: Extract book info with GPT-4o
+    const extractedInfo = await extractBookInfoGPT4o(message.text, commandParams);
 
-    // Delete processing message
-    try {
-      await ctx.telegram.deleteMessage(ctx.chat!.id, processingMsg.message_id);
-    } catch {
-      // Ignore if can't delete
+    // Step 2: If extraction failed, show manual entry options
+    if (!extractedInfo || !extractedInfo.title) {
+      console.log("[Review] GPT-4o extraction failed, showing manual entry options");
+
+      const state: BookConfirmationState = {
+        reviewData: {
+          telegramUserId,
+          telegramUsername: message.from.username,
+          telegramDisplayName: getDisplayName(message.from),
+          reviewText: message.text,
+          messageId,
+          chatId: message.chat ? BigInt(message.chat.id) : null,
+          reviewedAt: new Date(message.date * 1000),
+        },
+        extractedInfo: null,
+        enrichmentResults: null,
+        state: "showing_options",
+        statusMessageId: processingMsg.message_id,
+        tempData: {},
+        createdAt: new Date(),
+      };
+
+      storeConfirmationState(userId, state);
+
+      const options = generateOptionsMessage(state);
+      await ctx.telegram.editMessageText(
+        ctx.chat!.id,
+        processingMsg.message_id,
+        undefined,
+        options.text,
+        options.keyboard
+      );
+      return;
     }
 
-    if (!result) {
-      // Book extraction failed - prompt for ISBN instead of saving without book
-      const userId = message.from.id.toString();
+    console.log(
+      `[Review] Extracted: ${extractedInfo.title} by ${extractedInfo.author}, confidence: ${extractedInfo.confidence}`
+    );
 
-      const stored = storePendingReview(userId, {
+    // Step 3: Enrich with 90% matching (local DB + Google Books)
+    const enrichmentResults = await enrichBookInfo(extractedInfo);
+
+    console.log(
+      `[Review] Enrichment results: source=${enrichmentResults.source}, matches=${enrichmentResults.matches.length}`
+    );
+
+    // Step 4: Create confirmation state and show options
+    const state: BookConfirmationState = {
+      reviewData: {
         telegramUserId,
         telegramUsername: message.from.username,
         telegramDisplayName: getDisplayName(message.from),
@@ -156,115 +257,27 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
         messageId,
         chatId: message.chat ? BigInt(message.chat.id) : null,
         reviewedAt: new Date(message.date * 1000),
-      });
+      },
+      extractedInfo,
+      enrichmentResults,
+      state: "showing_options",
+      statusMessageId: processingMsg.message_id,
+      tempData: {},
+      createdAt: new Date(),
+    };
 
-      if (!stored) {
-        await ctx.reply(
-          "⚠️ У вас уже есть незавершённая рецензия. Пожалуйста, завершите её сначала.",
-          { reply_parameters: { message_id: message.message_id } }
-        );
-        return;
-      }
+    storeConfirmationState(userId, state);
 
-      await ctx.reply(
-        "❌ Не удалось определить книгу в этой рецензии.\n\n" +
-        "📖 Пожалуйста, отправьте ISBN книги (ISBN-10 или ISBN-13), чтобы сохранить эту рецензию.\n\n" +
-        "Пример: 978-0-7475-3269-9",
-        { reply_parameters: { message_id: message.message_id } }
-      );
-      return;
-    }
-
-    const { review, isNewBook, reviewCount, bookInfo } = result;
-    const bookTitle = review.book?.title || "Unknown Book";
-
-    // Check if multiple books were detected and confidence is low
-    const hasAlternativeBooks = bookInfo?.alternativeBooks && bookInfo.alternativeBooks.length > 0;
-    const isLowConfidence = bookInfo?.confidence === "low";
-
-    if ((hasAlternativeBooks || isLowConfidence) && bookInfo) {
-      // Show book selection menu
-      const buttons = [];
-
-      // Primary book button
-      buttons.push([
-        Markup.button.callback(
-          `📖 ${bookInfo.title}${bookInfo.author ? ` by ${bookInfo.author}` : ""}`,
-          `book_confirmed:${review.id}`
-        ),
-      ]);
-
-      // Alternative books buttons
-      if (hasAlternativeBooks) {
-        bookInfo.alternativeBooks!.forEach((altBook, index) => {
-          buttons.push([
-            Markup.button.callback(
-              `📚 ${altBook.title}${altBook.author ? ` by ${altBook.author}` : ""}`,
-              `book_alternative:${review.id}:${index}`
-            ),
-          ]);
-        });
-      }
-
-      // ISBN input button
-      buttons.push([
-        Markup.button.callback("🔢 Ввести ISBN вручную", `book_isbn:${review.id}`),
-      ]);
-
-      // Keep current book button
-      buttons.push([
-        Markup.button.callback("✅ Оставить текущий выбор", `book_confirmed:${review.id}`),
-      ]);
-
-      const keyboard = Markup.inlineKeyboard(buttons);
-
-      await ctx.reply(
-        `⚠️ Обнаружено несколько книг в вашей рецензии!\n\nОсновная книга: "${bookTitle}"\n\nПожалуйста, подтвердите, на какую книгу вы пишете рецензию:`,
-        {
-          reply_parameters: { message_id: message.message_id },
-          ...keyboard,
-        }
-      );
-      return;
-    }
-
-    // Standard success message
-    let responseText: string;
-    let keyboard;
-
-    if (isNewBook) {
-      responseText = `🎉 Поздравляем! Это первая рецензия на "${bookTitle}"!`;
-    } else {
-      responseText = `📚 Рецензия сохранена! Это рецензия #${reviewCount} на "${bookTitle}".`;
-    }
-
-    // Add sentiment badge
-    if (review.sentiment) {
-      const sentimentEmoji =
-        review.sentiment === "positive"
-          ? "👍"
-          : review.sentiment === "negative"
-          ? "👎"
-          : "😐";
-      responseText += ` ${sentimentEmoji}`;
-    }
-
-    // Add deep link button if we have a book
-    if (review.book) {
-      keyboard = Markup.inlineKeyboard([
-        Markup.button.url(
-          "Посмотреть все рецензии",
-          generateDeepLink(review.book.id)
-        ),
-      ]);
-    }
-
-    await ctx.reply(responseText, {
-      reply_parameters: { message_id: message.message_id },
-      ...keyboard,
-    });
+    const options = generateOptionsMessage(state);
+    await ctx.telegram.editMessageText(
+      ctx.chat!.id,
+      processingMsg.message_id,
+      undefined,
+      options.text,
+      options.keyboard
+    );
   } catch (error) {
-    console.error("Error processing review:", error);
+    console.error("[Review] Error processing review:", error);
 
     // Delete processing message
     try {
@@ -273,9 +286,9 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
       // Ignore if can't delete
     }
 
-    // Check if this is a Google Books rate limit error
-    const isRateLimitError = error instanceof Error &&
-      error.message.includes('Rate limit exceeded');
+    // Check for specific errors
+    const isRateLimitError =
+      error instanceof Error && error.message.includes("Rate limit exceeded");
 
     if (isRateLimitError) {
       await ctx.reply(
@@ -285,8 +298,9 @@ async function processReview(ctx: Context, message: Message.TextMessage) {
       return;
     }
 
-    await ctx.reply("Извините, произошла ошибка при обработке этой рецензии. Пожалуйста, попробуйте ещё раз.", {
-      reply_parameters: { message_id: message.message_id },
-    });
+    await ctx.reply(
+      "❌ Произошла ошибка при обработке рецензии. Пожалуйста, попробуйте ещё раз.",
+      { reply_parameters: { message_id: message.message_id } }
+    );
   }
 }

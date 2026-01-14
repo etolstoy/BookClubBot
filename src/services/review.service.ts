@@ -1,4 +1,5 @@
 import prisma from "../lib/prisma.js";
+import { config } from "../lib/config.js";
 import { analyzeSentiment, type Sentiment } from "./sentiment.js";
 import { processReviewText } from "./book.service.js";
 import type { ExtractedBookInfo } from "./llm.js";
@@ -550,6 +551,17 @@ export async function updateReview(
 }
 
 /**
+ * Delete a review
+ * Returns the deleted review with book details for admin notification
+ */
+export async function deleteReview(reviewId: number) {
+  return prisma.review.delete({
+    where: { id: reviewId },
+    include: { book: true },
+  });
+}
+
+/**
  * Check if a review belongs to a user (for authorization)
  */
 export async function isReviewOwner(
@@ -562,6 +574,13 @@ export async function isReviewOwner(
   });
 
   return review?.telegramUserId === telegramUserId;
+}
+
+/**
+ * Check if a user is an admin
+ */
+export function isAdmin(telegramUserId: bigint): boolean {
+  return config.adminUserIds.includes(telegramUserId);
 }
 
 /**

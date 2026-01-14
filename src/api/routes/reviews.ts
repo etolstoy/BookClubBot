@@ -3,7 +3,9 @@ import {
   getRandomReviews,
   getRecentReviews,
   updateReview,
+  deleteReview,
   isReviewOwner,
+  isAdmin,
   getReviewById,
   cleanupOrphanBooks,
 } from "../../services/review.service.js";
@@ -151,7 +153,8 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
 
     // Check ownership
     const isOwner = await isReviewOwner(reviewId, req.telegramUser!.id);
-    if (!isOwner) {
+    const userIsAdmin = isAdmin(req.telegramUser!.id);
+    if (!isOwner && !userIsAdmin) {
       res.status(403).json({ error: "You can only edit your own reviews" });
       return;
     }
@@ -259,11 +262,15 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
     if (bookId !== undefined || googleBooksData !== undefined)
       changes.push("book assignment");
 
+    const actionType = isOwner ? "edited" : "edited (ADMIN)";
+
     await sendInfoNotification(
-      `Review #${reviewId} edited by ${userName}`,
+      `Review #${reviewId} ${actionType} by ${userName}`,
       {
         operation: "Review Update",
         additionalInfo: `Changes: ${changes.join(", ")}${
+          !isOwner ? `\nAdmin edited review by @${existingReview.telegramUsername || 'unknown'}` : ''
+        }${
           bookId !== undefined || googleBooksData !== undefined
             ? `\nNew book: ${updatedReview.book?.title || "None"}`
             : ""
@@ -302,6 +309,91 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
   } catch (error) {
     console.error("Error updating review:", error);
     res.status(500).json({ error: "Failed to update review" });
+  }
+});
+
+// DELETE /api/reviews/:id - Delete a review
+router.delete("/:id", authenticateTelegramWebApp, async (req, res) => {
+  try {
+    const reviewId = parseInt(req.params.id, 10);
+
+    if (isNaN(reviewId)) {
+      res.status(400).json({ error: "Invalid review ID" });
+      return;
+    }
+
+    // Check if review exists
+    const existingReview = await getReviewById(reviewId);
+    if (!existingReview) {
+      res.status(404).json({ error: "Review not found" });
+      return;
+    }
+
+    // Check ownership
+    const isOwner = await isReviewOwner(reviewId, req.telegramUser!.id);
+    const userIsAdmin = isAdmin(req.telegramUser!.id);
+    if (!isOwner && !userIsAdmin) {
+      res.status(403).json({ error: "You can only delete your own reviews" });
+      return;
+    }
+
+    // Store book ID for orphan cleanup
+    const bookId = existingReview.bookId;
+
+    // Delete the review
+    const deletedReview = await deleteReview(reviewId);
+
+    // Cleanup orphan books if the review had a book
+    if (bookId) {
+      const orphansDeleted = await cleanupOrphanBooks();
+
+      if (orphansDeleted > 0) {
+        console.log(
+          `[ReviewDelete] Cleaned up ${orphansDeleted} orphan book(s)`
+        );
+      }
+    }
+
+    // Send admin notification
+    const userName =
+      req.telegramUser!.username ||
+      req.telegramUser!.first_name ||
+      "Unknown User";
+
+    const reviewTextPreview =
+      deletedReview.reviewText.length > 200
+        ? deletedReview.reviewText.substring(0, 200) + "..."
+        : deletedReview.reviewText;
+
+    const actionLabel = isOwner ? "Review Deleted" : "Review Deleted (ADMIN)";
+
+    await sendInfoNotification(
+      `📕 ${actionLabel}\n\nUser: ${
+        deletedReview.telegramUsername
+          ? `@${deletedReview.telegramUsername}`
+          : userName
+      } (${deletedReview.telegramDisplayName || "No display name"})${
+        !isOwner ? `\nDeleted by admin: @${req.telegramUser!.username || 'unknown'}` : ''
+      }\nBook: ${
+        deletedReview.book
+          ? `"${deletedReview.book.title}"${
+              deletedReview.book.author ? ` by ${deletedReview.book.author}` : ""
+            }`
+          : "No book assigned"
+      }\nReview: ${reviewTextPreview}`,
+      {
+        operation: "Review Deletion",
+        additionalInfo: `Review ID: ${reviewId}`,
+      }
+    );
+
+    res.json({
+      success: true,
+      message: "Review deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting review:", error);
+    res.status(500).json({ error: "Failed to delete review" });
   }
 });
 

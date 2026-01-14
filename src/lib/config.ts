@@ -9,6 +9,7 @@ const configSchema = z.object({
   GOOGLE_BOOKS_API_KEY: z.string().optional(),
   TARGET_CHAT_ID: z.string().optional(),
   ADMIN_CHAT_ID: z.string().optional(),
+  ADMIN_USER_IDS: z.string().optional(),
   REVIEW_HASHTAG: z.string().default("#рецензия"),
   PORT: z.string().default("3001"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
@@ -40,6 +41,9 @@ export const config = {
   adminChatId: parsed.data.ADMIN_CHAT_ID
     ? BigInt(parsed.data.ADMIN_CHAT_ID)
     : undefined,
+  adminUserIds: parsed.data.ADMIN_USER_IDS
+    ? parsed.data.ADMIN_USER_IDS.split(',').map((id) => BigInt(id.trim()))
+    : [],
   reviewHashtag: parsed.data.REVIEW_HASHTAG,
   port: parseInt(parsed.data.PORT, 10),
   isDev: parsed.data.NODE_ENV === "development",

@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState, createContext } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { getConfig, type Config } from "./api/client";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Book from "./pages/Book";
@@ -8,6 +9,9 @@ import Leaderboard from "./pages/Leaderboard";
 import ReviewersLeaderboard from "./pages/ReviewersLeaderboard";
 import BrowseBooks from "./pages/BrowseBooks";
 import FreshReviews from "./pages/FreshReviews";
+
+// Create context for config
+export const ConfigContext = createContext<Config | null>(null);
 
 declare global {
   interface Window {
@@ -83,9 +87,18 @@ function AppContent() {
 }
 
 export default function App() {
+  const [config, setConfig] = useState<Config | null>(null);
+
+  useEffect(() => {
+    // Load config on startup
+    getConfig().then(setConfig).catch(console.error);
+  }, []);
+
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <ConfigContext.Provider value={config}>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </ConfigContext.Provider>
   );
 }
