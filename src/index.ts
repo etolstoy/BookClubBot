@@ -1,6 +1,7 @@
 import { createBot, startBot } from "./bot/index.js";
 import { createServer, startServer } from "./server.js";
 import { sendErrorNotification } from "./services/notification.service.js";
+import { cleanupStaleStates } from "./bot/handlers/book-confirmation.js";
 
 async function main() {
   console.log("Book Club Bot starting...");
@@ -14,6 +15,12 @@ async function main() {
 
   // Start bot (this will initialize notification service)
   await startBot(bot);
+
+  // Start cleanup job for stale confirmation states (runs every 5 minutes)
+  setInterval(() => {
+    cleanupStaleStates();
+  }, 5 * 60 * 1000); // 5 minutes
+  console.log("Cleanup job started (runs every 5 minutes)");
 
   console.log("All services started successfully!");
 }
