@@ -291,20 +291,19 @@ export async function enrichBookInfo(
       ? "local"
       : "google";
 
-  // Remove duplicates and limit to 3
-  // For local books, deduplicate by ID; for Google books, by googleBooksId
+  // Remove duplicates by normalized title+author and limit to 3
+  // This ensures we don't show multiple editions of the same book
   const uniqueMatches: EnrichedBook[] = [];
-  const seenIds = new Set<string>();
+  const seenBooks = new Set<string>();
 
   for (const match of allMatches) {
-    const id = match.id
-      ? `local:${match.id}`
-      : match.googleBooksId
-      ? `google:${match.googleBooksId}`
-      : `title:${match.title}`;
+    // Create a normalized key from title and author for deduplication
+    const normalizedTitle = normalizeString(match.title);
+    const normalizedAuthor = match.author ? normalizeString(match.author) : "no-author";
+    const bookKey = `${normalizedTitle}|||${normalizedAuthor}`;
 
-    if (!seenIds.has(id)) {
-      seenIds.add(id);
+    if (!seenBooks.has(bookKey)) {
+      seenBooks.add(bookKey);
       uniqueMatches.push(match);
       if (uniqueMatches.length >= 3) break; // Limit to 3
     }
