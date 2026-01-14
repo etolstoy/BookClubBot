@@ -54,7 +54,7 @@ function generateOptionsMessage(state: BookConfirmationState): {
 
       buttons.push([
         Markup.button.callback(
-          `📖 ${index + 1}. ${book.title}${authorText}`,
+          `📖 ${index + 1}. ${book.title}`,
           `confirm_book:${index}`
         ),
       ]);
