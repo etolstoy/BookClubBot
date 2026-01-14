@@ -37,12 +37,8 @@ function generateOptionsMessage(state: BookConfirmationState): {
 
     matches.forEach((book, index) => {
       const authorText = book.author ? ` — ${book.author}` : "";
-      const similarity =
-        Math.round(
-          ((book.similarity.title + book.similarity.author) / 2) * 100
-        ) + "%";
 
-      text += `${index + 1}. «${book.title}»${authorText} (совпадение: ${similarity})\n`;
+      text += `${index + 1}. «${book.title}»${authorText}\n`;
 
       buttons.push([
         Markup.button.callback(
