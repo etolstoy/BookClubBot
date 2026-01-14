@@ -1,4 +1,4 @@
-import { Context, Markup } from "telegraf";
+import { Context } from "telegraf";
 import { Message } from "telegraf/types";
 import { config } from "../../lib/config.js";
 import { checkDuplicateReview } from "../../services/review.service.js";
@@ -7,6 +7,7 @@ import { enrichBookInfo } from "../../services/book-enrichment.service.js";
 import {
   storeConfirmationState,
   getConfirmationState,
+  generateOptionsMessage,
 } from "./book-confirmation.js";
 import type { BookConfirmationState } from "../types/confirmation-state.js";
 
@@ -16,84 +17,6 @@ function getDisplayName(from: Message["from"]): string | null {
     return `${from.first_name} ${from.last_name}`;
   }
   return from.first_name || from.username || null;
-}
-
-/**
- * Generate options message UI (helper for confirmation flow)
- */
-function generateOptionsMessage(state: BookConfirmationState): {
-  text: string;
-  keyboard: ReturnType<typeof Markup.inlineKeyboard>;
-} {
-  const buttons = [];
-
-  // Show book suggestions if we have matches
-  if (state.enrichmentResults && state.enrichmentResults.matches.length > 0) {
-    const { source, matches } = state.enrichmentResults;
-
-    // Check if we have mixed sources
-    const hasLocalBooks = matches.some((m) => m.source === "local");
-    const hasGoogleBooks = matches.some((m) => m.source === "google");
-
-    let sourceLabel: string;
-    if (hasLocalBooks && hasGoogleBooks) {
-      sourceLabel = "базе данных";
-    } else if (source === "local") {
-      sourceLabel = "локальной БД";
-    } else {
-      sourceLabel = "Google Books";
-    }
-
-    let text = `📚 Найдены книги в ${sourceLabel}:\n\n`;
-    text += "Выберите нужную книгу:\n\n";
-
-    matches.forEach((book, index) => {
-      const authorText = book.author ? ` — ${book.author}` : "";
-
-      text += `${index + 1}. «${book.title}»${authorText}\n`;
-
-      buttons.push([
-        Markup.button.callback(
-          `📖 ${index + 1}. ${book.title}`,
-          `confirm_book:${index}`
-        ),
-      ]);
-    });
-
-    text += "\nИли выберите другой вариант:";
-
-    // Add manual entry buttons
-    buttons.push([Markup.button.callback("🔢 Введу ISBN", "confirm_isbn")]);
-    buttons.push([
-      Markup.button.callback("✏️ Введу название и автора", "confirm_manual"),
-    ]);
-    buttons.push([Markup.button.callback("❌ Отмена", "confirm_cancel")]);
-
-    return {
-      text,
-      keyboard: Markup.inlineKeyboard(buttons),
-    };
-  }
-
-  // No matches found - show manual entry options only
-  let text = "❌ Книга не найдена автоматически.\n\n";
-  if (state.extractedInfo) {
-    text += `Искали: «${state.extractedInfo.title}»${
-      state.extractedInfo.author ? ` — ${state.extractedInfo.author}` : ""
-    }\n\n`;
-  }
-  text += "Выберите способ ввода:";
-
-  buttons.push([Markup.button.callback("🔢 Введу ISBN", "confirm_isbn")]);
-  buttons.push([
-    Markup.button.callback("✏️ Введу название и автора", "confirm_manual"),
-  ]);
-  buttons.push([Markup.button.callback("❌ Отмена", "confirm_cancel")]);
-
-  return {
-    text,
-    keyboard: Markup.inlineKeyboard(buttons),
-  };
 }
 
 export async function handleReviewMessage(ctx: Context) {
@@ -109,22 +32,15 @@ export async function handleReviewMessage(ctx: Context) {
   }
 
   // Ignore commands (messages starting with /)
-  if (message.text.startsWith('/')) {
-    console.log('[Review Handler] Ignoring command:', message.text.substring(0, 20));
+  if (message.text.startsWith("/")) {
     return;
   }
 
   // Check if message contains the review hashtag
-  const hasHashtag = message.text.includes(config.reviewHashtag);
-  console.log('[Review Handler] Message:', message.text.substring(0, 50));
-  console.log('[Review Handler] Looking for hashtag:', config.reviewHashtag);
-  console.log('[Review Handler] Has hashtag:', hasHashtag);
-
-  if (!hasHashtag) {
+  if (!message.text.includes(config.reviewHashtag)) {
     return;
   }
 
-  console.log('[Review Handler] Processing as review');
   await processReview(ctx, message);
 }
 

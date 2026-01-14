@@ -78,7 +78,7 @@ function getGoodreadsUrl(book: EnrichedBook): string {
 /**
  * Generate options message UI (showing book matches or manual entry)
  */
-function generateOptionsMessage(state: BookConfirmationState): {
+export function generateOptionsMessage(state: BookConfirmationState): {
   text: string;
   keyboard: ReturnType<typeof Markup.inlineKeyboard>;
 } {

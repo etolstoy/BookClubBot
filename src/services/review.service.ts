@@ -162,30 +162,88 @@ export async function checkDuplicateReview(
   return !!existing;
 }
 
-export async function getMonthlyLeaderboard(year: number, month: number, limit = 10) {
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 1);
+// Types for leaderboard results
+interface ReviewerLeaderboardEntry {
+  rank: number;
+  telegramUserId: string;
+  username: string | null;
+  displayName: string | null;
+  reviewCount: number;
+}
+
+interface BookLeaderboardEntry {
+  rank: number;
+  bookId: number;
+  title: string;
+  author: string | null;
+  coverUrl: string | null;
+  reviewCount: number;
+}
+
+interface DateRange {
+  startDate?: Date;
+  endDate?: Date;
+}
+
+// Helper to create date range for different period types
+function getDateRange(
+  period: "monthly" | "yearly" | "last30days" | "last365days" | "all",
+  year?: number,
+  month?: number
+): DateRange {
+  switch (period) {
+    case "monthly":
+      return {
+        startDate: new Date(year!, month! - 1, 1),
+        endDate: new Date(year!, month!, 1),
+      };
+    case "yearly":
+      return {
+        startDate: new Date(year!, 0, 1),
+        endDate: new Date(year! + 1, 0, 1),
+      };
+    case "last30days": {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      return { startDate };
+    }
+    case "last365days": {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 365);
+      return { startDate };
+    }
+    case "all":
+    default:
+      return {};
+  }
+}
+
+// Core reviewer leaderboard function
+async function getReviewerLeaderboard(
+  dateRange: DateRange,
+  limit: number
+): Promise<ReviewerLeaderboardEntry[]> {
+  const whereClause: Record<string, unknown> = {};
+
+  if (dateRange.startDate || dateRange.endDate) {
+    whereClause.reviewedAt = {};
+    if (dateRange.startDate) {
+      (whereClause.reviewedAt as Record<string, Date>).gte = dateRange.startDate;
+    }
+    if (dateRange.endDate) {
+      (whereClause.reviewedAt as Record<string, Date>).lt = dateRange.endDate;
+    }
+  }
 
   const results = await prisma.review.groupBy({
     by: ["telegramUserId", "telegramUsername", "telegramDisplayName"],
-    where: {
-      reviewedAt: {
-        gte: startDate,
-        lt: endDate,
-      },
-    },
-    _count: {
-      id: true,
-    },
-    orderBy: {
-      _count: {
-        id: "desc",
-      },
-    },
+    where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
+    _count: { id: true },
+    orderBy: { _count: { id: "desc" } },
     take: limit,
   });
 
-  return results.map((r: { telegramUserId: bigint; telegramUsername: string | null; telegramDisplayName: string | null; _count: { id: number } }, index: number) => ({
+  return results.map((r, index) => ({
     rank: index + 1,
     telegramUserId: r.telegramUserId.toString(),
     username: r.telegramUsername,
@@ -194,121 +252,31 @@ export async function getMonthlyLeaderboard(year: number, month: number, limit =
   }));
 }
 
-export async function getYearlyLeaderboard(year: number, limit = 10) {
-  const startDate = new Date(year, 0, 1);
-  const endDate = new Date(year + 1, 0, 1);
-
-  const results = await prisma.review.groupBy({
-    by: ["telegramUserId", "telegramUsername", "telegramDisplayName"],
-    where: {
-      reviewedAt: {
-        gte: startDate,
-        lt: endDate,
-      },
-    },
-    _count: {
-      id: true,
-    },
-    orderBy: {
-      _count: {
-        id: "desc",
-      },
-    },
-    take: limit,
-  });
-
-  return results.map((r: { telegramUserId: bigint; telegramUsername: string | null; telegramDisplayName: string | null; _count: { id: number } }, index: number) => ({
-    rank: index + 1,
-    telegramUserId: r.telegramUserId.toString(),
-    username: r.telegramUsername,
-    displayName: r.telegramDisplayName,
-    reviewCount: r._count.id,
-  }));
+export function getMonthlyLeaderboard(
+  year: number,
+  month: number,
+  limit = 10
+): Promise<ReviewerLeaderboardEntry[]> {
+  return getReviewerLeaderboard(getDateRange("monthly", year, month), limit);
 }
 
-export async function getOverallLeaderboard(limit = 10) {
-  const results = await prisma.review.groupBy({
-    by: ["telegramUserId", "telegramUsername", "telegramDisplayName"],
-    _count: {
-      id: true,
-    },
-    orderBy: {
-      _count: {
-        id: "desc",
-      },
-    },
-    take: limit,
-  });
-
-  return results.map((r: { telegramUserId: bigint; telegramUsername: string | null; telegramDisplayName: string | null; _count: { id: number } }, index: number) => ({
-    rank: index + 1,
-    telegramUserId: r.telegramUserId.toString(),
-    username: r.telegramUsername,
-    displayName: r.telegramDisplayName,
-    reviewCount: r._count.id,
-  }));
+export function getYearlyLeaderboard(
+  year: number,
+  limit = 10
+): Promise<ReviewerLeaderboardEntry[]> {
+  return getReviewerLeaderboard(getDateRange("yearly", year), limit);
 }
 
-export async function getLast30DaysLeaderboard(limit = 10) {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 30);
-
-  const results = await prisma.review.groupBy({
-    by: ["telegramUserId", "telegramUsername", "telegramDisplayName"],
-    where: {
-      reviewedAt: {
-        gte: startDate,
-      },
-    },
-    _count: {
-      id: true,
-    },
-    orderBy: {
-      _count: {
-        id: "desc",
-      },
-    },
-    take: limit,
-  });
-
-  return results.map((r: { telegramUserId: bigint; telegramUsername: string | null; telegramDisplayName: string | null; _count: { id: number } }, index: number) => ({
-    rank: index + 1,
-    telegramUserId: r.telegramUserId.toString(),
-    username: r.telegramUsername,
-    displayName: r.telegramDisplayName,
-    reviewCount: r._count.id,
-  }));
+export function getOverallLeaderboard(limit = 10): Promise<ReviewerLeaderboardEntry[]> {
+  return getReviewerLeaderboard(getDateRange("all"), limit);
 }
 
-export async function getLast365DaysLeaderboard(limit = 10) {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 365);
+export function getLast30DaysLeaderboard(limit = 10): Promise<ReviewerLeaderboardEntry[]> {
+  return getReviewerLeaderboard(getDateRange("last30days"), limit);
+}
 
-  const results = await prisma.review.groupBy({
-    by: ["telegramUserId", "telegramUsername", "telegramDisplayName"],
-    where: {
-      reviewedAt: {
-        gte: startDate,
-      },
-    },
-    _count: {
-      id: true,
-    },
-    orderBy: {
-      _count: {
-        id: "desc",
-      },
-    },
-    take: limit,
-  });
-
-  return results.map((r: { telegramUserId: bigint; telegramUsername: string | null; telegramDisplayName: string | null; _count: { id: number } }, index: number) => ({
-    rank: index + 1,
-    telegramUserId: r.telegramUserId.toString(),
-    username: r.telegramUsername,
-    displayName: r.telegramDisplayName,
-    reviewCount: r._count.id,
-  }));
+export function getLast365DaysLeaderboard(limit = 10): Promise<ReviewerLeaderboardEntry[]> {
+  return getReviewerLeaderboard(getDateRange("last365days"), limit);
 }
 
 export async function getMostReviewedBooks(limit = 10, offset = 0, period?: { type: 'monthly' | 'yearly'; year: number; month?: number }) {
@@ -370,39 +338,40 @@ export async function getMostReviewedBooks(limit = 10, offset = 0, period?: { ty
   }));
 }
 
-export async function getLast30DaysMostReviewedBooks(limit = 10, offset = 0) {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 30);
-
-  // Group reviews by book to get counts within the period
+// Core function for getting most reviewed books with date filter
+async function getMostReviewedBooksWithDateFilter(
+  startDate: Date,
+  limit: number,
+  offset: number
+): Promise<BookLeaderboardEntry[]> {
   const reviewCounts = await prisma.review.groupBy({
-    by: ['bookId'],
+    by: ["bookId"],
     where: {
       bookId: { not: null },
       reviewedAt: { gte: startDate },
     },
     _count: { id: true },
-    orderBy: { _count: { id: 'desc' } },
+    orderBy: { _count: { id: "desc" } },
     take: limit,
     skip: offset,
   });
 
-  // Get book details for the top reviewed books
-  const bookIds = reviewCounts.map(r => r.bookId).filter((id): id is number => id !== null);
+  const bookIds = reviewCounts
+    .map((r) => r.bookId)
+    .filter((id): id is number => id !== null);
+
   const books = await prisma.book.findMany({
     where: { id: { in: bookIds } },
   });
 
-  // Create a map for easy lookup
-  const bookMap = new Map(books.map(book => [book.id, book]));
+  const bookMap = new Map(books.map((book) => [book.id, book]));
 
-  // Combine the data maintaining the order
   return reviewCounts.map((rc, index) => {
     const book = bookMap.get(rc.bookId!);
     return {
       rank: offset + index + 1,
       bookId: rc.bookId!,
-      title: book?.title || 'Unknown',
+      title: book?.title || "Unknown",
       author: book?.author || null,
       coverUrl: book?.coverUrl || null,
       reviewCount: rc._count.id,
@@ -410,44 +379,22 @@ export async function getLast30DaysMostReviewedBooks(limit = 10, offset = 0) {
   });
 }
 
-export async function getLast365DaysMostReviewedBooks(limit = 10, offset = 0) {
+export function getLast30DaysMostReviewedBooks(
+  limit = 10,
+  offset = 0
+): Promise<BookLeaderboardEntry[]> {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+  return getMostReviewedBooksWithDateFilter(startDate, limit, offset);
+}
+
+export function getLast365DaysMostReviewedBooks(
+  limit = 10,
+  offset = 0
+): Promise<BookLeaderboardEntry[]> {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 365);
-
-  // Group reviews by book to get counts within the period
-  const reviewCounts = await prisma.review.groupBy({
-    by: ['bookId'],
-    where: {
-      bookId: { not: null },
-      reviewedAt: { gte: startDate },
-    },
-    _count: { id: true },
-    orderBy: { _count: { id: 'desc' } },
-    take: limit,
-    skip: offset,
-  });
-
-  // Get book details for the top reviewed books
-  const bookIds = reviewCounts.map(r => r.bookId).filter((id): id is number => id !== null);
-  const books = await prisma.book.findMany({
-    where: { id: { in: bookIds } },
-  });
-
-  // Create a map for easy lookup
-  const bookMap = new Map(books.map(book => [book.id, book]));
-
-  // Combine the data maintaining the order
-  return reviewCounts.map((rc, index) => {
-    const book = bookMap.get(rc.bookId!);
-    return {
-      rank: offset + index + 1,
-      bookId: rc.bookId!,
-      title: book?.title || 'Unknown',
-      author: book?.author || null,
-      coverUrl: book?.coverUrl || null,
-      reviewCount: rc._count.id,
-    };
-  });
+  return getMostReviewedBooksWithDateFilter(startDate, limit, offset);
 }
 
 export async function getStats() {

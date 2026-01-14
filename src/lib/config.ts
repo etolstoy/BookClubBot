@@ -15,9 +15,6 @@ const configSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 
-console.log('[Config] Raw REVIEW_HASHTAG from env:', process.env.REVIEW_HASHTAG);
-console.log('[Config] REVIEW_HASHTAG length:', process.env.REVIEW_HASHTAG?.length);
-
 const parsed = configSchema.safeParse(process.env);
 
 if (!parsed.success) {
@@ -26,8 +23,14 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-console.log('[Config] Parsed REVIEW_HASHTAG:', parsed.data.REVIEW_HASHTAG);
-console.log('[Config] Parsed REVIEW_HASHTAG length:', parsed.data.REVIEW_HASHTAG?.length);
+function parseBigInt(value: string | undefined): bigint | undefined {
+  return value ? BigInt(value) : undefined;
+}
+
+function parseBigIntList(value: string | undefined): bigint[] {
+  if (!value) return [];
+  return value.split(",").map((id) => BigInt(id.trim()));
+}
 
 export const config = {
   botToken: parsed.data.BOT_TOKEN,
@@ -35,22 +38,13 @@ export const config = {
   databaseUrl: parsed.data.DATABASE_URL,
   openaiApiKey: parsed.data.OPENAI_API_KEY,
   googleBooksApiKey: parsed.data.GOOGLE_BOOKS_API_KEY,
-  targetChatId: parsed.data.TARGET_CHAT_ID
-    ? BigInt(parsed.data.TARGET_CHAT_ID)
-    : undefined,
-  adminChatId: parsed.data.ADMIN_CHAT_ID
-    ? BigInt(parsed.data.ADMIN_CHAT_ID)
-    : undefined,
-  adminUserIds: parsed.data.ADMIN_USER_IDS
-    ? parsed.data.ADMIN_USER_IDS.split(',').map((id) => BigInt(id.trim()))
-    : [],
+  targetChatId: parseBigInt(parsed.data.TARGET_CHAT_ID),
+  adminChatId: parseBigInt(parsed.data.ADMIN_CHAT_ID),
+  adminUserIds: parseBigIntList(parsed.data.ADMIN_USER_IDS),
   reviewHashtag: parsed.data.REVIEW_HASHTAG,
   port: parseInt(parsed.data.PORT, 10),
   isDev: parsed.data.NODE_ENV === "development",
   isProd: parsed.data.NODE_ENV === "production",
 };
-
-console.log('[Config] Final reviewHashtag:', config.reviewHashtag);
-console.log('[Config] Final reviewHashtag length:', config.reviewHashtag?.length);
 
 export default config;
