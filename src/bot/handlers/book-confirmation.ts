@@ -133,17 +133,21 @@ export function generateOptionsMessage(state: BookConfirmationState): {
   }
 
   // No matches found - show manual entry options only
-  let text = "❌ Книга не найдена автоматически.\n\n";
+  let text = "❌ Книга не найдена в Google Books. Можешь попробовать поискать еще раз через ISBN, либо создать ее вручную (но не будет красивой обложки). Что выберешь?";
+
+  // If we have extracted info, show it as a quick-select button
   if (state.extractedInfo) {
-    text += `Искали: «${state.extractedInfo.title}»${
-      state.extractedInfo.author ? ` — ${state.extractedInfo.author}` : ""
-    }\n\n`;
+    const authorText = state.extractedInfo.author ? ` — ${state.extractedInfo.author}` : "";
+    const buttonText = `📖 «${state.extractedInfo.title}»${authorText}`;
+    buttons.push([Markup.button.callback(buttonText, "confirm_extracted")]);
   }
-  text += "Выберите способ ввода:";
 
   buttons.push([Markup.button.callback("🔢 Введу ISBN", "confirm_isbn")]);
   buttons.push([
-    Markup.button.callback("✏️ Введу название и автора", "confirm_manual"),
+    Markup.button.callback(
+      state.extractedInfo ? "✏️ Другое название и автор" : "✏️ Введу название и автора",
+      "confirm_manual"
+    ),
   ]);
   buttons.push([Markup.button.callback("❌ Отмена", "confirm_cancel")]);
 
@@ -295,17 +299,27 @@ function getReviewPlural(n: number): string {
  */
 function generateSuccessMessage(
   bookTitle: string,
-  reviewCount: number,
+  userReviewCount: number,
+  bookReviewCount: number,
   bookId: number
 ): {
   text: string;
   keyboard: ReturnType<typeof Markup.inlineKeyboard>;
 } {
   let text: string;
-  if (reviewCount === 1) {
-    text = `🎉 Поздравляю с ${getOrdinalNumber(reviewCount)} рецензией!\n\nЭто первая рецензия на «${bookTitle}».`;
+
+  // Primary message: congratulate user on their review count
+  if (userReviewCount === 1) {
+    text = `🎉 Поздравляю с ${getOrdinalNumber(userReviewCount)} рецензией!\n\n`;
   } else {
-    text = `🎉 Поздравляю с твоей ${getOrdinalNumber(reviewCount)} рецензией!\n\nНа «${bookTitle}» написано уже ${reviewCount} ${getReviewPlural(reviewCount)}.`;
+    text = `🎉 Поздравляю с твоей ${getOrdinalNumber(userReviewCount)} рецензией!\n\n`;
+  }
+
+  // Secondary message: mention book review count
+  if (bookReviewCount === 1) {
+    text += `Это первая рецензия на «${bookTitle}».`;
+  } else {
+    text += `На «${bookTitle}» написано уже ${bookReviewCount} ${getReviewPlural(bookReviewCount)}.`;
   }
 
   return {
@@ -381,8 +395,11 @@ export async function handleBookSelected(ctx: Context) {
       sentiment,
     });
 
-    // Get review count
-    const reviewCount = await prisma.review.count({
+    // Get review counts
+    const userReviewCount = await prisma.review.count({
+      where: { telegramUserId: state.reviewData.telegramUserId },
+    });
+    const bookReviewCount = await prisma.review.count({
       where: { bookId },
     });
 
@@ -392,7 +409,8 @@ export async function handleBookSelected(ctx: Context) {
     // Send success message
     const success = generateSuccessMessage(
       selectedBook.title,
-      reviewCount,
+      userReviewCount,
+      bookReviewCount,
       bookId
     );
     await ctx.editMessageText(success.text, success.keyboard);
@@ -469,6 +487,89 @@ export async function handleCancel(ctx: Context) {
 
   await ctx.answerCbQuery("❌ Отменено");
   await ctx.editMessageText("❌ Создание рецензии отменено.");
+}
+
+/**
+ * Callback handler: User confirms using extracted book info
+ */
+export async function handleExtractedBookConfirmed(ctx: Context) {
+  const callbackQuery = ctx.callbackQuery;
+  if (!callbackQuery || !("from" in callbackQuery)) return;
+
+  const userId = callbackQuery.from.id.toString();
+  const state = getConfirmationState(userId);
+
+  if (!state || !state.extractedInfo) {
+    await ctx.answerCbQuery("❌ Сессия истекла. Пожалуйста, отправьте рецензию заново.");
+    return;
+  }
+
+  await ctx.answerCbQuery("✅ Создаю рецензию...");
+
+  const title = state.extractedInfo.title;
+  const author = state.extractedInfo.author || "";
+
+  try {
+    // Check if book already exists in local DB with 100% similarity
+    const existingBooks = await searchLocalBooks(title, author, 1.0);
+
+    let bookId: number;
+
+    if (existingBooks.length > 0) {
+      // Book exists with exact match, use it
+      bookId = existingBooks[0].id!;
+      console.log(
+        `[Confirmation] Found existing book with exact match: "${title}" by ${author} (ID: ${bookId})`
+      );
+    } else {
+      // Book doesn't exist, create new one without Google Books data
+      const book = await createBook({
+        title,
+        author: author || null,
+      });
+      bookId = book.id;
+      console.log(
+        `[Confirmation] Created new book from extracted info: "${title}" by ${author} (ID: ${bookId})`
+      );
+    }
+
+    // Analyze sentiment
+    const sentiment = await analyzeSentiment(state.reviewData.reviewText);
+
+    // Create review
+    await createReview({
+      bookId,
+      telegramUserId: state.reviewData.telegramUserId,
+      telegramUsername: state.reviewData.telegramUsername,
+      telegramDisplayName: state.reviewData.telegramDisplayName,
+      reviewText: state.reviewData.reviewText,
+      messageId: state.reviewData.messageId,
+      chatId: state.reviewData.chatId,
+      reviewedAt: state.reviewData.reviewedAt,
+      sentiment,
+    });
+
+    // Get review counts
+    const userReviewCount = await prisma.review.count({
+      where: { telegramUserId: state.reviewData.telegramUserId },
+    });
+    const bookReviewCount = await prisma.review.count({
+      where: { bookId },
+    });
+
+    // Clear state
+    clearConfirmationState(userId);
+
+    // Send success message
+    const success = generateSuccessMessage(title, userReviewCount, bookReviewCount, bookId);
+    await ctx.editMessageText(success.text, success.keyboard);
+  } catch (error) {
+    console.error("[Confirmation] Error creating book/review from extracted info:", error);
+    await ctx.editMessageText(
+      "❌ Произошла ошибка при создании рецензии. Пожалуйста, попробуйте ещё раз."
+    );
+    clearConfirmationState(userId);
+  }
 }
 
 /**
@@ -657,8 +758,11 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
           sentiment,
         });
 
-        // Get review count for this book
-        const reviewCount = await prisma.review.count({
+        // Get review counts
+        const userReviewCount = await prisma.review.count({
+          where: { telegramUserId: state.reviewData.telegramUserId },
+        });
+        const bookReviewCount = await prisma.review.count({
           where: { bookId },
         });
 
@@ -666,7 +770,7 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
         clearConfirmationState(userId);
 
         // Send success message
-        const success = generateSuccessMessage(title, reviewCount, bookId);
+        const success = generateSuccessMessage(title, userReviewCount, bookReviewCount, bookId);
         await ctx.telegram.editMessageText(
           ctx.chat!.id,
           state.statusMessageId,

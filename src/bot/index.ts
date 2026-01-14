@@ -19,6 +19,7 @@ import {
   handleIsbnRequested,
   handleManualEntryRequested,
   handleCancel,
+  handleExtractedBookConfirmed,
   handleTextInput as handleConfirmationTextInput,
 } from "./handlers/book-confirmation.js";
 import { initNotificationService, sendSuccessNotification } from "../services/notification.service.js";
@@ -44,6 +45,7 @@ export function createBot() {
   bot.action(/^confirm_book:/, handleBookSelected);
   bot.action(/^confirm_isbn$/, handleIsbnRequested);
   bot.action(/^confirm_manual$/, handleManualEntryRequested);
+  bot.action(/^confirm_extracted$/, handleExtractedBookConfirmed);
   bot.action(/^confirm_cancel$/, handleCancel);
 
   // Message handlers
