@@ -34,18 +34,22 @@ Respond with JSON only. Response format:
 
 Guidelines:
 - "title" is the PRIMARY book being reviewed (the main subject)
-- Include transliterations (e.g., Russian ↔ English) in alternativeBooks if present
-- Include books mentioned for comparison/reference (but NOT the primary subject) in alternativeBooks
+- If multiple books are mentioned with no clear primary, pick the FIRST mentioned book as primary and put the rest in alternativeBooks
+- Include transliterations (e.g., Russian ↔ English) as separate entries in alternativeBooks
+- Include books mentioned for comparison/reference in alternativeBooks
 - Limit alternativeBooks to maximum 3 entries
 - "confidence" indicates how certain you are about the primary book identification
-- Set confidence to "low" if multiple books seem equally important
+- Set confidence to "low" if multiple books seem equally important (but still pick one as primary)
 - If command parameters are provided (format: "Title – Author"), extract from those first
 
-If you cannot identify any book, respond with:
+IMPORTANT: Always extract at least one book as primary if ANY books are mentioned. Only return null if absolutely no books can be identified.
+
+If you cannot identify any book at all, respond with:
 {
   "title": null,
   "author": null,
-  "confidence": "low"
+  "confidence": "low",
+  "alternativeBooks": []
 }`;
 
   try {
@@ -76,8 +80,32 @@ If you cannot identify any book, respond with:
 
     const parsed = JSON.parse(content);
 
+    console.log(
+      "[GPT-4o] Parsed response:",
+      JSON.stringify({
+        title: parsed.title,
+        author: parsed.author,
+        confidence: parsed.confidence,
+        alternativesCount: parsed.alternativeBooks?.length || 0,
+      })
+    );
+
+    // If no primary title but we have alternatives, promote first alternative to primary
+    if (!parsed.title && parsed.alternativeBooks && parsed.alternativeBooks.length > 0) {
+      console.log(
+        "[GPT-4o] No primary title, promoting first alternative to primary"
+      );
+      const firstAlt = parsed.alternativeBooks[0];
+      return {
+        title: firstAlt.title,
+        author: firstAlt.author || null,
+        confidence: "low",
+        alternativeBooks: parsed.alternativeBooks.slice(1), // Rest of alternatives
+      };
+    }
+
     if (!parsed.title) {
-      console.log("[GPT-4o] No title found in response");
+      console.log("[GPT-4o] No title found and no alternatives");
       return null;
     }
 
