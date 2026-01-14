@@ -397,8 +397,9 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
     case "awaiting_isbn": {
       // Delete user's message to keep chat clean
       try {
-        await ctx.deleteMessage(message.message_id);
-      } catch {
+        await ctx.telegram.deleteMessage(ctx.chat!.id, message.message_id);
+      } catch (error) {
+        console.log("[Confirmation] Could not delete ISBN message:", error);
         // Ignore if can't delete (message might be too old or bot lacks permissions)
       }
 
@@ -481,9 +482,10 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
     case "awaiting_title": {
       // Delete user's message to keep chat clean
       try {
-        await ctx.deleteMessage(message.message_id);
-      } catch {
-        // Ignore if can't delete
+        await ctx.telegram.deleteMessage(ctx.chat!.id, message.message_id);
+      } catch (error) {
+        console.log("[Confirmation] Could not delete title message:", error);
+        // Ignore if can't delete (message might be too old or bot lacks permissions)
       }
 
       // Save title and move to author input
@@ -507,9 +509,10 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
     case "awaiting_author": {
       // Delete user's message to keep chat clean
       try {
-        await ctx.deleteMessage(message.message_id);
-      } catch {
-        // Ignore if can't delete
+        await ctx.telegram.deleteMessage(ctx.chat!.id, message.message_id);
+      } catch (error) {
+        console.log("[Confirmation] Could not delete author message:", error);
+        // Ignore if can't delete (message might be too old or bot lacks permissions)
       }
 
       // Save author and create book directly
