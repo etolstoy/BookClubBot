@@ -238,54 +238,84 @@ export async function enrichBookInfo(
     `[Book Enrichment] Enriching ${booksToEnrich.length} books (primary + alternatives)`
   );
 
-  // Step 1: Try local DB for ALL books
+  // Step 1: Search local DB for all books and track which books were found
   const localMatches: EnrichedBook[] = [];
+  const booksFoundLocally = new Set<string>();
+
   for (const book of booksToEnrich) {
     const matches = await searchLocalBooks(book.title, book.author);
-    localMatches.push(...matches);
+    if (matches.length > 0) {
+      localMatches.push(...matches);
+      booksFoundLocally.add(`${book.title}|||${book.author}`); // Track found books
+    }
   }
 
-  // If ANY local matches found, return them immediately (don't try Google Books)
-  if (localMatches.length > 0) {
-    console.log(`[Book Enrichment] Found ${localMatches.length} local matches`);
-    // Remove duplicates by book ID and limit to 3
-    const uniqueLocalMatches = Array.from(
-      new Map(localMatches.map((book) => [book.id, book])).values()
-    ).slice(0, 3);
+  console.log(
+    `[Book Enrichment] Local DB: found ${localMatches.length} matches for ${booksFoundLocally.size}/${booksToEnrich.length} books`
+  );
 
-    return {
-      source: "local",
-      matches: uniqueLocalMatches,
-    };
-  }
-
-  console.log("[Book Enrichment] No local matches, trying Google Books");
-
-  // Step 2: No local matches, try Google Books for ALL books
+  // Step 2: Search Google Books ONLY for books NOT found locally
   const googleMatches: EnrichedBook[] = [];
-  for (const book of booksToEnrich) {
-    const matches = await searchGoogleBooksWithThreshold(book.title, book.author);
-    googleMatches.push(...matches);
+  const booksToSearchGoogle = booksToEnrich.filter(
+    (book) => !booksFoundLocally.has(`${book.title}|||${book.author}`)
+  );
+
+  if (booksToSearchGoogle.length > 0) {
+    console.log(
+      `[Book Enrichment] Searching Google Books for ${booksToSearchGoogle.length} books not found locally`
+    );
+    for (const book of booksToSearchGoogle) {
+      const matches = await searchGoogleBooksWithThreshold(book.title, book.author);
+      googleMatches.push(...matches);
+    }
   }
 
-  if (googleMatches.length > 0) {
-    console.log(`[Book Enrichment] Found ${googleMatches.length} Google Books matches`);
-    // Remove duplicates by googleBooksId and limit to 3
-    const uniqueGoogleMatches = Array.from(
-      new Map(googleMatches.map((book) => [book.googleBooksId, book])).values()
-    ).slice(0, 3);
+  console.log(`[Book Enrichment] Google Books: found ${googleMatches.length} matches`);
 
+  // Step 3: Combine results from both sources
+  const allMatches: EnrichedBook[] = [...localMatches, ...googleMatches];
+
+  if (allMatches.length === 0) {
+    console.log("[Book Enrichment] No matches found anywhere");
     return {
-      source: "google",
-      matches: uniqueGoogleMatches,
+      source: "none",
+      matches: [],
     };
   }
 
-  console.log("[Book Enrichment] No matches found anywhere");
+  // Determine source based on what we found
+  const source =
+    localMatches.length > 0 && googleMatches.length > 0
+      ? "local" // If we have both, prefer showing "local" as primary source
+      : localMatches.length > 0
+      ? "local"
+      : "google";
 
-  // Step 3: No matches found anywhere
+  // Remove duplicates and limit to 3
+  // For local books, deduplicate by ID; for Google books, by googleBooksId
+  const uniqueMatches: EnrichedBook[] = [];
+  const seenIds = new Set<string>();
+
+  for (const match of allMatches) {
+    const id = match.id
+      ? `local:${match.id}`
+      : match.googleBooksId
+      ? `google:${match.googleBooksId}`
+      : `title:${match.title}`;
+
+    if (!seenIds.has(id)) {
+      seenIds.add(id);
+      uniqueMatches.push(match);
+      if (uniqueMatches.length >= 3) break; // Limit to 3
+    }
+  }
+
+  console.log(
+    `[Book Enrichment] Returning ${uniqueMatches.length} unique matches (source: ${source})`
+  );
+
   return {
-    source: "none",
-    matches: [],
+    source,
+    matches: uniqueMatches,
   };
 }

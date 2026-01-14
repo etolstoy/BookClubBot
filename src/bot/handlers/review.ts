@@ -30,7 +30,19 @@ function generateOptionsMessage(state: BookConfirmationState): {
   // Show book suggestions if we have matches
   if (state.enrichmentResults && state.enrichmentResults.matches.length > 0) {
     const { source, matches } = state.enrichmentResults;
-    const sourceLabel = source === "local" ? "локальной БД" : "Google Books";
+
+    // Check if we have mixed sources
+    const hasLocalBooks = matches.some((m) => m.source === "local");
+    const hasGoogleBooks = matches.some((m) => m.source === "google");
+
+    let sourceLabel: string;
+    if (hasLocalBooks && hasGoogleBooks) {
+      sourceLabel = "базе данных";
+    } else if (source === "local") {
+      sourceLabel = "локальной БД";
+    } else {
+      sourceLabel = "Google Books";
+    }
 
     let text = `📚 Найдены книги в ${sourceLabel}:\n\n`;
     text += "Выберите нужную книгу:\n\n";

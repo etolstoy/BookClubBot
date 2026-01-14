@@ -87,19 +87,27 @@ function generateOptionsMessage(state: BookConfirmationState): {
   // Show book suggestions if we have matches
   if (state.enrichmentResults && state.enrichmentResults.matches.length > 0) {
     const { source, matches } = state.enrichmentResults;
-    const sourceLabel = source === "local" ? "локальной БД" : "Google Books";
+
+    // Check if we have mixed sources
+    const hasLocalBooks = matches.some((m) => m.source === "local");
+    const hasGoogleBooks = matches.some((m) => m.source === "google");
+
+    let sourceLabel: string;
+    if (hasLocalBooks && hasGoogleBooks) {
+      sourceLabel = "базе данных";
+    } else if (source === "local") {
+      sourceLabel = "локальной БД";
+    } else {
+      sourceLabel = "Google Books";
+    }
 
     let text = `📚 Найдены книги в ${sourceLabel}:\n\n`;
     text += "Выберите нужную книгу:\n\n";
 
     matches.forEach((book, index) => {
       const authorText = book.author ? ` — ${book.author}` : "";
-      const similarity =
-        Math.round(
-          ((book.similarity.title + book.similarity.author) / 2) * 100
-        ) + "%";
 
-      text += `${index + 1}. «${book.title}»${authorText} (совпадение: ${similarity})\n`;
+      text += `${index + 1}. «${book.title}»${authorText}\n`;
 
       buttons.push([
         Markup.button.callback(
