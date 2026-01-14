@@ -10,21 +10,19 @@ generator client {
 }
 
 model Book {
-  id                Int                 @id @default(autoincrement())
-  title             String
-  author            String?
-  googleBooksId     String?             @unique @map("google_books_id")
-  googleBooksUrl    String?             @map("google_books_url")
-  coverUrl          String?             @map("cover_url")
-  genres            String?             // JSON array stored as string for SQLite
-  publicationYear   Int?                @map("publication_year")
-  description       String?
-  isbn              String?
-  pageCount         Int?                @map("page_count")
-  createdAt         DateTime            @default(now()) @map("created_at")
-  updatedAt         DateTime            @updatedAt @map("updated_at")
-  reviews           Review[]
-  stagedEnrichments StagedEnrichment[]
+  id              Int       @id @default(autoincrement())
+  title           String
+  author          String?
+  googleBooksId   String?   @unique @map("google_books_id")
+  coverUrl        String?   @map("cover_url")
+  genres          String?   // JSON array stored as string for SQLite
+  publicationYear Int?      @map("publication_year")
+  description     String?
+  isbn            String?
+  pageCount       Int?      @map("page_count")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  reviews         Review[]
 
   @@map("books")
 }
@@ -46,69 +44,4 @@ model Review {
   @@index([telegramUserId, reviewedAt])
   @@index([bookId])
   @@map("reviews")
-}
-
-model StagedMessage {
-  id              Int                @id @default(autoincrement())
-  messageId       BigInt             @map("message_id")
-  telegramUserId  BigInt             @map("telegram_user_id")
-  displayName     String?            @map("display_name")
-  reviewText      String             @map("review_text")
-  chatId          BigInt?            @map("chat_id")
-  reviewedAt      DateTime           @map("reviewed_at")
-  status          String             @default("pending") // pending, extracted, failed, skipped
-  extractionId    Int?               @unique @map("extraction_id")
-  extraction      StagedExtraction?  @relation(fields: [extractionId], references: [id], onDelete: SetNull)
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @updatedAt @map("updated_at")
-
-  @@unique([telegramUserId, messageId])
-  @@index([status])
-  @@map("staged_messages")
-}
-
-model StagedExtraction {
-  id                  Int                 @id @default(autoincrement())
-  stagedMessage       StagedMessage?
-  title               String
-  author              String?
-  confidence          String              // high, medium, low
-  titleVariants       String?             // JSON array
-  authorVariants      String?             // JSON array
-  alternativeBooks    String?             // JSON array
-  additionalContext   String?             @map("additional_context")
-  status              String              @default("needs_review") // needs_review, confirmed, edited, skipped
-  confirmedTitle      String?             @map("confirmed_title")
-  confirmedAuthor     String?             @map("confirmed_author")
-  enrichmentId        Int?                @unique @map("enrichment_id")
-  enrichment          StagedEnrichment?   @relation(fields: [enrichmentId], references: [id], onDelete: SetNull)
-  createdAt           DateTime            @default(now()) @map("created_at")
-  updatedAt           DateTime            @updatedAt @map("updated_at")
-
-  @@index([status])
-  @@map("staged_extractions")
-}
-
-model StagedEnrichment {
-  id                    Int                 @id @default(autoincrement())
-  stagedExtraction      StagedExtraction?
-  searchTitle           String              @map("search_title")
-  searchAuthor          String?             @map("search_author")
-  googleBooksResults    String?             @map("google_books_results") // JSON array
-  resultCount           Int                 @default(0) @map("result_count")
-  status                String              @default("needs_selection") // needs_selection, selected, isbn_entered, no_metadata, skipped
-  hasMultipleResults    Boolean             @default(false) @map("has_multiple_results")
-  hasNoResults          Boolean             @default(false) @map("has_no_results")
-  missingCover          Boolean             @default(false) @map("missing_cover")
-  missingMetadata       Boolean             @default(false) @map("missing_metadata")
-  selectedGoogleBooksId String?             @map("selected_google_books_id")
-  selectedBookData      String?             @map("selected_book_data") // JSON
-  enteredIsbn           String?             @map("entered_isbn")
-  bookId                Int?                @map("book_id")
-  book                  Book?               @relation(fields: [bookId], references: [id], onDelete: SetNull)
-  createdAt             DateTime            @default(now()) @map("created_at")
-  updatedAt             DateTime            @updatedAt @map("updated_at")
-
-  @@index([status])
-  @@map("staged_enrichments")
 }

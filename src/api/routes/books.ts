@@ -3,6 +3,7 @@ import {
   getAllBooks,
   getBookById,
   searchBooks,
+  getGoogleBooksUrl,
 } from "../../services/book.service.js";
 import { getReviewsByBookId } from "../../services/review.service.js";
 import {
@@ -257,7 +258,7 @@ router.get("/:id", async (req, res) => {
         genres,
         publicationYear: book.publicationYear,
         pageCount: book.pageCount,
-        googleBooksUrl: book.googleBooksUrl,
+        googleBooksUrl: getGoogleBooksUrl(book.googleBooksId),
         goodreadsUrl: generateGoodreadsUrl(book.isbn, book.title, book.author),
         reviewCount: book.reviews.length,
         sentiments,

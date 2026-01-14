@@ -92,7 +92,6 @@ export interface BookSearchResult {
   genres: string[];
   publicationYear: number | null;
   coverUrl: string | null;
-  googleBooksUrl: string | null;
   isbn: string | null;
   pageCount: number | null;
 }
@@ -171,7 +170,6 @@ export async function searchBooks(query: string): Promise<BookSearchResult[]> {
           genres: info.categories ?? [],
           publicationYear: extractYear(info.publishedDate),
           coverUrl: getBestCoverUrl(info.imageLinks),
-          googleBooksUrl: info.infoLink ?? null,
           isbn,
           pageCount: info.pageCount ?? null,
         };
@@ -216,7 +214,6 @@ export async function getBookById(
       genres: info.categories ?? [],
       publicationYear: extractYear(info.publishedDate),
       coverUrl: getBestCoverUrl(info.imageLinks),
-      googleBooksUrl: info.infoLink ?? null,
       isbn,
       pageCount: info.pageCount ?? null,
     };

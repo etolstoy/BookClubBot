@@ -3,11 +3,17 @@ import { calculateSimilarity } from "../lib/string-utils.js";
 import { searchBookWithFallbacks, searchBookByISBN } from "./googlebooks.js";
 import { extractBookInfo, type ExtractedBookInfo } from "./llm.js";
 
+/**
+ * Compute Google Books URL from Google Books ID
+ */
+export function getGoogleBooksUrl(googleBooksId: string | null): string | null {
+  return googleBooksId ? `https://books.google.com/books?id=${googleBooksId}` : null;
+}
+
 export interface CreateBookInput {
   title: string;
   author?: string | null;
   googleBooksId?: string | null;
-  googleBooksUrl?: string | null;
   coverUrl?: string | null;
   genres?: string[];
   publicationYear?: number | null;
@@ -50,7 +56,6 @@ export async function createBook(input: CreateBookInput) {
       title: input.title,
       author: input.author,
       googleBooksId: input.googleBooksId,
-      googleBooksUrl: input.googleBooksUrl,
       coverUrl: input.coverUrl,
       genres: input.genres ? JSON.stringify(input.genres) : null,
       publicationYear: input.publicationYear,
@@ -96,7 +101,6 @@ export async function findOrCreateBook(
       title: googleBook.title,
       author: googleBook.author,
       googleBooksId: googleBook.googleBooksId,
-      googleBooksUrl: googleBook.googleBooksUrl,
       coverUrl: googleBook.coverUrl,
       genres: googleBook.genres,
       publicationYear: googleBook.publicationYear,
@@ -144,7 +148,6 @@ export async function findOrCreateBookByISBN(
     title: googleBook.title,
     author: googleBook.author,
     googleBooksId: googleBook.googleBooksId,
-    googleBooksUrl: googleBook.googleBooksUrl,
     coverUrl: googleBook.coverUrl,
     genres: googleBook.genres,
     publicationYear: googleBook.publicationYear,
@@ -198,7 +201,6 @@ export async function findOrCreateBookFromGoogleBooks(googleBooksData: {
     title: googleBooksData.title,
     author: googleBooksData.author,
     googleBooksId: googleBooksData.googleBooksId,
-    googleBooksUrl: `https://books.google.com/books?id=${googleBooksData.googleBooksId}`,
     coverUrl: googleBooksData.coverUrl,
     genres: googleBooksData.genres,
     publicationYear: googleBooksData.publicationYear,
@@ -344,7 +346,6 @@ export async function searchBooks(query: string, limit = 20) {
     publication_year: number | null;
     page_count: number | null;
     cover_url: string | null;
-    google_books_url: string | null;
     created_at: Date;
     updated_at: Date;
   }>>`
@@ -380,7 +381,7 @@ export async function searchBooks(query: string, limit = 20) {
         publicationYear: book.publication_year,
         pageCount: book.page_count,
         coverUrl: book.cover_url,
-        googleBooksUrl: book.google_books_url,
+        googleBooksUrl: getGoogleBooksUrl(book.google_books_id),
         createdAt: book.created_at,
         updatedAt: book.updated_at,
         reviews,

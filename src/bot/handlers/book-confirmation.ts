@@ -370,9 +370,6 @@ export async function handleBookSelected(ctx: Context) {
         title: selectedBook.title,
         author: selectedBook.author,
         googleBooksId: selectedBook.googleBooksId || null,
-        googleBooksUrl: selectedBook.googleBooksId
-          ? `https://books.google.com/books?id=${selectedBook.googleBooksId}`
-          : null,
         coverUrl: selectedBook.coverUrl,
         isbn: selectedBook.isbn,
       });
