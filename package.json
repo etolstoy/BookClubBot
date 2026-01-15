@@ -1,6 +1,7 @@
 {
   "name": "book-club-bot",
   "version": "1.0.0",
+  "type": "module",
   "description": "Telegram Book Club Bot with Mini App for book review tracking",
   "main": "dist/index.js",
   "scripts": {
