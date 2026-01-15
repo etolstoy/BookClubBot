@@ -1,8 +1,8 @@
-name: Deploy to DigitalOcean
+name: Build and Deploy
 
 on:
   push:
-    branches: [main]
+    branches: ["main"]
 
 env:
   REGISTRY: ghcr.io
@@ -16,84 +16,108 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
+      - name: Downcase REPO
+        run: |
+          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
+      - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Bot image
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/bot:latest
-
-      - name: Build and push Mini App image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./mini-app
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/mini-app:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Copy files to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.DROPLET_IP }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.DROPLET_SSH_KEY }}
-          source: "docker-compose.yml,Caddyfile"
-          target: "~/bookclub-bot"
-
-      - name: Deploy via SSH
+      - name: Deploy to Digital Ocean
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.DROPLET_IP }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.DROPLET_SSH_KEY }}
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            cd ~/bookclub-bot
-
-            # Login to GitHub Container Registry
+            # Login to GitHub Container Registry on the server
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # Update docker-compose to use registry images
-            export BOT_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/bot:latest
-            export MINI_APP_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/mini-app:latest
+            # Create directories (including data dir for SQLite persistence)
+            mkdir -p /opt/bookclub-bot/data
+            cd /opt/bookclub-bot
 
-            # Pull latest images
-            docker pull $BOT_IMAGE
-            docker pull $MINI_APP_IMAGE
+            # Create/Overwrite docker-compose.yml to use the remote image
+            # Ensure lowercase image name for deployment
+            IMAGE_LOWER=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
 
-            # Create production docker-compose override
-            cat > docker-compose.override.yml << EOF
+            cat > docker-compose.yml <<EOF
             version: '3.8'
+
             services:
-              bot:
-                image: $BOT_IMAGE
-                build: null
-              mini-app:
-                image: $MINI_APP_IMAGE
-                build: null
+              bookclub-bot:
+                image: \${IMAGE_LOWER}:latest
+                container_name: bookclub-bot
+                restart: always
+                ports:
+                  - "127.0.0.1:3001:3001"
+                environment:
+                  - NODE_ENV=production
+                  - BOT_TOKEN=${{ secrets.BOT_TOKEN }}
+                  - OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+                  - GOOGLE_BOOKS_API_KEY=${{ secrets.GOOGLE_BOOKS_API_KEY }}
+                  - TARGET_CHAT_ID=${{ secrets.TARGET_CHAT_ID }}
+                  - ADMIN_CHAT_ID=${{ secrets.ADMIN_CHAT_ID }}
+                  - ADMIN_USER_IDS=${{ secrets.ADMIN_USER_IDS }}
+                  - REVIEW_HASHTAG=${{ secrets.REVIEW_HASHTAG }}
+                  - DATABASE_URL=file:./data/bookclub.db
+                  - MINI_APP_URL=${{ secrets.MINI_APP_URL }}
+                  - PORT=3001
+                  - GOOGLE_BOOKS_DELAY_MS=200
+                  - GOOGLE_BOOKS_MAX_RETRIES=3
+                volumes:
+                  - ./data:/app/data
+                networks:
+                  - default
+
+            networks:
+              default:
+                driver: bridge
+                driver_opts:
+                  com.docker.network.driver.mtu: 1400
+                name: bookclub-network
             EOF
 
+            # Pull the latest image
+            echo "📥 Pulling latest image..."
+            docker-compose pull
+
+            # WORKAROUND: 'KeyError: ContainerConfig' in docker-compose 1.29.2
+            # Force remove the old container instead of letting compose recreate it
+            echo "🗑️ Removing old container to avoid compatibility issues..."
+            docker rm -f bookclub-bot || true
+
             # Restart services
-            docker compose up -d
+            echo "🔄 Restarting containers..."
+            docker-compose up -d
 
-            # Run database migrations
-            docker compose exec -T bot npx prisma migrate deploy
-
-            # Cleanup old images
-            docker image prune -f
+            # Cleanup old images to save space
+            docker system prune -f

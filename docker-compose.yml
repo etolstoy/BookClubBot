@@ -1,49 +1,34 @@
 version: '3.8'
 
 services:
-  bot:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    env_file:
-      - .env
+  bookclub-bot:
+    build: .
+    container_name: bookclub-bot
+    restart: always
+    ports:
+      - "127.0.0.1:3001:3001"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      BOT_TOKEN: ${BOT_TOKEN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY}
+      TARGET_CHAT_ID: ${TARGET_CHAT_ID}
+      ADMIN_CHAT_ID: ${ADMIN_CHAT_ID}
+      ADMIN_USER_IDS: ${ADMIN_USER_IDS}
+      REVIEW_HASHTAG: ${REVIEW_HASHTAG:-#рецензия}
+      DATABASE_URL: ${DATABASE_URL:-file:./data/bookclub.db}
+      MINI_APP_URL: ${MINI_APP_URL}
+      PORT: ${PORT:-3001}
+      GOOGLE_BOOKS_DELAY_MS: ${GOOGLE_BOOKS_DELAY_MS:-200}
+      GOOGLE_BOOKS_MAX_RETRIES: ${GOOGLE_BOOKS_MAX_RETRIES:-3}
     volumes:
       - ./data:/app/data
     networks:
-      - bookclub
-    depends_on: []
-
-  mini-app:
-    build:
-      context: ./mini-app
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    networks:
-      - bookclub
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    environment:
-      - DOMAIN=${DOMAIN:-localhost}
-    networks:
-      - bookclub
-    depends_on:
-      - bot
-      - mini-app
+      - default
 
 networks:
-  bookclub:
+  default:
     driver: bridge
-
-volumes:
-  caddy_data:
-  caddy_config:
+    driver_opts:
+      com.docker.network.driver.mtu: 1400
+    name: bookclub-network

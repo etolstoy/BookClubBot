@@ -1,0 +1,50 @@
+# Node modules
+node_modules
+mini-app/node_modules
+
+# Build artifacts
+dist
+mini-app/dist
+
+# Development files
+*.log
+npm-debug.log*
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+README.md
+CLAUDE.md
+docs
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Test files
+*.test.ts
+*.test.js
+__tests__
+coverage
+
+# Docker
+Dockerfile
+docker-compose.yml
+docker-compose.override.yml
+Caddyfile
+
+# Database
+data/*.db
+data/*.db-journal
+
+# Misc
+.DS_Store
