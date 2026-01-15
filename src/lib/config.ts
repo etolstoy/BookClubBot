@@ -10,7 +10,6 @@ const configSchema = z.object({
   TARGET_CHAT_ID: z.string().optional(),
   ADMIN_CHAT_ID: z.string().optional(),
   ADMIN_USER_IDS: z.string().optional(),
-  REVIEW_HASHTAG: z.string().default("#рецензия"),
   PORT: z.string().default("3001"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
@@ -41,7 +40,7 @@ export const config = {
   targetChatId: parseBigInt(parsed.data.TARGET_CHAT_ID),
   adminChatId: parseBigInt(parsed.data.ADMIN_CHAT_ID),
   adminUserIds: parseBigIntList(parsed.data.ADMIN_USER_IDS),
-  reviewHashtag: parsed.data.REVIEW_HASHTAG,
+  reviewHashtag: "#рецензия",
   port: parseInt(parsed.data.PORT, 10),
   isDev: parsed.data.NODE_ENV === "development",
   isProd: parsed.data.NODE_ENV === "production",

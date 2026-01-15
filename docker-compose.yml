@@ -15,7 +15,6 @@ services:
       TARGET_CHAT_ID: ${TARGET_CHAT_ID}
       ADMIN_CHAT_ID: ${ADMIN_CHAT_ID}
       ADMIN_USER_IDS: ${ADMIN_USER_IDS}
-      REVIEW_HASHTAG: ${REVIEW_HASHTAG:-#рецензия}
       DATABASE_URL: ${DATABASE_URL:-file:./data/bookclub.db}
       MINI_APP_URL: ${MINI_APP_URL}
       PORT: ${PORT:-3001}

@@ -32,7 +32,7 @@ All three components start together via `src/index.ts`:
 
 ### Data Flow for Review Processing
 
-1. **User Input**: User posts message with `REVIEW_HASHTAG` (default: `#рецензия`) in target chat, or replies with `/review` command in any chat
+1. **User Input**: User posts message with `#рецензия` hashtag in target chat, or replies with `/review` command in any chat
 2. **Validation**: `handleReviewMessage`/`handleReviewCommand` in `src/bot/handlers/review.ts` checks for:
    - Duplicate reviews (same telegramUserId + messageId)
    - Existing pending confirmation state (prevents overlapping confirmations)
@@ -75,10 +75,9 @@ All configuration is centralized in `src/lib/config.ts`, loaded from environment
 - `BOT_TOKEN`: Telegram bot token (required)
 - `OPENAI_API_KEY`: OpenAI API key for book extraction and sentiment analysis (required)
 - `GOOGLE_BOOKS_API_KEY`: Google Books API key (optional, improves book metadata)
-- `TARGET_CHAT_ID`: Chat where bot monitors for review hashtags
+- `TARGET_CHAT_ID`: Chat where bot monitors for review hashtags (bot watches for `#рецензия`)
 - `ADMIN_CHAT_ID`: Chat for error/warning notifications
 - `ADMIN_USER_IDS`: Comma-separated list of admin user IDs for privileged operations
-- `REVIEW_HASHTAG`: Hashtag that triggers review processing (default: `#рецензия`)
 - `DATABASE_URL`: SQLite database path (default: `file:./data/bookclub.db`)
 - `MINI_APP_URL`: Mini App URL for deep links (default: `http://localhost:3000`)
 - `PORT`: API server port (default: 3001)

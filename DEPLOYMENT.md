@@ -134,7 +134,6 @@ Add the following secrets:
 | `TARGET_CHAT_ID` | Target chat ID (as string) | `-1001234567890` |
 | `ADMIN_CHAT_ID` | Admin chat ID (optional) | `-1009876543210` |
 | `ADMIN_USER_IDS` | Comma-separated user IDs (optional) | `123456789,987654321` |
-| `REVIEW_HASHTAG` | Review hashtag (optional) | `#рецензия` |
 | `MINI_APP_URL` | Your domain URL | `https://vas3k-books.etolstoy.com` |
 
 **Important Notes:**

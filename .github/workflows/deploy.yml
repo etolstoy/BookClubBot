@@ -87,7 +87,6 @@ jobs:
                   - TARGET_CHAT_ID=${{ secrets.TARGET_CHAT_ID }}
                   - ADMIN_CHAT_ID=${{ secrets.ADMIN_CHAT_ID }}
                   - ADMIN_USER_IDS=${{ secrets.ADMIN_USER_IDS }}
-                  - REVIEW_HASHTAG=${{ secrets.REVIEW_HASHTAG }}
                   - DATABASE_URL=file:./data/bookclub.db
                   - MINI_APP_URL=${{ secrets.MINI_APP_URL }}
                   - PORT=3001
