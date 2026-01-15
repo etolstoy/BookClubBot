@@ -45,3 +45,6 @@ coverage/
 # Misc
 .cache/
 tmp/
+
+# Development notes
+TODO.md

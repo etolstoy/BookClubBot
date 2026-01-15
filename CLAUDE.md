@@ -21,20 +21,45 @@ All three components start together via `src/index.ts`:
 
 ### Key Services
 
-- **LLM Service** (`src/services/llm.ts`): OpenAI integration for extracting book title/author from review text. Falls back to regex patterns if OpenAI fails/rate-limits.
-- **Book Service** (`src/services/book.service.ts`): Manages book lookup/creation, integrates with Google Books API for metadata enrichment
-- **Review Service** (`src/services/review.service.ts`): Handles review creation, duplicate detection, statistics aggregation
-- **Notification Service** (`src/services/notification.service.ts`): Sends errors/warnings to admin chat for observability
-- **Sentiment Analysis** (`src/services/sentiment.ts`): Classifies reviews as positive/negative/neutral
+- **Book Extraction Service** (`src/services/book-extraction.service.ts`): GPT-4o integration for extracting primary book and alternative books from review text. Returns confidence scores (high/medium/low) and handles command parameters like `/review Title — Author`. Falls back to regex patterns if OpenAI fails/rate-limits.
+- **Book Enrichment Service** (`src/services/book-enrichment.service.ts`): Searches for book matches using 90% similarity threshold for both title AND author independently. Searches local database first, then queries Google Books API only for unmatched books. Returns top 3 deduplicated results sorted by similarity score.
+- **Google Books Service** (`src/services/googlebooks.ts`): Google Books API integration with rate limiting (configurable delay between requests), exponential backoff for 429 errors, ISBN and query-based searches, and admin notifications for rate limit/quota errors.
+- **Book Service** (`src/services/book.service.ts`): Manages book CRUD operations, book creation with Google Books enrichment, similarity-based matching, and dynamic URL generation for Google Books and Goodreads (URLs computed on-the-fly, not stored).
+- **Review Service** (`src/services/review.service.ts`): Handles review creation, duplicate detection, sentiment assignment, statistics aggregation, and leaderboards (monthly/yearly/overall/last30/last365 days).
+- **Notification Service** (`src/services/notification.service.ts`): Sends formatted notifications to admin chat with emoji, error details, timestamps, and stack traces (in development mode).
+- **Sentiment Analysis** (`src/services/sentiment.ts`): Uses GPT-4o-mini to classify reviews as positive/negative/neutral.
+- **LLM Service** (`src/services/llm.ts`): Legacy service kept for backward compatibility.
 
 ### Data Flow for Review Processing
 
-1. User posts message with `REVIEW_HASHTAG` (default: `#рецензия`) or replies with `/review` command
-2. `handleReviewMessage`/`handleReviewCommand` in `src/bot/handlers/review.ts` validates and calls `processAndCreateReview`
-3. `processReviewText` extracts book info via OpenAI (with regex fallback) → searches Google Books API → creates/finds Book record
-4. Sentiment analysis runs on review text
-5. Review saved to DB with book association
-6. User receives confirmation with deep link to Mini App book page
+1. **User Input**: User posts message with `REVIEW_HASHTAG` (default: `#рецензия`) in target chat, or replies with `/review` command in any chat
+2. **Validation**: `handleReviewMessage`/`handleReviewCommand` in `src/bot/handlers/review.ts` checks for:
+   - Duplicate reviews (same telegramUserId + messageId)
+   - Existing pending confirmation state (prevents overlapping confirmations)
+3. **Book Extraction**: GPT-4o extracts primary book and alternative books from review text via `book-extraction.service.ts`
+   - Returns confidence scores (high/medium/low) for each book
+   - If extraction fails → shows manual entry options (enter book info or cancel)
+4. **Book Enrichment**: `book-enrichment.service.ts` finds matching books:
+   - Searches local database with 90% similarity threshold (title AND author)
+   - Queries Google Books API for unmatched books
+   - Deduplicates and returns top 3 results sorted by similarity
+5. **Confirmation Flow**: Bot enters state machine managed by `book-confirmation.ts`:
+   - Stores state in memory with 15-minute timeout (auto-cleanup every 5 minutes)
+   - Shows inline keyboard with options:
+     - Select from matched books (up to 3 options)
+     - Enter ISBN for precise lookup
+     - Enter book info manually (title → author → confirmation)
+     - Cancel and delete confirmation state
+6. **User Selection**: User interacts with inline keyboard or sends text input
+   - Book selection → proceeds to review creation
+   - ISBN entry → searches Google Books → shows confirmation
+   - Manual entry → sequential prompts for title and author → shows confirmation
+   - Cancel → cleans up state and exits flow
+7. **Review Creation**: After book confirmation:
+   - Sentiment analysis runs via GPT-4o-mini
+   - Review saved to database with book association
+   - User receives success message with deep link to Mini App book page
+8. **State Cleanup**: Confirmation state is removed from memory after completion or 15-minute timeout
 
 ### Database Schema (Prisma + SQLite)
 
@@ -48,15 +73,18 @@ Important: Uses SQLite with `better-sqlite3`. BigInt fields for Telegram IDs (us
 All configuration is centralized in `src/lib/config.ts`, loaded from environment variables:
 
 - `BOT_TOKEN`: Telegram bot token (required)
-- `OPENAI_API_KEY`: OpenAI API key for book extraction (required)
+- `OPENAI_API_KEY`: OpenAI API key for book extraction and sentiment analysis (required)
 - `GOOGLE_BOOKS_API_KEY`: Google Books API key (optional, improves book metadata)
 - `TARGET_CHAT_ID`: Chat where bot monitors for review hashtags
 - `ADMIN_CHAT_ID`: Chat for error/warning notifications
+- `ADMIN_USER_IDS`: Comma-separated list of admin user IDs for privileged operations
 - `REVIEW_HASHTAG`: Hashtag that triggers review processing (default: `#рецензия`)
 - `DATABASE_URL`: SQLite database path (default: `file:./data/bookclub.db`)
-- `MINI_APP_URL`: Mini App URL for deep links
+- `MINI_APP_URL`: Mini App URL for deep links (default: `http://localhost:3000`)
 - `PORT`: API server port (default: 3001)
 - `NODE_ENV`: Environment (development/production)
+- `GOOGLE_BOOKS_DELAY_MS`: Delay in milliseconds between Google Books API requests for rate limiting (default: 200)
+- `GOOGLE_BOOKS_MAX_RETRIES`: Maximum retry attempts for Google Books API rate limit errors (default: 3)
 
 ### Error Handling & Observability
 
@@ -189,13 +217,63 @@ Set `DOMAIN` environment variable for production domain (used by Caddy for SSL).
 - Bot needs to be added to groups to read messages
 - Deep links format: `https://t.me/botusername?startapp=book_{bookId}`
 
+### Book Confirmation Flow
+
+The bot implements a sophisticated state machine (`src/bot/handlers/book-confirmation.ts`) for interactive book confirmation:
+
+**State Management:**
+- Confirmation states stored in-memory Map (`pendingBookConfirmations`)
+- Each state includes: review data, extracted book info, enrichment results, current flow state
+- 15-minute timeout with automatic cleanup (runs every 5 minutes)
+- Prevents overlapping confirmations for the same user
+
+**User Interaction Modes:**
+1. **Matched Books Selection**: When GPT-4o extraction succeeds and enrichment finds matches
+   - Shows up to 3 best-matching books with inline keyboard buttons
+   - Displays confidence scores and match quality
+   - User selects correct book or chooses alternative input method
+
+2. **ISBN Entry Flow**: For precise book lookup
+   - User clicks "Enter ISBN" button
+   - Bot prompts for ISBN input
+   - Searches Google Books by ISBN
+   - Shows book details for confirmation
+
+3. **Manual Entry Flow**: When no matches found or user prefers manual input
+   - Sequential prompts: Title → Author → Confirmation
+   - Each step validates input and updates state
+   - Final confirmation screen shows entered book details
+
+4. **Cancellation**: User can cancel at any point
+   - Cleans up confirmation state from memory
+   - Exits flow gracefully
+
+**Handler Organization:**
+- `book-confirmation.ts` (795 lines): Main state machine, UI generation, input handling
+- `book-selection.ts`: Legacy handlers for backward compatibility
+- `review.ts`: Entry point, orchestrates confirmation flow initiation
+
+**State Transitions:**
+```
+AWAITING_SELECTION → [user selects book] → CREATE_REVIEW
+AWAITING_SELECTION → [enter ISBN] → AWAITING_ISBN
+AWAITING_ISBN → [ISBN provided] → CONFIRMING_ISBN_BOOK
+CONFIRMING_ISBN_BOOK → [confirmed] → CREATE_REVIEW
+AWAITING_SELECTION → [manual entry] → AWAITING_TITLE
+AWAITING_TITLE → [title provided] → AWAITING_AUTHOR
+AWAITING_AUTHOR → [author provided] → CONFIRMING_MANUAL_BOOK
+CONFIRMING_MANUAL_BOOK → [confirmed] → CREATE_REVIEW
+```
+
 ### OpenAI Integration
 
-- Uses `gpt-4o-mini` for cost efficiency
-- JSON response format enforced
-- Always falls back to regex if API fails
-- Rate limit/quota errors trigger admin notifications
+- Uses `gpt-4o` for book extraction from review text (high accuracy for complex parsing)
+- Uses `gpt-4o-mini` for sentiment analysis (cost-efficient for simple classification)
+- JSON response format enforced for structured outputs
+- Book extraction always falls back to regex patterns if API fails/rate-limits
+- Rate limit/quota errors trigger admin notifications via notification service
 - Regex patterns support both English and Russian (Cyrillic) text
+- Handles command parameters like `/review Title — Author` for direct book specification
 
 ### BigInt Handling
 
@@ -207,4 +285,4 @@ This is an ES Module project (type: "module" in package.json). All imports must 
 
 ### Goodreads Integration
 
-Books are linked to Goodreads dynamically. The URL is computed using title and author via `getGoodreadsUrl()` in the book service (not stored in database).
+Books are linked to Goodreads dynamically. The URL is computed on-the-fly via `getGoodreadsUrl()` in the book service (not stored in database). Prioritizes ISBN-based URLs when available (`/book/isbn/{isbn}`), otherwise generates search URLs using title and author.
