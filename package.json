@@ -10,11 +10,6 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "import": "tsx scripts/import-archive.ts",
-    "import:enhanced": "tsx scripts/import-with-long-messages.ts",
-    "cleanup": "tsx scripts/cleanup-non-hashtag-reviews.ts",
-    "fix-books": "tsx scripts/review-and-fix-books.ts",
-    "merge-books": "tsx scripts/merge-books.ts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [

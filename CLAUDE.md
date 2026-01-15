@@ -119,14 +119,6 @@ npm run build
 npm run preview
 ```
 
-### Import Archive Data
-
-```bash
-npm run import
-```
-
-Uses `scripts/import-archive.ts` to import historical review data.
-
 ## Testing
 
 ### Local Setup
