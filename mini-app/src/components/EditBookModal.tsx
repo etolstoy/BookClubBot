@@ -17,9 +17,11 @@ export default function EditBookModal({
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author || "");
   const [isbn, setIsbn] = useState(book.isbn || "");
+  const [coverUrl, setCoverUrl] = useState(book.coverUrl || "");
   const [description, setDescription] = useState(book.description || "");
   const [publicationYear, setPublicationYear] = useState(book.publicationYear?.toString() || "");
   const [pageCount, setPageCount] = useState(book.pageCount?.toString() || "");
+  const [goodreadsUrl, setGoodreadsUrl] = useState(book.goodreadsUrl || "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -49,6 +51,7 @@ export default function EditBookModal({
       // Populate form fields with Google Books data
       if (googleBook.title) setTitle(googleBook.title);
       if (googleBook.author) setAuthor(googleBook.author);
+      if (googleBook.coverUrl) setCoverUrl(googleBook.coverUrl);
       if (googleBook.description) setDescription(googleBook.description);
       if (googleBook.publicationYear) setPublicationYear(googleBook.publicationYear.toString());
       if (googleBook.pageCount) setPageCount(googleBook.pageCount.toString());
@@ -69,9 +72,11 @@ export default function EditBookModal({
       title !== book.title ||
       author !== (book.author || "") ||
       isbn !== (book.isbn || "") ||
+      coverUrl !== (book.coverUrl || "") ||
       description !== (book.description || "") ||
       publicationYear !== (book.publicationYear?.toString() || "") ||
-      pageCount !== (book.pageCount?.toString() || "")
+      pageCount !== (book.pageCount?.toString() || "") ||
+      goodreadsUrl !== (book.goodreadsUrl || "")
     );
   };
 
@@ -123,6 +128,14 @@ export default function EditBookModal({
           console.log('[EditBookModal] Adding ISBN to update');
           updateData.isbn = isbn.trim() || null;
         }
+      }
+
+      if (coverUrl !== (book.coverUrl || "")) {
+        updateData.coverUrl = coverUrl.trim() || null;
+      }
+
+      if (goodreadsUrl !== (book.goodreadsUrl || "")) {
+        updateData.goodreadsUrl = goodreadsUrl.trim() || null;
       }
 
       if (description !== (book.description || "")) {
@@ -272,29 +285,79 @@ export default function EditBookModal({
             <label className="block text-sm font-medium text-tg-text mb-2">
               ISBN
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={isbn}
-                onChange={(e) => setIsbn(e.target.value)}
-                className="flex-1 p-3 rounded-lg bg-tg-secondary text-tg-text border-none outline-none"
-                placeholder="Enter ISBN (e.g., 9781234567890)"
-                disabled={saving || deleting || syncing}
-              />
-              <button
-                onClick={handleSyncIsbn}
-                disabled={saving || deleting || syncing || !isbn.trim()}
-                className="px-4 py-3 rounded-lg bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors disabled:opacity-50 border-2 border-transparent whitespace-nowrap"
-                title="Sync with Google Books"
-              >
-                {syncing ? "🔄 Syncing..." : "🔄 Sync"}
-              </button>
-            </div>
+            <input
+              type="text"
+              value={isbn}
+              onChange={(e) => setIsbn(e.target.value)}
+              className="w-full p-3 rounded-lg bg-tg-secondary text-tg-text border-none outline-none"
+              placeholder="Enter ISBN (e.g., 9781234567890)"
+              disabled={saving || deleting || syncing}
+            />
+            <button
+              onClick={handleSyncIsbn}
+              disabled={saving || deleting || syncing || !isbn.trim()}
+              className="mt-2 w-full px-4 py-3 rounded-lg bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors disabled:opacity-50 border-2 border-transparent"
+              title="Sync with Google Books"
+            >
+              {syncing ? "🔄 Syncing..." : "🔄 Sync with Google Books"}
+            </button>
             {syncSuccess && (
               <div className="mt-2 p-2 bg-green-500 bg-opacity-20 rounded text-green-500 text-xs">
                 ✓ Book data synced from Google Books! Review and save if you want to keep the changes.
               </div>
             )}
+          </div>
+
+          {/* Cover URL */}
+          <div>
+            <label className="block text-sm font-medium text-tg-text mb-2">
+              Cover URL
+            </label>
+            <input
+              type="text"
+              value={coverUrl}
+              onChange={(e) => setCoverUrl(e.target.value)}
+              className="w-full p-3 rounded-lg bg-tg-secondary text-tg-text border-none outline-none"
+              placeholder="Enter cover image URL"
+              disabled={saving || deleting}
+            />
+          </div>
+
+          {/* Cover Preview */}
+          {coverUrl && (
+            <div>
+              <label className="block text-sm font-medium text-tg-text mb-2">
+                Cover Preview
+              </label>
+              <div className="flex items-center gap-3">
+                <img
+                  src={coverUrl}
+                  alt="Book cover"
+                  className="w-20 h-28 object-cover rounded-lg"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                <div className="text-xs text-tg-hint">
+                  Cover will be updated when you save
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Goodreads URL */}
+          <div>
+            <label className="block text-sm font-medium text-tg-text mb-2">
+              Goodreads URL
+            </label>
+            <input
+              type="text"
+              value={goodreadsUrl}
+              onChange={(e) => setGoodreadsUrl(e.target.value)}
+              className="w-full p-3 rounded-lg bg-tg-secondary text-tg-text border-none outline-none"
+              placeholder="Enter Goodreads URL (optional)"
+              disabled={saving || deleting}
+            />
           </div>
 
           {/* Description */}

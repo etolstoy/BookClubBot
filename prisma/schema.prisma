@@ -21,6 +21,7 @@ model Book {
   description     String?
   isbn            String?
   pageCount       Int?      @map("page_count")
+  goodreadsUrl    String?   @map("goodreads_url")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   reviews         Review[]

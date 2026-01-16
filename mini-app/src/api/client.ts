@@ -394,9 +394,11 @@ export interface UpdateBookInput {
   title?: string;
   author?: string | null;
   isbn?: string | null;
+  coverUrl?: string | null;
   description?: string | null;
   publicationYear?: number | null;
   pageCount?: number | null;
+  goodreadsUrl?: string | null;
 }
 
 export async function updateBook(

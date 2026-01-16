@@ -264,7 +264,7 @@ router.get("/:id", async (req, res) => {
         isbn: book.isbn,
         pageCount: book.pageCount,
         googleBooksUrl: getGoogleBooksUrl(book.googleBooksId),
-        goodreadsUrl: generateGoodreadsUrl(book.isbn, book.title, book.author),
+        goodreadsUrl: book.goodreadsUrl || generateGoodreadsUrl(book.isbn, book.title, book.author),
         reviewCount: book.reviews.length,
         sentiments,
       },
@@ -334,11 +334,11 @@ router.get("/:id/reviews", async (req, res) => {
 router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
   try {
     const bookId = parseInt(req.params.id, 10);
-    const { title, author, isbn, description, publicationYear, pageCount } = req.body;
+    const { title, author, isbn, coverUrl, description, publicationYear, pageCount, goodreadsUrl } = req.body;
 
     // Debug logging
     console.log('[PATCH /api/books/:id] Request body:', JSON.stringify(req.body, null, 2));
-    console.log('[PATCH /api/books/:id] Parsed fields:', { title, author, isbn, description, publicationYear, pageCount });
+    console.log('[PATCH /api/books/:id] Parsed fields:', { title, author, isbn, coverUrl, description, publicationYear, pageCount, goodreadsUrl });
 
     if (isNaN(bookId)) {
       res.status(400).json({ error: "Invalid book ID" });
@@ -357,9 +357,11 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
       title === undefined &&
       author === undefined &&
       isbn === undefined &&
+      coverUrl === undefined &&
       description === undefined &&
       publicationYear === undefined &&
-      pageCount === undefined
+      pageCount === undefined &&
+      goodreadsUrl === undefined
     ) {
       res.status(400).json({ error: "No fields to update" });
       return;
@@ -396,6 +398,9 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
     if (isbn !== undefined) {
       updateData.isbn = isbn || null;
     }
+    if (coverUrl !== undefined) {
+      updateData.coverUrl = coverUrl || null;
+    }
     if (description !== undefined) {
       updateData.description = description;
     }
@@ -404,6 +409,9 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
     }
     if (pageCount !== undefined) {
       updateData.pageCount = pageCount;
+    }
+    if (goodreadsUrl !== undefined) {
+      updateData.goodreadsUrl = goodreadsUrl || null;
     }
 
     console.log('[PATCH /api/books/:id] Update data being sent to service:', updateData);
@@ -418,9 +426,11 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
     if (title !== undefined) changes.push("title");
     if (author !== undefined) changes.push("author");
     if (isbn !== undefined) changes.push("isbn");
+    if (coverUrl !== undefined) changes.push("cover");
     if (description !== undefined) changes.push("description");
     if (publicationYear !== undefined) changes.push("publication year");
     if (pageCount !== undefined) changes.push("page count");
+    if (goodreadsUrl !== undefined) changes.push("goodreads url");
 
     await sendInfoNotification(
       `Book #${bookId} updated by admin @${userName}`,
@@ -464,7 +474,7 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
         isbn: updatedBook.isbn,
         pageCount: updatedBook.pageCount,
         googleBooksUrl: getGoogleBooksUrl(updatedBook.googleBooksId),
-        goodreadsUrl: generateGoodreadsUrl(updatedBook.isbn, updatedBook.title, updatedBook.author),
+        goodreadsUrl: updatedBook.goodreadsUrl || generateGoodreadsUrl(updatedBook.isbn, updatedBook.title, updatedBook.author),
         reviewCount: bookWithReviews.reviews.length,
         sentiments,
       },

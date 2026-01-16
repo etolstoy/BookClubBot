@@ -26,9 +26,11 @@ export interface UpdateBookInput {
   title?: string;
   author?: string | null;
   isbn?: string | null;
+  coverUrl?: string | null;
   description?: string | null;
   publicationYear?: number | null;
   pageCount?: number | null;
+  goodreadsUrl?: string | null;
 }
 
 export async function findSimilarBook(
@@ -268,9 +270,11 @@ export async function updateBook(id: number, input: UpdateBookInput) {
   if (input.title !== undefined) updateData.title = input.title;
   if (input.author !== undefined) updateData.author = input.author;
   if (input.isbn !== undefined) updateData.isbn = input.isbn;
+  if (input.coverUrl !== undefined) updateData.coverUrl = input.coverUrl;
   if (input.description !== undefined) updateData.description = input.description;
   if (input.publicationYear !== undefined) updateData.publicationYear = input.publicationYear;
   if (input.pageCount !== undefined) updateData.pageCount = input.pageCount;
+  if (input.goodreadsUrl !== undefined) updateData.goodreadsUrl = input.goodreadsUrl;
 
   return prisma.book.update({
     where: { id },
