@@ -84,7 +84,7 @@ export default function Home() {
 
                   return (
                     <div key={review.id} className="flex-shrink-0 w-[85vw] max-w-md snap-start">
-                      <div className="p-4 rounded-lg bg-tg-secondary h-[280px] flex flex-col">
+                      <div className="p-4 rounded-lg bg-tg-secondary h-[220px] flex flex-col">
                         <div className="flex items-center justify-between mb-2">
                           <Link
                             to={`/reviewer/${review.telegramUserId}`}
@@ -119,7 +119,12 @@ export default function Home() {
                           </Link>
                         )}
 
-                        <p className="text-sm text-tg-text flex-1 overflow-hidden line-clamp-6 mb-2">
+                        <p className="text-sm text-tg-text overflow-hidden mb-2" style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
                           {review.reviewText}
                         </p>
 
