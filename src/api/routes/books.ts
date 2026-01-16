@@ -336,6 +336,10 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
     const bookId = parseInt(req.params.id, 10);
     const { title, author, isbn, description, publicationYear, pageCount } = req.body;
 
+    // Debug logging
+    console.log('[PATCH /api/books/:id] Request body:', JSON.stringify(req.body, null, 2));
+    console.log('[PATCH /api/books/:id] Parsed fields:', { title, author, isbn, description, publicationYear, pageCount });
+
     if (isNaN(bookId)) {
       res.status(400).json({ error: "Invalid book ID" });
       return;
@@ -373,6 +377,12 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
       res.status(404).json({ error: "Book not found" });
       return;
     }
+
+    console.log('[PATCH /api/books/:id] Existing book:', {
+      title: existingBook.title,
+      author: existingBook.author,
+      isbn: existingBook.isbn
+    });
 
     // Track ISBN change for enrichment
     const isbnChanged = isbn !== undefined && isbn !== existingBook.isbn;
