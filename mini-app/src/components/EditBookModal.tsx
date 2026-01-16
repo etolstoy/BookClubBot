@@ -68,11 +68,21 @@ export default function EditBookModal({
       }
 
       if (author !== (book.author || "")) {
-        updateData.author = author.trim() || null;
+        // Don't accidentally clear a non-empty value with an empty string
+        if (book.author && author.trim() === "") {
+          // Skip: likely unintentional clearing
+        } else {
+          updateData.author = author.trim() || null;
+        }
       }
 
       if (isbn !== (book.isbn || "")) {
-        updateData.isbn = isbn.trim() || null;
+        // Don't accidentally clear a non-empty value with an empty string
+        if (book.isbn && isbn.trim() === "") {
+          // Skip: likely unintentional clearing
+        } else {
+          updateData.isbn = isbn.trim() || null;
+        }
       }
 
       if (description !== (book.description || "")) {
