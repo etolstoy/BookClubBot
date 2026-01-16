@@ -150,6 +150,13 @@ export default function Home() {
                 <span>{t("home.navigation.topBooks")}</span>
               </Link>
               <Link
+                to="/top-authors"
+                className="px-6 py-4 rounded-[20px] bg-[#3D3D3D] text-white font-medium flex items-center justify-center gap-3 hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors text-lg border-2 border-transparent no-underline"
+              >
+                <span className="text-2xl">✍️</span>
+                <span>{t("home.navigation.topAuthors")}</span>
+              </Link>
+              <Link
                 to="/top-reviewers"
                 className="px-6 py-4 rounded-[20px] bg-[#3D3D3D] text-white font-medium flex items-center justify-center gap-3 hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors text-lg border-2 border-transparent no-underline"
               >

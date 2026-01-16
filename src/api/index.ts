@@ -4,6 +4,7 @@ import reviewersRouter from "./routes/reviewers.js";
 import reviewsRouter from "./routes/reviews.js";
 import leaderboardRouter from "./routes/leaderboard.js";
 import configRouter from "./routes/config.js";
+import authorsRouter from "./routes/authors.js";
 import { getStats } from "../services/review.service.js";
 
 const router = Router();
@@ -13,6 +14,7 @@ router.use("/reviewers", reviewersRouter);
 router.use("/reviews", reviewsRouter);
 router.use("/leaderboard", leaderboardRouter);
 router.use("/config", configRouter);
+router.use("/authors", authorsRouter);
 
 // Health check
 router.get("/health", (req, res) => {

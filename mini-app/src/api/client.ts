@@ -134,6 +134,12 @@ export interface BookLeaderboardEntry {
   reviewCount: number;
 }
 
+export interface AuthorLeaderboardEntry {
+  rank: number;
+  author: string;
+  reviewCount: number;
+}
+
 export async function getBooks(options?: {
   sortBy?: "reviewCount" | "recentlyReviewed" | "alphabetical";
   genre?: string;
@@ -381,6 +387,36 @@ export async function deleteReview(
   return fetchApi(`/reviews/${reviewId}`, {
     method: "DELETE",
   });
+}
+
+export async function getPopularAuthors(options?: {
+  limit?: number;
+  offset?: number;
+  minReviews?: number;
+}): Promise<{ authors: AuthorLeaderboardEntry[] }> {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set("limit", options.limit.toString());
+  if (options?.offset) params.set("offset", options.offset.toString());
+  if (options?.minReviews) params.set("minReviews", options.minReviews.toString());
+
+  const query = params.toString();
+  return fetchApi(`/authors${query ? `?${query}` : ""}`);
+}
+
+export async function getAuthorBooks(
+  authorName: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+  }
+): Promise<{ author: string; books: Book[] }> {
+  const encodedName = encodeURIComponent(authorName);
+  const params = new URLSearchParams();
+  if (options?.limit) params.set("limit", options.limit.toString());
+  if (options?.offset) params.set("offset", options.offset.toString());
+
+  const query = params.toString();
+  return fetchApi(`/authors/${encodedName}/books${query ? `?${query}` : ""}`);
 }
 
 export interface Config {

@@ -14,6 +14,8 @@ export const translations = {
     saving: "Сохранение...",
     save: "Сохранить",
     cancel: "Отмена",
+    reviews: "рецензий",
+    books: "книг",
   },
 
   home: {
@@ -28,6 +30,7 @@ export const translations = {
     navigation: {
       topBooks: "Топ книг",
       topReviewers: "Топ клубней",
+      topAuthors: "Топ писателей",
       freshReviews: "Свежие рецензии",
       browseAllBooks: "Все книги",
     },
@@ -79,6 +82,15 @@ export const translations = {
     noReviews: "Рецензий пока нет",
   },
 
+  popularAuthors: {
+    title: "Топ писателей",
+    noAuthors: "Писателей пока нет",
+  },
+
+  authorBooks: {
+    noBooks: "Книг не найдено",
+  },
+
   browseBooks: {
     title: "Все книги",
     resultsFor: 'Результаты для "{{query}}"',
@@ -96,6 +108,9 @@ export const translations = {
     loadLeaderboard: "Не удалось загрузить рейтинг",
     loadReviews: "Не удалось загрузить рецензии",
     loadBooks: "Не удалось загрузить книги",
+    loadAuthors: "Не удалось загрузить писателей",
+    loadAuthorBooks: "Не удалось загрузить книги автора",
+    invalidAuthor: "Неверное имя автора",
   },
 
   plurals: {
