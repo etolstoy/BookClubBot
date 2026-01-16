@@ -1,6 +1,5 @@
 import { Router, Request, Response } from "express";
-import { getPopularAuthors } from "../../services/author.service.js";
-import { getAllBooks } from "../../services/book.service.js";
+import { getPopularAuthors, getBooksByAuthor } from "../../services/author.service.js";
 
 const router = Router();
 
@@ -75,24 +74,12 @@ router.get(
       return;
     }
 
-    // Fetch books by this author using getAllBooks with search parameter
-    // This will match against the author field
-    const books = await getAllBooks({
-      search: authorName,
-      limit: limit || 50,
-      offset,
-    });
-
-    // Filter to only include books where the author exactly matches
-    // (getAllBooks does fuzzy search, we want exact match)
-    const authorBooks = books.filter(
-      (book: { author: string | null }) =>
-        book.author && book.author.trim().toLowerCase() === authorName.trim().toLowerCase()
-    );
+    // Fetch books by this author with exact match and proper pagination
+    const books = await getBooksByAuthor(authorName, limit, offset);
 
     res.json({
       author: authorName,
-      books: authorBooks,
+      books,
     });
   })
 );
