@@ -75,7 +75,7 @@ export default function Home() {
               <p className="text-center text-tg-hint py-4">{t("home.noReviews")}</p>
             ) : (
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 pl-4 pr-4 scroll-pl-4 snap-x snap-mandatory">
-                {reviews.map((review, index) => {
+                {reviews.map((review) => {
                   const formattedDate = new Date(review.reviewedAt).toLocaleDateString(undefined, {
                     year: "numeric",
                     month: "short",
