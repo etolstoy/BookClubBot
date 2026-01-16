@@ -388,15 +388,32 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
     const isbnChanged = isbn !== undefined && isbn !== existingBook.isbn;
     const oldIsbn = existingBook.isbn;
 
+    // Build update data - only include fields that were actually provided
+    const updateData: any = {};
+
+    if (title !== undefined) {
+      updateData.title = title.trim();
+    }
+    if (author !== undefined) {
+      updateData.author = author.trim() || null;
+    }
+    if (isbn !== undefined) {
+      updateData.isbn = isbn || null;
+    }
+    if (description !== undefined) {
+      updateData.description = description;
+    }
+    if (publicationYear !== undefined) {
+      updateData.publicationYear = publicationYear;
+    }
+    if (pageCount !== undefined) {
+      updateData.pageCount = pageCount;
+    }
+
+    console.log('[PATCH /api/books/:id] Update data being sent to service:', updateData);
+
     // Update book
-    const updatedBook = await updateBook(bookId, {
-      title: title?.trim(),
-      author: author?.trim() || null,
-      isbn: isbn || null,
-      description,
-      publicationYear,
-      pageCount,
-    });
+    const updatedBook = await updateBook(bookId, updateData);
 
     // Send admin notification
     const userName = req.telegramUser!.username || req.telegramUser!.first_name || "Unknown Admin";
