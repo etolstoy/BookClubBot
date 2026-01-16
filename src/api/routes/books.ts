@@ -415,6 +415,25 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
       }
     );
 
+    // Fetch the book with reviews to get accurate counts and sentiments
+    const bookWithReviews = await getBookById(bookId);
+
+    if (!bookWithReviews) {
+      res.status(404).json({ error: "Book not found after update" });
+      return;
+    }
+
+    // Calculate sentiment breakdown
+    const sentiments = bookWithReviews.reviews.reduce(
+      (acc: { positive: number; negative: number; neutral: number }, r: { sentiment: string | null }) => {
+        if (r.sentiment === "positive") acc.positive++;
+        else if (r.sentiment === "negative") acc.negative++;
+        else if (r.sentiment === "neutral") acc.neutral++;
+        return acc;
+      },
+      { positive: 0, negative: 0, neutral: 0 }
+    );
+
     // Format response with genres parsed
     const genres = updatedBook.genres ? JSON.parse(updatedBook.genres) : [];
 
@@ -427,11 +446,12 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
         coverUrl: updatedBook.coverUrl,
         genres,
         publicationYear: updatedBook.publicationYear,
+        isbn: updatedBook.isbn,
         pageCount: updatedBook.pageCount,
         googleBooksUrl: getGoogleBooksUrl(updatedBook.googleBooksId),
         goodreadsUrl: generateGoodreadsUrl(updatedBook.isbn, updatedBook.title, updatedBook.author),
-        reviewCount: 0, // Not relevant for update response
-        sentiments: { positive: 0, negative: 0, neutral: 0 }, // Not relevant for update response
+        reviewCount: bookWithReviews.reviews.length,
+        sentiments,
       },
       message:
         isbnChanged && updatedBook.googleBooksId
