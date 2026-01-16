@@ -91,14 +91,15 @@ export async function startBot(bot: Telegraf) {
   ]);
 
   console.log("Starting bot...");
-  await bot.launch();
-  console.log("Bot started successfully!");
 
-  // Send startup notification
+  // Send startup notification before launch (since launch might not resolve in some environments)
   if (config.adminChatId) {
-    await sendSuccessNotification("Bot started successfully", {
+    await sendSuccessNotification("Bot starting up", {
       operation: "Bot Startup",
       additionalInfo: `Environment: ${config.isDev ? "development" : "production"}`,
     });
   }
+
+  await bot.launch();
+  console.log("Bot started successfully!");
 }
