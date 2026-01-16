@@ -70,16 +70,18 @@ export function validateTelegramWebAppData(
       return null;
     }
 
-    // Check auth_date (data freshness - reject if older than 5 minutes)
+    // Check auth_date (data freshness - reject if older than 1 hour)
+    // Note: This is set to 1 hour to allow users to keep the Mini App open
+    // The HMAC signature validation already ensures data integrity
     const authDate = params.get("auth_date");
     if (authDate) {
       const authTimestamp = parseInt(authDate, 10);
       const currentTimestamp = Math.floor(Date.now() / 1000);
-      const maxAge = 300; // 5 minutes in seconds
+      const maxAge = 3600; // 1 hour in seconds
 
       if (currentTimestamp - authTimestamp > maxAge) {
         console.warn(
-          "[TelegramAuth] initData expired (older than 5 minutes)"
+          "[TelegramAuth] initData expired (older than 1 hour)"
         );
         return null;
       }
