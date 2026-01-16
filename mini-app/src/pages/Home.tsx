@@ -84,7 +84,7 @@ export default function Home() {
 
                   return (
                     <div key={review.id} className="flex-shrink-0 w-[85vw] max-w-md snap-start">
-                      <div className="p-4 rounded-lg bg-tg-secondary h-[220px] flex flex-col">
+                      <div className="p-4 rounded-lg bg-tg-secondary h-[280px] flex flex-col">
                         <div className="flex items-center justify-between mb-2">
                           <Link
                             to={`/reviewer/${review.telegramUserId}`}
