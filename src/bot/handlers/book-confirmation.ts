@@ -325,7 +325,7 @@ function generateSuccessMessage(
   return {
     text,
     keyboard: Markup.inlineKeyboard([
-      [Markup.button.url("Посмотреть в приложении", generateDeepLink(bookId))],
+      [Markup.button.webApp("Посмотреть в приложении", generateDeepLink(bookId))],
     ]),
   };
 }
