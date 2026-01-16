@@ -24,7 +24,7 @@ export async function handleStartCommand(ctx: Context) {
   await ctx.reply(welcomeMessage, {
     parse_mode: "Markdown",
     ...Markup.inlineKeyboard([
-      Markup.button.url("Открыть Mini App", config.miniAppUrl),
+      Markup.button.webApp("Открыть Mini App", config.miniAppUrl),
     ]),
   });
 }
