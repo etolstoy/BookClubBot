@@ -105,6 +105,21 @@ jobs:
                 name: bookclub-network
             EOF
 
+            # Backup database before deployment
+            echo "💾 Creating pre-deployment backup..."
+            mkdir -p /opt/bookclub-bot/backups
+            if [ -f /opt/bookclub-bot/data/bookclub.db ]; then
+              BACKUP_FILE="/opt/bookclub-bot/backups/bookclub_$(date +%Y%m%d_%H%M%S).db"
+              cp /opt/bookclub-bot/data/bookclub.db "$BACKUP_FILE"
+              echo "✓ Backup created: $BACKUP_FILE"
+
+              # Keep only the last 10 backups
+              ls -t /opt/bookclub-bot/backups/bookclub_*.db | tail -n +11 | xargs -r rm
+              echo "✓ Old backups cleaned up (keeping last 10)"
+            else
+              echo "⚠ No database file found to backup"
+            fi
+
             # Pull the latest image
             echo "📥 Pulling latest image..."
             docker-compose pull
