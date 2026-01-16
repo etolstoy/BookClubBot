@@ -63,24 +63,35 @@ export default function EditBookModal({
     try {
       const updateData: UpdateBookInput = {};
 
+      // Debug logging
+      console.log('[EditBookModal] Current state:', { title, author, isbn, description, publicationYear, pageCount });
+      console.log('[EditBookModal] Original book:', { title: book.title, author: book.author, isbn: book.isbn, description: book.description, publicationYear: book.publicationYear, pageCount: book.pageCount });
+
       if (title !== book.title) {
+        console.log('[EditBookModal] Title changed');
         updateData.title = title.trim();
       }
 
       if (author !== (book.author || "")) {
+        console.log('[EditBookModal] Author comparison:', { author, bookAuthor: book.author, different: true });
         // Don't accidentally clear a non-empty value with an empty string
         if (book.author && author.trim() === "") {
+          console.log('[EditBookModal] Skipping author clear (safety check)');
           // Skip: likely unintentional clearing
         } else {
+          console.log('[EditBookModal] Adding author to update');
           updateData.author = author.trim() || null;
         }
       }
 
       if (isbn !== (book.isbn || "")) {
+        console.log('[EditBookModal] ISBN comparison:', { isbn, bookIsbn: book.isbn, different: true });
         // Don't accidentally clear a non-empty value with an empty string
         if (book.isbn && isbn.trim() === "") {
+          console.log('[EditBookModal] Skipping ISBN clear (safety check)');
           // Skip: likely unintentional clearing
         } else {
+          console.log('[EditBookModal] Adding ISBN to update');
           updateData.isbn = isbn.trim() || null;
         }
       }
@@ -99,7 +110,10 @@ export default function EditBookModal({
         updateData.pageCount = parsedPageCount;
       }
 
+      console.log('[EditBookModal] Final updateData:', updateData);
+
       const result = await updateBook(book.id, updateData);
+      console.log('[EditBookModal] Server response:', result);
 
       // Show success message from backend
       const tg = window.Telegram?.WebApp as any;
