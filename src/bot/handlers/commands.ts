@@ -1,7 +1,6 @@
 import { Context, Markup } from "telegraf";
 import { Message } from "telegraf/types";
 import { config } from "../../lib/config.js";
-import { getUserReviewStats } from "../../services/review.service.js";
 
 export async function handleStartCommand(ctx: Context) {
   // Only work in private messages
@@ -10,23 +9,14 @@ export async function handleStartCommand(ctx: Context) {
   }
 
   const welcomeMessage = `
-📚 *Добро пожаловать в Бот Книжного Клуба!*
+📚 Привет, читающий клубень!
 
-Я помогаю отслеживать рецензии на книги в вашей группе. Вот что я умею:
+Я бот, который помогает сохранять и искать рецензии в чате Вастрик.Книг. Вот что я умею:
 
-• Автоматически находить рецензии с ${config.reviewHashtag}
-• Используйте /review как ответ на сообщение, чтобы отметить его как рецензию
-• Просматривайте все книги, рецензии и таблицы лидеров в нашем Mini App
+• Сохранять отзывы, помеченные тегом ${config.reviewHashtag}, либо с помощью команды /review
+• Показывать все книги, рецензии, популярных авторов и лидерборд самых читающих в миниаппе
 
-*Команды:*
-/stats - Ваша личная статистика рецензий
-/review - Отметить сообщение как рецензию (только в группах)
-
-📱 *Используйте Mini App для:*
-• Просмотра всех книг и рецензий
-• Таблиц лидеров
-• Поиска книг
-• Детальной статистики
+Если есть идеи новых фичей, или что-то сломано – создавайте [issue на GitHub](https://github.com/etolstoy/BookClubBot)
 
 Приятного чтения! 📖
   `.trim();
@@ -39,52 +29,4 @@ export async function handleStartCommand(ctx: Context) {
   });
 }
 
-export async function handleStatsCommand(ctx: Context) {
-  const message = ctx.message as Message.TextMessage;
-
-  if (!message?.from) {
-    return;
-  }
-
-  const telegramUserId = BigInt(message.from.id);
-
-  try {
-    const stats = await getUserReviewStats(telegramUserId);
-
-    if (stats.totalReviews === 0) {
-      await ctx.reply(
-        "Вы ещё не написали ни одной рецензии! Начните с публикации сообщения с " +
-          config.reviewHashtag +
-          " или используйте /review как ответ на любое сообщение."
-      );
-      return;
-    }
-
-    const { positive, negative, neutral } = stats.sentimentCounts;
-
-    const statsMessage = `
-📊 *Ваша статистика рецензий*
-
-📚 Всего рецензий: ${stats.totalReviews}
-
-*Распределение по тональности:*
-👍 Положительные: ${positive}
-👎 Отрицательные: ${negative}
-😐 Нейтральные: ${neutral}
-    `.trim();
-
-    await ctx.reply(statsMessage, {
-      parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([
-        Markup.button.url(
-          "Посмотреть ваши рецензии",
-          `${config.miniAppUrl}?startapp=reviewer_${telegramUserId}`
-        ),
-      ]),
-    });
-  } catch (error) {
-    console.error("Error fetching stats:", error);
-    await ctx.reply("Извините, произошла ошибка при получении вашей статистики.");
-  }
-}
 

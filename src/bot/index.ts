@@ -5,7 +5,6 @@ import { chatFilter, errorHandler } from "./middleware/auth.js";
 import { handleReviewMessage, handleReviewCommand } from "./handlers/review.js";
 import {
   handleStartCommand,
-  handleStatsCommand,
 } from "./handlers/commands.js";
 import {
   handleBookConfirmed,
@@ -33,7 +32,6 @@ export function createBot() {
 
   // Commands
   bot.command("start", handleStartCommand);
-  bot.command("stats", handleStatsCommand);
   bot.command("review", handleReviewCommand);
 
   // Callback query handlers for book selection (old flow - kept for backward compatibility)
@@ -90,7 +88,6 @@ export async function startBot(bot: Telegraf) {
   await bot.telegram.setMyCommands([
     { command: "start", description: "Запустить бота и увидеть приветствие" },
     { command: "review", description: "Отметить сообщение как рецензию" },
-    { command: "stats", description: "Посмотреть вашу статистику рецензий" },
   ]);
 
   console.log("Starting bot...");
