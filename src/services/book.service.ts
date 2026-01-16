@@ -22,6 +22,17 @@ export interface CreateBookInput {
   pageCount?: number | null;
 }
 
+export interface UpdateBookInput {
+  title?: string;
+  author?: string | null;
+  isbn?: string | null;
+  coverUrl?: string | null;
+  description?: string | null;
+  publicationYear?: number | null;
+  pageCount?: number | null;
+  goodreadsUrl?: string | null;
+}
+
 export async function findSimilarBook(
   title: string,
   author?: string | null
@@ -234,6 +245,80 @@ export async function getBookWithReviewCount(id: number) {
         select: { reviews: true },
       },
     },
+  });
+}
+
+/**
+ * Update book metadata
+ * Simply updates the fields provided - no automatic re-enrichment
+ * Use the frontend sync button for Google Books enrichment
+ */
+export async function updateBook(id: number, input: UpdateBookInput) {
+  // Check if book exists
+  const existingBook = await prisma.book.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+
+  if (!existingBook) {
+    throw new Error(`Book with id ${id} not found`);
+  }
+
+  // Build update data - only include fields that were provided
+  const updateData: Record<string, unknown> = {};
+
+  if (input.title !== undefined) updateData.title = input.title;
+  if (input.author !== undefined) updateData.author = input.author;
+  if (input.isbn !== undefined) updateData.isbn = input.isbn;
+  if (input.coverUrl !== undefined) updateData.coverUrl = input.coverUrl;
+  if (input.description !== undefined) updateData.description = input.description;
+  if (input.publicationYear !== undefined) updateData.publicationYear = input.publicationYear;
+  if (input.pageCount !== undefined) updateData.pageCount = input.pageCount;
+  if (input.goodreadsUrl !== undefined) updateData.goodreadsUrl = input.goodreadsUrl;
+
+  return prisma.book.update({
+    where: { id },
+    data: updateData,
+  });
+}
+
+/**
+ * Delete book and cascade delete all associated reviews
+ * Returns the deleted book info and count of deleted reviews
+ */
+export async function deleteBook(id: number): Promise<{ book: { id: number; title: string; author: string | null; isbn: string | null; googleBooksId: string | null }; deletedReviewsCount: number }> {
+  return await prisma.$transaction(async (tx) => {
+    // Fetch book details and review count before deletion
+    const book = await tx.book.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { reviews: true },
+        },
+      },
+    });
+
+    if (!book) {
+      throw new Error(`Book with id ${id} not found`);
+    }
+
+    const deletedReviewsCount = book._count.reviews;
+
+    // Delete the book (reviews will cascade automatically due to schema change)
+    await tx.book.delete({
+      where: { id },
+    });
+
+    return {
+      book: {
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        isbn: book.isbn,
+        googleBooksId: book.googleBooksId,
+      },
+      deletedReviewsCount,
+    };
   });
 }
 

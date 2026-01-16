@@ -416,7 +416,7 @@ export default function EditReviewModal({
                               </div>
                             )}
                             <div className="text-xs text-tg-hint">
-                              {t("editReview.inOurDatabase")}
+                              {t("editReview.inOurDatabase")} • {book.reviewCount} {book.reviewCount === 1 ? 'review' : 'reviews'}
                             </div>
                           </div>
                         </button>

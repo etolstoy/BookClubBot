@@ -4,8 +4,12 @@ import {
   getBookById,
   searchBooks,
   getGoogleBooksUrl,
+  updateBook,
+  deleteBook,
 } from "../../services/book.service.js";
-import { getReviewsByBookId } from "../../services/review.service.js";
+import { getReviewsByBookId, isAdmin } from "../../services/review.service.js";
+import { authenticateTelegramWebApp } from "../middleware/telegram-auth.js";
+import { sendInfoNotification } from "../../services/notification.service.js";
 import {
   searchBooks as searchGoogleBooks,
   searchBookByISBN,
@@ -257,9 +261,10 @@ router.get("/:id", async (req, res) => {
         coverUrl: book.coverUrl,
         genres,
         publicationYear: book.publicationYear,
+        isbn: book.isbn,
         pageCount: book.pageCount,
         googleBooksUrl: getGoogleBooksUrl(book.googleBooksId),
-        goodreadsUrl: generateGoodreadsUrl(book.isbn, book.title, book.author),
+        goodreadsUrl: book.goodreadsUrl || generateGoodreadsUrl(book.isbn, book.title, book.author),
         reviewCount: book.reviews.length,
         sentiments,
       },
@@ -322,6 +327,219 @@ router.get("/:id/reviews", async (req, res) => {
   } catch (error) {
     console.error("Error fetching book reviews:", error);
     res.status(500).json({ error: "Failed to fetch reviews" });
+  }
+});
+
+// PATCH /api/books/:id - Update book metadata (admin only)
+router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
+  try {
+    const bookId = parseInt(req.params.id, 10);
+    const { title, author, isbn, coverUrl, description, publicationYear, pageCount, goodreadsUrl } = req.body;
+
+    // Debug logging
+    console.log('[PATCH /api/books/:id] Request body:', JSON.stringify(req.body, null, 2));
+    console.log('[PATCH /api/books/:id] Parsed fields:', { title, author, isbn, coverUrl, description, publicationYear, pageCount, goodreadsUrl });
+
+    if (isNaN(bookId)) {
+      res.status(400).json({ error: "Invalid book ID" });
+      return;
+    }
+
+    // Check admin authorization
+    const userIsAdmin = isAdmin(req.telegramUser!.id);
+    if (!userIsAdmin) {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+
+    // Validate at least one field provided
+    if (
+      title === undefined &&
+      author === undefined &&
+      isbn === undefined &&
+      coverUrl === undefined &&
+      description === undefined &&
+      publicationYear === undefined &&
+      pageCount === undefined &&
+      goodreadsUrl === undefined
+    ) {
+      res.status(400).json({ error: "No fields to update" });
+      return;
+    }
+
+    // Validate title not empty if provided
+    if (title !== undefined && title.trim().length === 0) {
+      res.status(400).json({ error: "Title cannot be empty" });
+      return;
+    }
+
+    // Check book exists
+    const existingBook = await getBookById(bookId);
+    if (!existingBook) {
+      res.status(404).json({ error: "Book not found" });
+      return;
+    }
+
+    console.log('[PATCH /api/books/:id] Existing book:', {
+      title: existingBook.title,
+      author: existingBook.author,
+      isbn: existingBook.isbn
+    });
+
+    // Build update data - only include fields that were actually provided
+    const updateData: any = {};
+
+    if (title !== undefined) {
+      updateData.title = title.trim();
+    }
+    if (author !== undefined) {
+      updateData.author = author.trim() || null;
+    }
+    if (isbn !== undefined) {
+      updateData.isbn = isbn || null;
+    }
+    if (coverUrl !== undefined) {
+      updateData.coverUrl = coverUrl || null;
+    }
+    if (description !== undefined) {
+      updateData.description = description;
+    }
+    if (publicationYear !== undefined) {
+      updateData.publicationYear = publicationYear;
+    }
+    if (pageCount !== undefined) {
+      updateData.pageCount = pageCount;
+    }
+    if (goodreadsUrl !== undefined) {
+      updateData.goodreadsUrl = goodreadsUrl || null;
+    }
+
+    console.log('[PATCH /api/books/:id] Update data being sent to service:', updateData);
+
+    // Update book
+    const updatedBook = await updateBook(bookId, updateData);
+
+    // Send admin notification
+    const userName = req.telegramUser!.username || req.telegramUser!.first_name || "Unknown Admin";
+
+    const changes: string[] = [];
+    if (title !== undefined) changes.push("title");
+    if (author !== undefined) changes.push("author");
+    if (isbn !== undefined) changes.push("isbn");
+    if (coverUrl !== undefined) changes.push("cover");
+    if (description !== undefined) changes.push("description");
+    if (publicationYear !== undefined) changes.push("publication year");
+    if (pageCount !== undefined) changes.push("page count");
+    if (goodreadsUrl !== undefined) changes.push("goodreads url");
+
+    await sendInfoNotification(
+      `Book #${bookId} updated by admin @${userName}`,
+      {
+        operation: "Book Update (ADMIN)",
+        additionalInfo: `Book: "${updatedBook.title}" by ${updatedBook.author || "Unknown"}\nChanges: ${changes.join(", ")}`,
+      }
+    );
+
+    // Fetch the book with reviews to get accurate counts and sentiments
+    const bookWithReviews = await getBookById(bookId);
+
+    if (!bookWithReviews) {
+      res.status(404).json({ error: "Book not found after update" });
+      return;
+    }
+
+    // Calculate sentiment breakdown
+    const sentiments = bookWithReviews.reviews.reduce(
+      (acc: { positive: number; negative: number; neutral: number }, r: { sentiment: string | null }) => {
+        if (r.sentiment === "positive") acc.positive++;
+        else if (r.sentiment === "negative") acc.negative++;
+        else if (r.sentiment === "neutral") acc.neutral++;
+        return acc;
+      },
+      { positive: 0, negative: 0, neutral: 0 }
+    );
+
+    // Format response with genres parsed
+    const genres = updatedBook.genres ? JSON.parse(updatedBook.genres) : [];
+
+    res.json({
+      book: {
+        id: updatedBook.id,
+        title: updatedBook.title,
+        author: updatedBook.author,
+        description: updatedBook.description,
+        coverUrl: updatedBook.coverUrl,
+        genres,
+        publicationYear: updatedBook.publicationYear,
+        isbn: updatedBook.isbn,
+        pageCount: updatedBook.pageCount,
+        googleBooksUrl: getGoogleBooksUrl(updatedBook.googleBooksId),
+        goodreadsUrl: updatedBook.goodreadsUrl || generateGoodreadsUrl(updatedBook.isbn, updatedBook.title, updatedBook.author),
+        reviewCount: bookWithReviews.reviews.length,
+        sentiments,
+      },
+      message: "Book updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating book:", error);
+    res.status(500).json({ error: "Failed to update book" });
+  }
+});
+
+// DELETE /api/books/:id - Delete book and cascade delete reviews (admin only)
+router.delete("/:id", authenticateTelegramWebApp, async (req, res) => {
+  try {
+    const bookId = parseInt(req.params.id, 10);
+
+    if (isNaN(bookId)) {
+      res.status(400).json({ error: "Invalid book ID" });
+      return;
+    }
+
+    // Check admin authorization
+    const userIsAdmin = isAdmin(req.telegramUser!.id);
+    if (!userIsAdmin) {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+
+    // Check book exists
+    const existingBook = await getBookById(bookId);
+    if (!existingBook) {
+      res.status(404).json({ error: "Book not found" });
+      return;
+    }
+
+    // Get review count for notification
+    const reviewCount = existingBook.reviews.length;
+
+    // Delete book (reviews cascade automatically)
+    const { book, deletedReviewsCount } = await deleteBook(bookId);
+
+    // Send admin notification
+    const userName = req.telegramUser!.username || req.telegramUser!.first_name || "Unknown Admin";
+
+    await sendInfoNotification(
+      `📕 Book Deleted (ADMIN)\n\nBook: "${book.title}"${
+        book.author ? ` by ${book.author}` : ""
+      }\nDeleted by: @${userName}\nReviews deleted: ${deletedReviewsCount}`,
+      {
+        operation: "Book Deletion (ADMIN)",
+        additionalInfo: `Book ID: ${bookId}\nISBN: ${book.isbn || "none"}\nGoogle Books ID: ${
+          book.googleBooksId || "none"
+        }`,
+      }
+    );
+
+    // Return success
+    res.json({
+      success: true,
+      message: `Book deleted successfully. ${deletedReviewsCount} review(s) were also deleted.`,
+      deletedReviewsCount,
+    });
+  } catch (error) {
+    console.error("Error deleting book:", error);
+    res.status(500).json({ error: "Failed to delete book" });
   }
 });
 

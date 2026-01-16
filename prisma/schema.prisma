@@ -21,6 +21,7 @@ model Book {
   description     String?
   isbn            String?
   pageCount       Int?      @map("page_count")
+  goodreadsUrl    String?   @map("goodreads_url")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   reviews         Review[]
@@ -30,7 +31,7 @@ model Book {
 
 model Review {
   id                  Int       @id @default(autoincrement())
-  book                Book?     @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  book                Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
   bookId              Int?      @map("book_id")
   telegramUserId      BigInt    @map("telegram_user_id")
   telegramUsername    String?   @map("telegram_username")
