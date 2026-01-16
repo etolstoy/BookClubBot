@@ -9,6 +9,8 @@ import Leaderboard from "./pages/Leaderboard";
 import ReviewersLeaderboard from "./pages/ReviewersLeaderboard";
 import BrowseBooks from "./pages/BrowseBooks";
 import FreshReviews from "./pages/FreshReviews";
+import PopularAuthors from "./pages/PopularAuthors.js";
+import AuthorBooks from "./pages/AuthorBooks.js";
 
 // Create context for config
 export const ConfigContext = createContext<Config | null>(null);
@@ -78,6 +80,8 @@ function AppContent() {
         <Route path="/reviewer/:userId" element={<Reviewer />} />
         <Route path="/top-books" element={<Leaderboard />} />
         <Route path="/top-reviewers" element={<ReviewersLeaderboard />} />
+        <Route path="/top-authors" element={<PopularAuthors />} />
+        <Route path="/author/:author" element={<AuthorBooks />} />
         <Route path="/fresh-reviews" element={<FreshReviews />} />
         {/* Legacy route for backward compatibility */}
         <Route path="/leaderboard" element={<Leaderboard />} />
