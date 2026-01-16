@@ -1,21 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getBook, type BookDetail, type Review } from "../api/client";
+import { getBook, isCurrentUserAdmin, type BookDetail, type Review } from "../api/client";
 import ReviewCard from "../components/ReviewCard";
 import SentimentBadge from "../components/SentimentBadge";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
+import EditBookModal from "../components/EditBookModal";
 import { useTranslation } from "../i18n/index.js";
+import { ConfigContext } from "../App";
 
 export default function Book() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const config = useContext(ConfigContext);
   const [book, setBook] = useState<BookDetail | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sentimentFilter, setSentimentFilter] = useState<string | null>(null);
+  const [showEditBookModal, setShowEditBookModal] = useState(false);
+
+  // Check if current user is admin
+  const isAdmin = config ? isCurrentUserAdmin(config.adminUserIds) : false;
 
   useEffect(() => {
     if (!id) return;
@@ -83,6 +90,15 @@ export default function Book() {
     }
   };
 
+  const handleBookUpdated = (updatedBook: BookDetail) => {
+    setBook(updatedBook);
+  };
+
+  const handleBookDeleted = () => {
+    // Navigate back to browse books page
+    navigate("/browse");
+  };
+
   if (loading) return <Loading />;
   if (error) return <ErrorMessage message={error} />;
   if (!book) return <ErrorMessage message={t("book.notFound")} />;
@@ -116,7 +132,18 @@ export default function Book() {
         </div>
 
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-tg-text">{book.title}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-tg-text">{book.title}</h1>
+            {isAdmin && (
+              <button
+                onClick={() => setShowEditBookModal(true)}
+                className="text-sm text-tg-text no-underline hover:opacity-80"
+                title="Edit Book"
+              >
+                ✏️
+              </button>
+            )}
+          </div>
           {book.author && (
             <p className="text-tg-hint mt-1">{book.author}</p>
           )}
@@ -227,6 +254,16 @@ export default function Book() {
           ))
         )}
       </div>
+
+      {/* Edit Book Modal */}
+      {showEditBookModal && (
+        <EditBookModal
+          book={book}
+          onClose={() => setShowEditBookModal(false)}
+          onSuccess={handleBookUpdated}
+          onDelete={handleBookDeleted}
+        />
+      )}
     </div>
   );
 }

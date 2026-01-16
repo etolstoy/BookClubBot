@@ -76,6 +76,7 @@ export interface BookDetail {
   coverUrl: string | null;
   genres: string[];
   publicationYear: number | null;
+  isbn: string | null;
   pageCount: number | null;
   googleBooksUrl: string | null;
   goodreadsUrl: string | null;
@@ -385,6 +386,33 @@ export async function deleteReview(
   reviewId: number
 ): Promise<{ success: boolean; message: string }> {
   return fetchApi(`/reviews/${reviewId}`, {
+    method: "DELETE",
+  });
+}
+
+export interface UpdateBookInput {
+  title?: string;
+  author?: string | null;
+  isbn?: string | null;
+  description?: string | null;
+  publicationYear?: number | null;
+  pageCount?: number | null;
+}
+
+export async function updateBook(
+  bookId: number,
+  data: UpdateBookInput
+): Promise<{ book: BookDetail; message: string }> {
+  return fetchApi(`/books/${bookId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteBook(
+  bookId: number
+): Promise<{ success: boolean; message: string; deletedReviewsCount: number }> {
+  return fetchApi(`/books/${bookId}`, {
     method: "DELETE",
   });
 }

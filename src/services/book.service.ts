@@ -22,6 +22,15 @@ export interface CreateBookInput {
   pageCount?: number | null;
 }
 
+export interface UpdateBookInput {
+  title?: string;
+  author?: string | null;
+  isbn?: string | null;
+  description?: string | null;
+  publicationYear?: number | null;
+  pageCount?: number | null;
+}
+
 export async function findSimilarBook(
   title: string,
   author?: string | null
@@ -234,6 +243,117 @@ export async function getBookWithReviewCount(id: number) {
         select: { reviews: true },
       },
     },
+  });
+}
+
+/**
+ * Update book metadata
+ * If ISBN changed, automatically re-enrich from Google Books API
+ */
+export async function updateBook(id: number, input: UpdateBookInput) {
+  // First, check if book exists and get current ISBN
+  const existingBook = await prisma.book.findUnique({
+    where: { id },
+    select: { isbn: true },
+  });
+
+  if (!existingBook) {
+    throw new Error(`Book with id ${id} not found`);
+  }
+
+  // Check if ISBN changed
+  const isbnChanged = input.isbn !== undefined && input.isbn !== existingBook.isbn;
+
+  // If ISBN changed, try to re-enrich from Google Books
+  if (isbnChanged && input.isbn) {
+    console.log(`[BookService] ISBN changed for book ${id}, attempting re-enrichment from Google Books`);
+
+    const googleBook = await searchBookByISBN(input.isbn);
+
+    if (googleBook) {
+      console.log(`[BookService] Successfully re-enriched book ${id} from Google Books`);
+
+      // Update with all Google Books data
+      return prisma.book.update({
+        where: { id },
+        data: {
+          title: googleBook.title,
+          author: googleBook.author,
+          isbn: googleBook.isbn,
+          googleBooksId: googleBook.googleBooksId,
+          coverUrl: googleBook.coverUrl,
+          genres: googleBook.genres ? JSON.stringify(googleBook.genres) : null,
+          description: googleBook.description,
+          publicationYear: googleBook.publicationYear,
+          pageCount: googleBook.pageCount,
+        },
+      });
+    } else {
+      console.log(`[BookService] No Google Books data found for ISBN ${input.isbn}, updating ISBN only`);
+
+      // Update only the ISBN if Google Books returns nothing
+      return prisma.book.update({
+        where: { id },
+        data: {
+          isbn: input.isbn,
+        },
+      });
+    }
+  }
+
+  // If ISBN not changed, update only the specified fields
+  const updateData: Record<string, unknown> = {};
+
+  if (input.title !== undefined) updateData.title = input.title;
+  if (input.author !== undefined) updateData.author = input.author;
+  if (input.isbn !== undefined) updateData.isbn = input.isbn;
+  if (input.description !== undefined) updateData.description = input.description;
+  if (input.publicationYear !== undefined) updateData.publicationYear = input.publicationYear;
+  if (input.pageCount !== undefined) updateData.pageCount = input.pageCount;
+
+  return prisma.book.update({
+    where: { id },
+    data: updateData,
+  });
+}
+
+/**
+ * Delete book and cascade delete all associated reviews
+ * Returns the deleted book info and count of deleted reviews
+ */
+export async function deleteBook(id: number): Promise<{ book: { id: number; title: string; author: string | null; isbn: string | null; googleBooksId: string | null }; deletedReviewsCount: number }> {
+  return await prisma.$transaction(async (tx) => {
+    // Fetch book details and review count before deletion
+    const book = await tx.book.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { reviews: true },
+        },
+      },
+    });
+
+    if (!book) {
+      throw new Error(`Book with id ${id} not found`);
+    }
+
+    const deletedReviewsCount = book._count.reviews;
+
+    // Delete the book (reviews will cascade automatically due to schema change)
+    await tx.book.delete({
+      where: { id },
+    });
+
+    return {
+      book: {
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        isbn: book.isbn,
+        googleBooksId: book.googleBooksId,
+      },
+      deletedReviewsCount,
+    };
   });
 }
 

@@ -30,7 +30,7 @@ model Book {
 
 model Review {
   id                  Int       @id @default(autoincrement())
-  book                Book?     @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  book                Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
   bookId              Int?      @map("book_id")
   telegramUserId      BigInt    @map("telegram_user_id")
   telegramUsername    String?   @map("telegram_username")

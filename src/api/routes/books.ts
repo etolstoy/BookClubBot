@@ -4,8 +4,12 @@ import {
   getBookById,
   searchBooks,
   getGoogleBooksUrl,
+  updateBook,
+  deleteBook,
 } from "../../services/book.service.js";
-import { getReviewsByBookId } from "../../services/review.service.js";
+import { getReviewsByBookId, isAdmin } from "../../services/review.service.js";
+import { authenticateTelegramWebApp } from "../middleware/telegram-auth.js";
+import { sendInfoNotification } from "../../services/notification.service.js";
 import {
   searchBooks as searchGoogleBooks,
   searchBookByISBN,
@@ -257,6 +261,7 @@ router.get("/:id", async (req, res) => {
         coverUrl: book.coverUrl,
         genres,
         publicationYear: book.publicationYear,
+        isbn: book.isbn,
         pageCount: book.pageCount,
         googleBooksUrl: getGoogleBooksUrl(book.googleBooksId),
         goodreadsUrl: generateGoodreadsUrl(book.isbn, book.title, book.author),
@@ -322,6 +327,177 @@ router.get("/:id/reviews", async (req, res) => {
   } catch (error) {
     console.error("Error fetching book reviews:", error);
     res.status(500).json({ error: "Failed to fetch reviews" });
+  }
+});
+
+// PATCH /api/books/:id - Update book metadata (admin only)
+router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
+  try {
+    const bookId = parseInt(req.params.id, 10);
+    const { title, author, isbn, description, publicationYear, pageCount } = req.body;
+
+    if (isNaN(bookId)) {
+      res.status(400).json({ error: "Invalid book ID" });
+      return;
+    }
+
+    // Check admin authorization
+    const userIsAdmin = isAdmin(req.telegramUser!.id);
+    if (!userIsAdmin) {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+
+    // Validate at least one field provided
+    if (
+      title === undefined &&
+      author === undefined &&
+      isbn === undefined &&
+      description === undefined &&
+      publicationYear === undefined &&
+      pageCount === undefined
+    ) {
+      res.status(400).json({ error: "No fields to update" });
+      return;
+    }
+
+    // Validate title not empty if provided
+    if (title !== undefined && title.trim().length === 0) {
+      res.status(400).json({ error: "Title cannot be empty" });
+      return;
+    }
+
+    // Check book exists
+    const existingBook = await getBookById(bookId);
+    if (!existingBook) {
+      res.status(404).json({ error: "Book not found" });
+      return;
+    }
+
+    // Track ISBN change for enrichment
+    const isbnChanged = isbn !== undefined && isbn !== existingBook.isbn;
+    const oldIsbn = existingBook.isbn;
+
+    // Update book
+    const updatedBook = await updateBook(bookId, {
+      title: title?.trim(),
+      author: author?.trim() || null,
+      isbn: isbn || null,
+      description,
+      publicationYear,
+      pageCount,
+    });
+
+    // Send admin notification
+    const userName = req.telegramUser!.username || req.telegramUser!.first_name || "Unknown Admin";
+
+    const changes: string[] = [];
+    if (title !== undefined) changes.push("title");
+    if (author !== undefined) changes.push("author");
+    if (isbn !== undefined) changes.push("isbn");
+    if (description !== undefined) changes.push("description");
+    if (publicationYear !== undefined) changes.push("publication year");
+    if (pageCount !== undefined) changes.push("page count");
+
+    await sendInfoNotification(
+      `Book #${bookId} updated by admin @${userName}`,
+      {
+        operation: "Book Update (ADMIN)",
+        additionalInfo: `Book: "${updatedBook.title}" by ${updatedBook.author || "Unknown"}\nChanges: ${changes.join(", ")}${
+          isbnChanged
+            ? `\nISBN changed: ${oldIsbn || "none"} → ${isbn}\n${
+                updatedBook.googleBooksId
+                  ? "✓ Re-enriched from Google Books"
+                  : "✗ No Google Books data found"
+              }`
+            : ""
+        }`,
+      }
+    );
+
+    // Format response with genres parsed
+    const genres = updatedBook.genres ? JSON.parse(updatedBook.genres) : [];
+
+    res.json({
+      book: {
+        id: updatedBook.id,
+        title: updatedBook.title,
+        author: updatedBook.author,
+        description: updatedBook.description,
+        coverUrl: updatedBook.coverUrl,
+        genres,
+        publicationYear: updatedBook.publicationYear,
+        pageCount: updatedBook.pageCount,
+        googleBooksUrl: getGoogleBooksUrl(updatedBook.googleBooksId),
+        goodreadsUrl: generateGoodreadsUrl(updatedBook.isbn, updatedBook.title, updatedBook.author),
+        reviewCount: 0, // Not relevant for update response
+        sentiments: { positive: 0, negative: 0, neutral: 0 }, // Not relevant for update response
+      },
+      message:
+        isbnChanged && updatedBook.googleBooksId
+          ? "Book updated and re-enriched from Google Books"
+          : "Book updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating book:", error);
+    res.status(500).json({ error: "Failed to update book" });
+  }
+});
+
+// DELETE /api/books/:id - Delete book and cascade delete reviews (admin only)
+router.delete("/:id", authenticateTelegramWebApp, async (req, res) => {
+  try {
+    const bookId = parseInt(req.params.id, 10);
+
+    if (isNaN(bookId)) {
+      res.status(400).json({ error: "Invalid book ID" });
+      return;
+    }
+
+    // Check admin authorization
+    const userIsAdmin = isAdmin(req.telegramUser!.id);
+    if (!userIsAdmin) {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+
+    // Check book exists
+    const existingBook = await getBookById(bookId);
+    if (!existingBook) {
+      res.status(404).json({ error: "Book not found" });
+      return;
+    }
+
+    // Get review count for notification
+    const reviewCount = existingBook.reviews.length;
+
+    // Delete book (reviews cascade automatically)
+    const { book, deletedReviewsCount } = await deleteBook(bookId);
+
+    // Send admin notification
+    const userName = req.telegramUser!.username || req.telegramUser!.first_name || "Unknown Admin";
+
+    await sendInfoNotification(
+      `📕 Book Deleted (ADMIN)\n\nBook: "${book.title}"${
+        book.author ? ` by ${book.author}` : ""
+      }\nDeleted by: @${userName}\nReviews deleted: ${deletedReviewsCount}`,
+      {
+        operation: "Book Deletion (ADMIN)",
+        additionalInfo: `Book ID: ${bookId}\nISBN: ${book.isbn || "none"}\nGoogle Books ID: ${
+          book.googleBooksId || "none"
+        }`,
+      }
+    );
+
+    // Return success
+    res.json({
+      success: true,
+      message: `Book deleted successfully. ${deletedReviewsCount} review(s) were also deleted.`,
+      deletedReviewsCount,
+    });
+  } catch (error) {
+    console.error("Error deleting book:", error);
+    res.status(500).json({ error: "Failed to delete book" });
   }
 });
 
