@@ -74,7 +74,7 @@ export default function Home() {
             {reviews.length === 0 ? (
               <p className="text-center text-tg-hint py-4">{t("home.noReviews")}</p>
             ) : (
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory">
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 pl-4 pr-4 scroll-pl-4 snap-x snap-mandatory">
                 {reviews.map((review, index) => {
                   const formattedDate = new Date(review.reviewedAt).toLocaleDateString(undefined, {
                     year: "numeric",
@@ -83,8 +83,8 @@ export default function Home() {
                   });
 
                   return (
-                    <div key={review.id} className={`flex-shrink-0 w-[85vw] max-w-md snap-start ${index === 0 ? 'pl-4' : ''}`}>
-                      <div className="p-4 rounded-lg bg-tg-secondary h-[190px] flex flex-col">
+                    <div key={review.id} className="flex-shrink-0 w-[85vw] max-w-md snap-start">
+                      <div className="p-4 rounded-lg bg-tg-secondary h-[220px] flex flex-col">
                         <div className="flex items-center justify-between mb-2">
                           <Link
                             to={`/reviewer/${review.telegramUserId}`}
