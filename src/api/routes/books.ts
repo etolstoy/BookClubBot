@@ -384,10 +384,6 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
       isbn: existingBook.isbn
     });
 
-    // Track ISBN change for enrichment
-    const isbnChanged = isbn !== undefined && isbn !== existingBook.isbn;
-    const oldIsbn = existingBook.isbn;
-
     // Build update data - only include fields that were actually provided
     const updateData: any = {};
 
@@ -430,15 +426,7 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
       `Book #${bookId} updated by admin @${userName}`,
       {
         operation: "Book Update (ADMIN)",
-        additionalInfo: `Book: "${updatedBook.title}" by ${updatedBook.author || "Unknown"}\nChanges: ${changes.join(", ")}${
-          isbnChanged
-            ? `\nISBN changed: ${oldIsbn || "none"} → ${isbn}\n${
-                updatedBook.googleBooksId
-                  ? "✓ Re-enriched from Google Books"
-                  : "✗ No Google Books data found"
-              }`
-            : ""
-        }`,
+        additionalInfo: `Book: "${updatedBook.title}" by ${updatedBook.author || "Unknown"}\nChanges: ${changes.join(", ")}`,
       }
     );
 
@@ -480,10 +468,7 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
         reviewCount: bookWithReviews.reviews.length,
         sentiments,
       },
-      message:
-        isbnChanged && updatedBook.googleBooksId
-          ? "Book updated and re-enriched from Google Books"
-          : "Book updated successfully",
+      message: "Book updated successfully",
     });
   } catch (error) {
     console.error("Error updating book:", error);

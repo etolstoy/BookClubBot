@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updateBook, deleteBook, type BookDetail, type UpdateBookInput } from "../api/client";
+import { updateBook, deleteBook, searchGoogleBooks, type BookDetail, type UpdateBookInput } from "../api/client";
 
 interface EditBookModalProps {
   book: BookDetail;
@@ -22,16 +22,45 @@ export default function EditBookModal({
   const [pageCount, setPageCount] = useState(book.pageCount?.toString() || "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isbnWarning, setIsbnWarning] = useState(false);
+  const [syncSuccess, setSyncSuccess] = useState(false);
 
-  const handleIsbnChange = (newIsbn: string) => {
-    setIsbn(newIsbn);
-    // Show warning if ISBN changed
-    if (newIsbn !== (book.isbn || "") && newIsbn.trim() !== "") {
-      setIsbnWarning(true);
-    } else {
-      setIsbnWarning(false);
+  const handleSyncIsbn = async () => {
+    if (!isbn.trim()) {
+      setError("Please enter an ISBN first");
+      return;
+    }
+
+    setSyncing(true);
+    setError(null);
+    setSyncSuccess(false);
+
+    try {
+      const result = await searchGoogleBooks(isbn.trim());
+
+      if (result.books.length === 0) {
+        setError("No book found with this ISBN");
+        return;
+      }
+
+      const googleBook = result.books[0];
+
+      // Populate form fields with Google Books data
+      if (googleBook.title) setTitle(googleBook.title);
+      if (googleBook.author) setAuthor(googleBook.author);
+      if (googleBook.description) setDescription(googleBook.description);
+      if (googleBook.publicationYear) setPublicationYear(googleBook.publicationYear.toString());
+      if (googleBook.pageCount) setPageCount(googleBook.pageCount.toString());
+
+      setSyncSuccess(true);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSyncSuccess(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to sync with Google Books");
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -243,17 +272,27 @@ export default function EditBookModal({
             <label className="block text-sm font-medium text-tg-text mb-2">
               ISBN
             </label>
-            <input
-              type="text"
-              value={isbn}
-              onChange={(e) => handleIsbnChange(e.target.value)}
-              className="w-full p-3 rounded-lg bg-tg-secondary text-tg-text border-none outline-none"
-              placeholder="Enter ISBN (e.g., 9781234567890)"
-              disabled={saving || deleting}
-            />
-            {isbnWarning && (
-              <div className="mt-2 p-2 bg-yellow-500 bg-opacity-20 rounded text-yellow-500 text-xs">
-                ⚠️ Changing ISBN will re-fetch book data from Google Books and overwrite title, author, cover, genres, description, publication year, and page count.
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={isbn}
+                onChange={(e) => setIsbn(e.target.value)}
+                className="flex-1 p-3 rounded-lg bg-tg-secondary text-tg-text border-none outline-none"
+                placeholder="Enter ISBN (e.g., 9781234567890)"
+                disabled={saving || deleting || syncing}
+              />
+              <button
+                onClick={handleSyncIsbn}
+                disabled={saving || deleting || syncing || !isbn.trim()}
+                className="px-4 py-3 rounded-lg bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors disabled:opacity-50 border-2 border-transparent whitespace-nowrap"
+                title="Sync with Google Books"
+              >
+                {syncing ? "🔄 Syncing..." : "🔄 Sync"}
+              </button>
+            </div>
+            {syncSuccess && (
+              <div className="mt-2 p-2 bg-green-500 bg-opacity-20 rounded text-green-500 text-xs">
+                ✓ Book data synced from Google Books! Review and save if you want to keep the changes.
               </div>
             )}
           </div>

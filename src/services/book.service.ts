@@ -248,75 +248,21 @@ export async function getBookWithReviewCount(id: number) {
 
 /**
  * Update book metadata
- * If ISBN changed, automatically re-enrich from Google Books API
+ * Simply updates the fields provided - no automatic re-enrichment
+ * Use the frontend sync button for Google Books enrichment
  */
 export async function updateBook(id: number, input: UpdateBookInput) {
-  // First, check if book exists and get current ISBN
+  // Check if book exists
   const existingBook = await prisma.book.findUnique({
     where: { id },
-    select: { isbn: true },
+    select: { id: true },
   });
 
   if (!existingBook) {
     throw new Error(`Book with id ${id} not found`);
   }
 
-  // Check if ISBN changed
-  const isbnChanged = input.isbn !== undefined && input.isbn !== existingBook.isbn;
-
-  // If ISBN changed, try to re-enrich from Google Books
-  if (isbnChanged && input.isbn) {
-    console.log(`[BookService] ISBN changed for book ${id}, attempting re-enrichment from Google Books`);
-
-    const googleBook = await searchBookByISBN(input.isbn);
-
-    if (googleBook) {
-      console.log(`[BookService] Successfully re-enriched book ${id} from Google Books`);
-
-      // Update with Google Books data, but prefer user-provided values
-      // Only use Google Books data for fields that weren't explicitly updated by the user
-      const updateData: Record<string, unknown> = {
-        isbn: googleBook.isbn,
-        googleBooksId: googleBook.googleBooksId,
-      };
-
-      // Use user-provided values if available, otherwise use Google Books data
-      updateData.title = input.title !== undefined ? input.title : googleBook.title;
-      updateData.author = input.author !== undefined ? input.author : googleBook.author;
-      updateData.description = input.description !== undefined ? input.description : googleBook.description;
-      updateData.publicationYear = input.publicationYear !== undefined ? input.publicationYear : googleBook.publicationYear;
-      updateData.pageCount = input.pageCount !== undefined ? input.pageCount : googleBook.pageCount;
-
-      // Always use Google Books data for these fields
-      updateData.coverUrl = googleBook.coverUrl;
-      updateData.genres = googleBook.genres ? JSON.stringify(googleBook.genres) : null;
-
-      return prisma.book.update({
-        where: { id },
-        data: updateData,
-      });
-    } else {
-      console.log(`[BookService] No Google Books data found for ISBN ${input.isbn}, updating ISBN and other fields`);
-
-      // If Google Books returns nothing, update ISBN and any other fields provided by user
-      const updateData: Record<string, unknown> = {
-        isbn: input.isbn,
-      };
-
-      if (input.title !== undefined) updateData.title = input.title;
-      if (input.author !== undefined) updateData.author = input.author;
-      if (input.description !== undefined) updateData.description = input.description;
-      if (input.publicationYear !== undefined) updateData.publicationYear = input.publicationYear;
-      if (input.pageCount !== undefined) updateData.pageCount = input.pageCount;
-
-      return prisma.book.update({
-        where: { id },
-        data: updateData,
-      });
-    }
-  }
-
-  // If ISBN not changed, update only the specified fields
+  // Build update data - only include fields that were provided
   const updateData: Record<string, unknown> = {};
 
   if (input.title !== undefined) updateData.title = input.title;
