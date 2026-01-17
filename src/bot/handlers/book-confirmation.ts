@@ -56,13 +56,6 @@ export function cleanupStaleStates(): void {
 }
 
 /**
- * Generate deep link to Mini App book page
- */
-function generateDeepLink(bookId: number): string {
-  return `${config.miniAppUrl}?startapp=book_${bookId}`;
-}
-
-/**
  * Generate Goodreads URL (prefer ISBN)
  */
 function getGoodreadsUrl(book: EnrichedBook): string {
@@ -324,9 +317,7 @@ function generateSuccessMessage(
 
   return {
     text,
-    keyboard: Markup.inlineKeyboard([
-      [Markup.button.webApp("Посмотреть в приложении", generateDeepLink(bookId))],
-    ]),
+    keyboard: Markup.inlineKeyboard([]), // No buttons
   };
 }
 
