@@ -49,14 +49,14 @@ export default function ReviewCard({
   return (
     <>
       <div className="p-4 rounded-lg bg-tg-secondary">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-start justify-between mb-2">
           <Link
             to={`/reviewer/${currentReview.telegramUserId}`}
             className="font-medium text-tg-text no-underline"
           >
             {currentReview.reviewerName}
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {currentReview.sentiment && (
               <SentimentBadge sentiment={currentReview.sentiment} />
             )}
