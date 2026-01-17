@@ -73,6 +73,16 @@ export function createBot() {
   });
   bot.on(message("text"), handleReviewMessage);
 
+  // Also handle media messages with captions (photo, video, document, etc.)
+  // These can contain review hashtags in their captions
+  bot.on(message("photo"), handleReviewMessage);
+  bot.on(message("video"), handleReviewMessage);
+  bot.on(message("document"), handleReviewMessage);
+  bot.on(message("animation"), handleReviewMessage);
+  bot.on(message("audio"), handleReviewMessage);
+  bot.on(message("voice"), handleReviewMessage);
+  bot.on(message("video_note"), handleReviewMessage);
+
   return bot;
 }
 

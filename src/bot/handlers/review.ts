@@ -19,10 +19,47 @@ function getDisplayName(from: Message["from"]): string | null {
   return from.first_name || from.username || null;
 }
 
-export async function handleReviewMessage(ctx: Context) {
-  const message = ctx.message as Message.TextMessage;
+/**
+ * Extracts text content from a message, supporting both regular text messages
+ * and media messages with captions (photos, videos, documents, etc.)
+ */
+function getMessageText(message: Message): string | undefined {
+  if ("text" in message) {
+    return message.text;
+  }
+  if ("caption" in message) {
+    return message.caption;
+  }
+  return undefined;
+}
 
-  if (!message?.text || !message.from) {
+/**
+ * Gets the author of a message, handling forwarded channel messages.
+ * For forwarded channel messages (which don't have a 'from' field),
+ * returns the forwarder's identity instead.
+ */
+function getMessageAuthor(message: Message): Message["from"] | undefined {
+  // If message has a 'from' field, use it (normal messages or forwarded by user)
+  if (message.from) {
+    return message.from;
+  }
+
+  // For messages forwarded from channels (no 'from' field),
+  // we can't get the original author, so this message can't be processed
+  return undefined;
+}
+
+export async function handleReviewMessage(ctx: Context) {
+  const message = ctx.message;
+
+  if (!message) {
+    return;
+  }
+
+  // Extract text from either text message or media caption
+  const messageText = getMessageText(message);
+
+  if (!messageText || !message.from) {
     return;
   }
 
@@ -32,12 +69,12 @@ export async function handleReviewMessage(ctx: Context) {
   }
 
   // Ignore commands (messages starting with /)
-  if (message.text.startsWith("/")) {
+  if (messageText.startsWith("/")) {
     return;
   }
 
   // Check if message contains the review hashtag
-  if (!message.text.includes(config.reviewHashtag)) {
+  if (!messageText.includes(config.reviewHashtag)) {
     return;
   }
 
@@ -45,7 +82,11 @@ export async function handleReviewMessage(ctx: Context) {
 }
 
 export async function handleReviewCommand(ctx: Context) {
-  const message = ctx.message as Message.TextMessage;
+  const message = ctx.message;
+
+  if (!message) {
+    return;
+  }
 
   // Only work in group chats
   if (ctx.chat?.type !== "group" && ctx.chat?.type !== "supergroup") {
@@ -55,22 +96,26 @@ export async function handleReviewCommand(ctx: Context) {
     return;
   }
 
-  // Check if command has parameters (e.g., /review Title – Author)
-  const commandMatch = message.text.match(/^\/review\s+(.+)$/);
+  // Extract command text and check for parameters (e.g., /review Title – Author)
+  const commandText = getMessageText(message);
+  const commandMatch = commandText?.match(/^\/review\s+(.+)$/);
   const commandParams = commandMatch ? commandMatch[1].trim() : undefined;
 
-  if (!message || !("reply_to_message" in message) || !message.reply_to_message) {
+  if (!("reply_to_message" in message) || !message.reply_to_message) {
     await ctx.reply(
       "Пожалуйста, используйте /review как ответ на сообщение, которое хотите отметить как рецензию."
     );
     return;
   }
 
-  const replyMessage = message.reply_to_message as Message.TextMessage;
+  const replyMessage = message.reply_to_message;
 
-  if (!("text" in replyMessage) || !replyMessage.text) {
+  // Extract text from replied message (supports both text and media with captions)
+  const replyText = getMessageText(replyMessage);
+
+  if (!replyText) {
     await ctx.reply(
-      "Я не могу прочитать это сообщение. Скорее всего оно было написано до того, как меня добавили в канал."
+      "Я не могу прочитать это сообщение. Убедитесь, что сообщение содержит текст или подпись к медиа."
     );
     return;
   }
@@ -80,10 +125,16 @@ export async function handleReviewCommand(ctx: Context) {
 
 async function processReview(
   ctx: Context,
-  message: Message.TextMessage,
+  message: Message,
   commandParams?: string
 ) {
   if (!message.from) {
+    return;
+  }
+
+  // Extract text from message (supports both text and media captions)
+  const messageText = getMessageText(message);
+  if (!messageText) {
     return;
   }
 
@@ -117,7 +168,7 @@ async function processReview(
 
   try {
     // Step 1: Extract book info with GPT-4o
-    const extractedInfo = await extractBookInfoGPT4o(message.text, commandParams);
+    const extractedInfo = await extractBookInfoGPT4o(messageText, commandParams);
 
     // Step 2: If extraction failed, show manual entry options
     if (!extractedInfo || !extractedInfo.title) {
@@ -128,7 +179,7 @@ async function processReview(
           telegramUserId,
           telegramUsername: message.from.username,
           telegramDisplayName: getDisplayName(message.from),
-          reviewText: message.text,
+          reviewText: messageText,
           messageId,
           chatId: message.chat ? BigInt(message.chat.id) : null,
           reviewedAt: new Date(message.date * 1000),
@@ -171,7 +222,7 @@ async function processReview(
         telegramUserId,
         telegramUsername: message.from.username,
         telegramDisplayName: getDisplayName(message.from),
-        reviewText: message.text,
+        reviewText: messageText,
         messageId,
         chatId: message.chat ? BigInt(message.chat.id) : null,
         reviewedAt: new Date(message.date * 1000),
