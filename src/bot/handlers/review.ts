@@ -69,7 +69,9 @@ export async function handleReviewCommand(ctx: Context) {
   const replyMessage = message.reply_to_message as Message.TextMessage;
 
   if (!("text" in replyMessage) || !replyMessage.text) {
-    await ctx.reply("Это сообщение не содержит текста.");
+    await ctx.reply(
+      "Я не могу прочитать это сообщение. Скорее всего оно было написано до того, как меня добавили в канал."
+    );
     return;
   }
 
