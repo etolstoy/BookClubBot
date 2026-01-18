@@ -13,6 +13,7 @@
     "db:push": "prisma db push",
     "typecheck": "tsc --noEmit",
     "anonymize": "tsx scripts/anonymize-reviews.ts",
+    "fixtures:edit": "tsx scripts/fixtures-editor-server.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",

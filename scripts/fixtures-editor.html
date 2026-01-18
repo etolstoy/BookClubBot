@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fixtures Editor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 350px;
+      background: white;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid #e0e0e0;
+      background: #fafafa;
+    }
+
+    .sidebar-header h1 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    .stats {
+      font-size: 12px;
+      color: #666;
+      display: flex;
+      gap: 15px;
+    }
+
+    .search-box {
+      padding: 15px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .reviews-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .review-item {
+      padding: 15px;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .review-item:hover {
+      background: #f9f9f9;
+    }
+
+    .review-item.active {
+      background: #e3f2fd;
+      border-left: 3px solid #2196F3;
+    }
+
+    .review-item-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: #333;
+    }
+
+    .review-item-author {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+
+    .review-item-meta {
+      display: flex;
+      gap: 8px;
+      font-size: 11px;
+    }
+
+    .badge {
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: #e0e0e0;
+      color: #555;
+    }
+
+    .badge.positive { background: #c8e6c9; color: #2e7d32; }
+    .badge.negative { background: #ffcdd2; color: #c62828; }
+    .badge.neutral { background: #fff9c4; color: #f57f17; }
+    .badge.complex { background: #ffccbc; color: #d84315; }
+    .badge.medium { background: #b3e5fc; color: #01579b; }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: white;
+    }
+
+    .main-header {
+      padding: 20px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fafafa;
+    }
+
+    .main-header h2 {
+      font-size: 18px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #2196F3;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1976D2;
+    }
+
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .editor {
+      flex: 1;
+      overflow-y: auto;
+      padding: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .form-group textarea {
+      min-height: 200px;
+      resize: vertical;
+      font-family: 'Courier New', monospace;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      background: #4CAF50;
+      color: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      animation: slideIn 0.3s;
+      z-index: 1000;
+    }
+
+    .notification.error {
+      background: #f44336;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .char-count {
+      text-align: right;
+      font-size: 12px;
+      color: #999;
+      margin-top: 5px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 30px 0 15px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h1>📝 Fixtures Editor</h1>
+      <div class="stats">
+        <span id="total-count">Loading...</span>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <input
+        type="text"
+        id="search"
+        placeholder="Search by title, author..."
+      >
+    </div>
+
+    <div class="reviews-list" id="reviews-list">
+      <!-- Reviews will be inserted here -->
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="main-header">
+      <h2 id="current-title">Select a review to edit</h2>
+      <div class="actions">
+        <button class="btn btn-secondary" id="backup-btn">
+          💾 Create Backup
+        </button>
+        <button class="btn btn-primary" id="save-btn" disabled>
+          💾 Save Changes
+        </button>
+      </div>
+    </div>
+
+    <div class="editor" id="editor">
+      <div class="empty-state">
+        <div class="empty-state-icon">📚</div>
+        <p>Select a review from the list to start editing</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let fixtures = null;
+    let currentIndex = null;
+    let hasChanges = false;
+
+    // Load fixtures on startup
+    async function loadFixtures() {
+      try {
+        const response = await fetch('http://localhost:3002/api/fixtures');
+        fixtures = await response.json();
+        renderReviewsList();
+        updateStats();
+      } catch (error) {
+        console.error('Error loading fixtures:', error);
+        showNotification('Failed to load fixtures', 'error');
+      }
+    }
+
+    // Update statistics
+    function updateStats() {
+      const stats = document.getElementById('total-count');
+      if (fixtures) {
+        stats.textContent = `${fixtures.totalReviews} reviews`;
+      }
+    }
+
+    // Render reviews list
+    function renderReviewsList(filter = '') {
+      const list = document.getElementById('reviews-list');
+      list.innerHTML = '';
+
+      fixtures.reviews.forEach((review, index) => {
+        const matchesFilter =
+          filter === '' ||
+          review.book.title.toLowerCase().includes(filter.toLowerCase()) ||
+          (review.book.author && review.book.author.toLowerCase().includes(filter.toLowerCase()));
+
+        if (!matchesFilter) return;
+
+        const item = document.createElement('div');
+        item.className = `review-item ${currentIndex === index ? 'active' : ''}`;
+        item.innerHTML = `
+          <div class="review-item-title">${review.book.title}</div>
+          <div class="review-item-author">${review.book.author || 'Unknown Author'}</div>
+          <div class="review-item-meta">
+            <span class="badge ${review.sentiment}">${review.sentiment || 'N/A'}</span>
+            <span class="badge ${review.testMetadata.complexity}">${review.testMetadata.complexity}</span>
+            <span class="badge">${review.testMetadata.language}</span>
+          </div>
+        `;
+        item.onclick = () => selectReview(index);
+        list.appendChild(item);
+      });
+    }
+
+    // Select a review
+    function selectReview(index) {
+      if (hasChanges && !confirm('You have unsaved changes. Discard them?')) {
+        return;
+      }
+
+      currentIndex = index;
+      hasChanges = false;
+      renderEditor();
+      renderReviewsList(document.getElementById('search').value);
+      updateSaveButton();
+    }
+
+    // Render editor for selected review
+    function renderEditor() {
+      const editor = document.getElementById('editor');
+      const review = fixtures.reviews[currentIndex];
+
+      document.getElementById('current-title').textContent = review.book.title;
+
+      editor.innerHTML = `
+        <div class="section-title">📖 Book Information</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="book-title">Title *</label>
+            <input
+              type="text"
+              id="book-title"
+              value="${escapeHtml(review.book.title)}"
+              onchange="markChanged()"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="book-author">Author</label>
+            <input
+              type="text"
+              id="book-author"
+              value="${escapeHtml(review.book.author || '')}"
+              onchange="markChanged()"
+            >
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="book-isbn">ISBN</label>
+            <input
+              type="text"
+              id="book-isbn"
+              value="${review.book.isbn || ''}"
+              onchange="markChanged()"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="book-year">Publication Year</label>
+            <input
+              type="number"
+              id="book-year"
+              value="${review.book.publicationYear || ''}"
+              onchange="markChanged()"
+            >
+          </div>
+        </div>
+
+        <div class="section-title">💬 Review Content</div>
+
+        <div class="form-group">
+          <label for="review-text">Review Text *</label>
+          <textarea
+            id="review-text"
+            onchange="markChanged()"
+            oninput="updateCharCount()"
+          >${escapeHtml(review.reviewText)}</textarea>
+          <div class="char-count" id="char-count">${review.reviewText.length} characters</div>
+        </div>
+
+        <div class="form-group">
+          <label for="sentiment">Sentiment</label>
+          <select id="sentiment" onchange="markChanged()">
+            <option value="positive" ${review.sentiment === 'positive' ? 'selected' : ''}>Positive</option>
+            <option value="negative" ${review.sentiment === 'negative' ? 'selected' : ''}>Negative</option>
+            <option value="neutral" ${review.sentiment === 'neutral' ? 'selected' : ''}>Neutral</option>
+          </select>
+        </div>
+
+        <div class="section-title">🔧 Test Metadata</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="language">Language</label>
+            <select id="language" onchange="markChanged()">
+              <option value="russian" ${review.testMetadata.language === 'russian' ? 'selected' : ''}>Russian</option>
+              <option value="english" ${review.testMetadata.language === 'english' ? 'selected' : ''}>English</option>
+              <option value="mixed" ${review.testMetadata.language === 'mixed' ? 'selected' : ''}>Mixed</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="complexity">Complexity</label>
+            <select id="complexity" onchange="markChanged()">
+              <option value="simple" ${review.testMetadata.complexity === 'simple' ? 'selected' : ''}>Simple</option>
+              <option value="medium" ${review.testMetadata.complexity === 'medium' ? 'selected' : ''}>Medium</option>
+              <option value="complex" ${review.testMetadata.complexity === 'complex' ? 'selected' : ''}>Complex</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pattern">Book Mention Pattern</label>
+            <input
+              type="text"
+              id="pattern"
+              value="${review.testMetadata.bookMentionPattern}"
+              onchange="markChanged()"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="has-hashtag">Has Hashtag</label>
+            <select id="has-hashtag" onchange="markChanged()">
+              <option value="true" ${review.testMetadata.hasHashtag ? 'selected' : ''}>Yes</option>
+              <option value="false" ${!review.testMetadata.hasHashtag ? 'selected' : ''}>No</option>
+            </select>
+          </div>
+        </div>
+      `;
+    }
+
+    // Mark as changed
+    function markChanged() {
+      hasChanges = true;
+      updateSaveButton();
+    }
+
+    // Update character count
+    function updateCharCount() {
+      const textarea = document.getElementById('review-text');
+      const counter = document.getElementById('char-count');
+      if (textarea && counter) {
+        counter.textContent = `${textarea.value.length} characters`;
+      }
+      markChanged();
+    }
+
+    // Update save button state
+    function updateSaveButton() {
+      const saveBtn = document.getElementById('save-btn');
+      saveBtn.disabled = !hasChanges;
+      saveBtn.textContent = hasChanges ? '💾 Save Changes *' : '💾 Save Changes';
+    }
+
+    // Save changes
+    async function saveChanges() {
+      if (!hasChanges || currentIndex === null) return;
+
+      const review = {
+        reviewText: document.getElementById('review-text').value,
+        sentiment: document.getElementById('sentiment').value,
+        book: {
+          title: document.getElementById('book-title').value,
+          author: document.getElementById('book-author').value || null,
+          isbn: document.getElementById('book-isbn').value || null,
+          publicationYear: parseInt(document.getElementById('book-year').value) || null,
+        },
+        testMetadata: {
+          originalLength: fixtures.reviews[currentIndex].testMetadata.originalLength,
+          hasHashtag: document.getElementById('has-hashtag').value === 'true',
+          language: document.getElementById('language').value,
+          bookMentionPattern: document.getElementById('pattern').value,
+          complexity: document.getElementById('complexity').value,
+        }
+      };
+
+      try {
+        const response = await fetch(`http://localhost:3002/api/fixtures/${currentIndex}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(review)
+        });
+
+        if (response.ok) {
+          fixtures.reviews[currentIndex] = review;
+          hasChanges = false;
+          updateSaveButton();
+          showNotification('Changes saved successfully!');
+          renderReviewsList(document.getElementById('search').value);
+        } else {
+          throw new Error('Failed to save');
+        }
+      } catch (error) {
+        console.error('Error saving:', error);
+        showNotification('Failed to save changes', 'error');
+      }
+    }
+
+    // Create backup
+    async function createBackup() {
+      try {
+        const response = await fetch('http://localhost:3002/api/fixtures/backup', {
+          method: 'POST'
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          showNotification('Backup created successfully!');
+        } else {
+          throw new Error('Failed to create backup');
+        }
+      } catch (error) {
+        console.error('Error creating backup:', error);
+        showNotification('Failed to create backup', 'error');
+      }
+    }
+
+    // Show notification
+    function showNotification(message, type = 'success') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Event listeners
+    document.getElementById('search').addEventListener('input', (e) => {
+      renderReviewsList(e.target.value);
+    });
+
+    document.getElementById('save-btn').addEventListener('click', saveChanges);
+    document.getElementById('backup-btn').addEventListener('click', createBackup);
+
+    // Keyboard shortcut: Ctrl+S to save
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (hasChanges) saveChanges();
+      }
+    });
+
+    // Warn before leaving with unsaved changes
+    window.addEventListener('beforeunload', (e) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
+    // Initialize
+    loadFixtures();
+  </script>
+</body>
+</html>
