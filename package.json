@@ -12,12 +12,9 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "typecheck": "tsc --noEmit",
-    "anonymize": "tsx scripts/anonymize-reviews.ts",
-    "fixtures:edit": "tsx scripts/fixtures-editor-server.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
-    "test:e2e": "vitest --run test/e2e"
+    "test:coverage": "vitest --coverage"
   },
   "keywords": [
     "telegram",
@@ -38,17 +35,13 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@faker-js/faker": "^10.2.0",
     "@types/better-sqlite3": "^7.6.11",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.9.0",
-    "@types/supertest": "^6.0.3",
     "@vitest/coverage-v8": "^4.0.17",
     "@vitest/ui": "^4.0.17",
-    "msw": "^2.12.7",
     "prisma": "^5.22.0",
-    "supertest": "^7.2.2",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vitest": "^4.0.17"
