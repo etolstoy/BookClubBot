@@ -1,0 +1,174 @@
+{
+  "description": "Example GPT-4o responses for book extraction from review text",
+  "examples": {
+    "high_confidence_english": {
+      "input": "Just finished reading \"The Great Gatsby\" by F. Scott Fitzgerald. Amazing book!",
+      "response": {
+        "primaryBook": {
+          "title": "The Great Gatsby",
+          "author": "F. Scott Fitzgerald",
+          "confidence": "high"
+        },
+        "alternativeBooks": []
+      }
+    },
+
+    "high_confidence_russian": {
+      "input": "Прочитал \"Война и мир\" Льва Толстого. Невероятная книга!",
+      "response": {
+        "primaryBook": {
+          "title": "Война и мир",
+          "author": "Лев Толстой",
+          "confidence": "high"
+        },
+        "alternativeBooks": [
+          {
+            "title": "War and Peace",
+            "author": "Leo Tolstoy",
+            "confidence": "high"
+          }
+        ]
+      }
+    },
+
+    "medium_confidence_partial_author": {
+      "input": "Читаю 1984 Оруэлла. Актуально как никогда.",
+      "response": {
+        "primaryBook": {
+          "title": "1984",
+          "author": "Оруэлл",
+          "confidence": "medium"
+        },
+        "alternativeBooks": [
+          {
+            "title": "1984",
+            "author": "George Orwell",
+            "confidence": "high"
+          },
+          {
+            "title": "Nineteen Eighty-Four",
+            "author": "George Orwell",
+            "confidence": "high"
+          }
+        ]
+      }
+    },
+
+    "low_confidence_ambiguous": {
+      "input": "Отличная книга о космосе и приключениях!",
+      "response": {
+        "primaryBook": {
+          "title": "книга о космосе",
+          "author": null,
+          "confidence": "low"
+        },
+        "alternativeBooks": []
+      }
+    },
+
+    "extraction_failed_no_book": {
+      "input": "Отличная погода сегодня! #рецензия",
+      "response": null
+    },
+
+    "multiple_books_detected": {
+      "input": "Закончил три книги: 1984 - Оруэлл, Brave New World - Хаксли, и Fahrenheit 451 - Брэдбери",
+      "response": {
+        "primaryBook": {
+          "title": "1984",
+          "author": "Оруэлл",
+          "confidence": "high"
+        },
+        "alternativeBooks": [
+          {
+            "title": "Brave New World",
+            "author": "Хаксли",
+            "confidence": "high"
+          },
+          {
+            "title": "Fahrenheit 451",
+            "author": "Брэдбери",
+            "confidence": "high"
+          }
+        ]
+      }
+    },
+
+    "command_format_extraction": {
+      "input": "/review Мастер и Маргарита — Булгаков",
+      "response": {
+        "primaryBook": {
+          "title": "Мастер и Маргарита",
+          "author": "Булгаков",
+          "confidence": "high"
+        },
+        "alternativeBooks": [
+          {
+            "title": "Мастер и Маргарита",
+            "author": "Михаил Булгаков",
+            "confidence": "high"
+          }
+        ]
+      }
+    },
+
+    "guillemets_format": {
+      "input": "«Преступление и наказание» Достоевского - шедевр",
+      "response": {
+        "primaryBook": {
+          "title": "Преступление и наказание",
+          "author": "Достоевский",
+          "confidence": "high"
+        },
+        "alternativeBooks": [
+          {
+            "title": "Преступление и наказание",
+            "author": "Фёдор Достоевский",
+            "confidence": "high"
+          },
+          {
+            "title": "Crime and Punishment",
+            "author": "Fyodor Dostoevsky",
+            "confidence": "high"
+          }
+        ]
+      }
+    },
+
+    "author_first_format": {
+      "input": "Tolkien's The Lord of the Rings is a masterpiece",
+      "response": {
+        "primaryBook": {
+          "title": "The Lord of the Rings",
+          "author": "Tolkien",
+          "confidence": "high"
+        },
+        "alternativeBooks": [
+          {
+            "title": "The Lord of the Rings",
+            "author": "J.R.R. Tolkien",
+            "confidence": "high"
+          }
+        ]
+      }
+    },
+
+    "no_quotes_casual": {
+      "input": "Прочитал Лес от Тюльбашевой, очень понравилось",
+      "response": {
+        "primaryBook": {
+          "title": "Лес",
+          "author": "Тюльбашева",
+          "confidence": "medium"
+        },
+        "alternativeBooks": [
+          {
+            "title": "Лес",
+            "author": "Светлана Тюльбашева",
+            "confidence": "high"
+          }
+        ]
+      }
+    }
+  }
+}

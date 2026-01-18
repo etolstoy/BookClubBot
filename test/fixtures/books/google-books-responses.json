@@ -1,0 +1,247 @@
+{
+  "description": "Example Google Books API responses for testing book enrichment",
+  "examples": {
+    "complete_book_data": {
+      "kind": "books#volume",
+      "id": "iMT_ywEACAAJ",
+      "volumeInfo": {
+        "title": "The Great Gatsby",
+        "authors": ["F. Scott Fitzgerald"],
+        "publisher": "Scribner",
+        "publishedDate": "1925-04-10",
+        "description": "The Great Gatsby, F. Scott Fitzgerald's third book, stands as the supreme achievement of his career. This exemplary novel of the Jazz Age has been acclaimed by generations of readers.",
+        "industryIdentifiers": [
+          {
+            "type": "ISBN_10",
+            "identifier": "0743273565"
+          },
+          {
+            "type": "ISBN_13",
+            "identifier": "9780743273565"
+          }
+        ],
+        "pageCount": 180,
+        "categories": ["Fiction", "Classics"],
+        "averageRating": 4.5,
+        "ratingsCount": 50000,
+        "imageLinks": {
+          "smallThumbnail": "http://books.google.com/books/content?id=iMT_ywEACAAJ&printsec=frontcover&img=1&zoom=5&source=gbs_api",
+          "thumbnail": "http://books.google.com/books/content?id=iMT_ywEACAAJ&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+        },
+        "language": "en",
+        "previewLink": "http://books.google.com/books?id=iMT_ywEACAAJ&dq=The+Great+Gatsby&hl=&source=gbs_api",
+        "infoLink": "http://books.google.com/books?id=iMT_ywEACAAJ&dq=The+Great+Gatsby&hl=&source=gbs_api"
+      }
+    },
+
+    "russian_book_complete": {
+      "kind": "books#volume",
+      "id": "test_war_peace_id",
+      "volumeInfo": {
+        "title": "Война и мир",
+        "authors": ["Лев Толстой"],
+        "publisher": "Эксмо",
+        "publishedDate": "1869",
+        "description": "Роман-эпопея Льва Николаевича Толстого, описывающий русское общество в эпоху войн против Наполеона.",
+        "industryIdentifiers": [
+          {
+            "type": "ISBN_13",
+            "identifier": "9785170882540"
+          }
+        ],
+        "pageCount": 1225,
+        "categories": ["Fiction", "Historical", "Classics"],
+        "imageLinks": {
+          "thumbnail": "http://books.google.com/books/content?id=test_war_peace_id&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+        },
+        "language": "ru"
+      }
+    },
+
+    "minimal_book_data": {
+      "kind": "books#volume",
+      "id": "minimal_book_id",
+      "volumeInfo": {
+        "title": "Unknown Book",
+        "authors": ["Unknown Author"]
+      }
+    },
+
+    "no_isbn": {
+      "kind": "books#volume",
+      "id": "no_isbn_id",
+      "volumeInfo": {
+        "title": "Self-Published Masterpiece",
+        "authors": ["Indie Author"],
+        "publishedDate": "2023",
+        "description": "A self-published book with no ISBN",
+        "pageCount": 250,
+        "imageLinks": {
+          "thumbnail": "http://example.com/cover.jpg"
+        }
+      }
+    },
+
+    "no_cover_image": {
+      "kind": "books#volume",
+      "id": "no_cover_id",
+      "volumeInfo": {
+        "title": "Ancient Manuscript",
+        "authors": ["Historical Author"],
+        "publishedDate": "1500",
+        "description": "Very old book with no cover image available",
+        "industryIdentifiers": [
+          {
+            "type": "ISBN_13",
+            "identifier": "9781234567890"
+          }
+        ],
+        "pageCount": 300
+      }
+    },
+
+    "multiple_authors": {
+      "kind": "books#volume",
+      "id": "multi_author_id",
+      "volumeInfo": {
+        "title": "Collaborative Work",
+        "authors": [
+          "First Author",
+          "Second Author",
+          "Third Author"
+        ],
+        "publishedDate": "2020",
+        "description": "A book written by multiple authors",
+        "industryIdentifiers": [
+          {
+            "type": "ISBN_13",
+            "identifier": "9780987654321"
+          }
+        ],
+        "pageCount": 400,
+        "categories": ["Technology", "Computer Science"]
+      }
+    },
+
+    "year_only_publication": {
+      "kind": "books#volume",
+      "id": "year_only_id",
+      "volumeInfo": {
+        "title": "Classic Novel",
+        "authors": ["Classic Author"],
+        "publishedDate": "1925",
+        "description": "Publication date has year only",
+        "industryIdentifiers": [
+          {
+            "type": "ISBN_13",
+            "identifier": "9781111111111"
+          }
+        ]
+      }
+    },
+
+    "search_results_multiple": {
+      "kind": "books#volumes",
+      "totalItems": 3,
+      "items": [
+        {
+          "kind": "books#volume",
+          "id": "result_1",
+          "volumeInfo": {
+            "title": "1984",
+            "authors": ["George Orwell"],
+            "publishedDate": "1949",
+            "industryIdentifiers": [
+              {
+                "type": "ISBN_13",
+                "identifier": "9780451524935"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "books#volume",
+          "id": "result_2",
+          "volumeInfo": {
+            "title": "Nineteen Eighty-Four",
+            "authors": ["George Orwell"],
+            "publishedDate": "1949",
+            "industryIdentifiers": [
+              {
+                "type": "ISBN_13",
+                "identifier": "9780451524935"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "books#volume",
+          "id": "result_3",
+          "volumeInfo": {
+            "title": "1984 (Signet Classics)",
+            "authors": ["George Orwell"],
+            "publishedDate": "2003",
+            "industryIdentifiers": [
+              {
+                "type": "ISBN_13",
+                "identifier": "9780451526342"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    "no_results": {
+      "kind": "books#volumes",
+      "totalItems": 0,
+      "items": []
+    },
+
+    "comic_book_format": {
+      "kind": "books#volume",
+      "id": "comic_id",
+      "volumeInfo": {
+        "title": "Uzumaki (3-in-1 Deluxe Edition)",
+        "authors": ["Junji Ito"],
+        "publisher": "VIZ Media",
+        "publishedDate": "2013-10-15",
+        "description": "Kurouzu-cho, a small fogbound town on the coast of Japan, is cursed.",
+        "industryIdentifiers": [
+          {
+            "type": "ISBN_13",
+            "identifier": "9781421561325"
+          }
+        ],
+        "pageCount": 648,
+        "categories": ["Comics & Graphic Novels", "Horror"],
+        "imageLinks": {
+          "thumbnail": "http://books.google.com/books/content?id=comic_id&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+        }
+      }
+    },
+
+    "non_fiction": {
+      "kind": "books#volume",
+      "id": "non_fiction_id",
+      "volumeInfo": {
+        "title": "Sapiens: A Brief History of Humankind",
+        "authors": ["Yuval Noah Harari"],
+        "publisher": "Harper",
+        "publishedDate": "2015-02-10",
+        "description": "From a renowned historian comes a groundbreaking narrative of humanity's creation and evolution.",
+        "industryIdentifiers": [
+          {
+            "type": "ISBN_13",
+            "identifier": "9780062316097"
+          }
+        ],
+        "pageCount": 443,
+        "categories": ["History", "Science", "Anthropology"],
+        "imageLinks": {
+          "thumbnail": "http://books.google.com/books/content?id=non_fiction_id&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+        }
+      }
+    }
+  }
+}
