@@ -1,5 +1,6 @@
 import { Context } from "telegraf";
 import prisma from "../../lib/prisma.js";
+import { isValidISBN } from "../../lib/isbn-utils.js";
 import { extractBookInfo } from "../../services/llm.js";
 import { findOrCreateBook, findOrCreateBookByISBN } from "../../services/book.service.js";
 
@@ -122,10 +123,8 @@ export async function handleISBNInput(ctx: Context) {
 
   const isbn = message.text.trim();
 
-  // Validate ISBN format (basic check)
-  const isbnRegex = /^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$/;
-
-  if (!isbnRegex.test(isbn)) {
+  // Validate ISBN format
+  if (!isValidISBN(isbn)) {
     await ctx.reply(
       "❌ Неверный формат ISBN. Пожалуйста, попробуйте ещё раз.",
       { reply_parameters: { message_id: message.message_id } }
@@ -221,10 +220,8 @@ export async function handlePendingReviewISBN(ctx: Context) {
 
   const isbn = message.text.trim();
 
-  // Validate ISBN format (basic check)
-  const isbnRegex = /^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$/;
-
-  if (!isbnRegex.test(isbn)) {
+  // Validate ISBN format
+  if (!isValidISBN(isbn)) {
     await ctx.reply(
       "❌ Неверный формат ISBN. Пожалуйста, попробуйте ещё раз.",
       { reply_parameters: { message_id: message.message_id } }

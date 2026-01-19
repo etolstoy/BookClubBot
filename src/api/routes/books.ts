@@ -3,7 +3,6 @@ import {
   getAllBooks,
   getBookById,
   searchBooks,
-  getGoogleBooksUrl,
   updateBook,
   deleteBook,
 } from "../../services/book.service.js";
@@ -15,40 +14,10 @@ import {
   searchBookByISBN,
   type BookSearchResult,
 } from "../../services/googlebooks.js";
+import { getGoogleBooksUrl, generateGoodreadsUrl } from "../../lib/url-utils.js";
+import { detectISBN } from "../../lib/isbn-utils.js";
 
 const router = Router();
-
-function generateGoodreadsUrl(
-  isbn: string | null,
-  title: string,
-  author: string | null
-): string | null {
-  // Prefer ISBN-based URL (most reliable)
-  if (isbn) {
-    const cleanIsbn = isbn.replace(/-/g, "");
-    return `https://www.goodreads.com/book/isbn/${cleanIsbn}`;
-  }
-
-  // Fallback to search URL
-  const query = author ? `${title} ${author}` : title;
-  const encodedQuery = encodeURIComponent(query);
-  return `https://www.goodreads.com/search?q=${encodedQuery}`;
-}
-
-function detectISBN(query: string): string | null {
-  // Remove hyphens and spaces
-  const cleaned = query.replace(/[-\s]/g, "");
-
-  // Check for ISBN-10 (10 digits) or ISBN-13 (13 digits)
-  const isbn10Pattern = /^\d{10}$/;
-  const isbn13Pattern = /^\d{13}$/;
-
-  if (isbn10Pattern.test(cleaned) || isbn13Pattern.test(cleaned)) {
-    return cleaned;
-  }
-
-  return null;
-}
 
 // GET /api/books - List all books
 router.get("/", async (req, res) => {

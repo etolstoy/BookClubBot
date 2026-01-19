@@ -1,4 +1,5 @@
 import { config } from "../lib/config.js";
+import { cleanISBN } from "../lib/isbn-utils.js";
 import { sendWarningNotification } from "./notification.service.js";
 
 // Rate limiting configuration (configurable via environment)
@@ -319,7 +320,7 @@ export async function searchBookWithFallbacks(
  * Search book by ISBN (most precise)
  */
 export async function searchBookByISBN(isbn: string): Promise<BookSearchResult | null> {
-  const query = `isbn:${isbn.replace(/[-\s]/g, '')}`;
+  const query = `isbn:${cleanISBN(isbn)}`;
   const results = await searchBooks(query);
 
   if (results.length > 0) {

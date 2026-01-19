@@ -60,12 +60,16 @@ export function validateTelegramWebAppData(
       .digest("hex");
 
     // Compare hashes (constant-time comparison)
-    if (
-      !crypto.timingSafeEqual(
-        Buffer.from(hash),
-        Buffer.from(calculatedHash)
-      )
-    ) {
+    // Must ensure buffer lengths match before calling timingSafeEqual
+    const hashBuffer = Buffer.from(hash, "hex");
+    const calculatedBuffer = Buffer.from(calculatedHash, "hex");
+
+    if (hashBuffer.length !== calculatedBuffer.length) {
+      console.warn("[TelegramAuth] Invalid hash length");
+      return null;
+    }
+
+    if (!crypto.timingSafeEqual(hashBuffer, calculatedBuffer)) {
       console.warn("[TelegramAuth] Invalid hash signature");
       return null;
     }
@@ -74,17 +78,30 @@ export function validateTelegramWebAppData(
     // Note: This is set to 1 hour to allow users to keep the Mini App open
     // The HMAC signature validation already ensures data integrity
     const authDate = params.get("auth_date");
-    if (authDate) {
-      const authTimestamp = parseInt(authDate, 10);
-      const currentTimestamp = Math.floor(Date.now() / 1000);
-      const maxAge = 3600; // 1 hour in seconds
+    if (!authDate) {
+      console.warn("[TelegramAuth] Missing auth_date");
+      return null;
+    }
 
-      if (currentTimestamp - authTimestamp > maxAge) {
-        console.warn(
-          "[TelegramAuth] initData expired (older than 1 hour)"
-        );
-        return null;
-      }
+    const authTimestamp = parseInt(authDate, 10);
+    if (isNaN(authTimestamp)) {
+      console.warn("[TelegramAuth] Invalid auth_date format");
+      return null;
+    }
+
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const maxAge = 3600; // 1 hour in seconds
+
+    // Check if auth_date is in the future (allow 60s clock skew)
+    if (authTimestamp > currentTimestamp + 60) {
+      console.warn("[TelegramAuth] auth_date is in the future");
+      return null;
+    }
+
+    // Check if auth_date is too old
+    if (currentTimestamp - authTimestamp > maxAge) {
+      console.warn("[TelegramAuth] initData expired (older than 1 hour)");
+      return null;
     }
 
     // Parse user data
@@ -94,6 +111,11 @@ export function validateTelegramWebAppData(
     }
 
     const user = JSON.parse(userJson);
+
+    if (!user.id || typeof user.id !== "number") {
+      console.warn("[TelegramAuth] Invalid user.id");
+      return null;
+    }
 
     return {
       id: BigInt(user.id),
@@ -118,14 +140,21 @@ export function authenticateTelegramWebApp(
 ) {
   // DEV ONLY: Allow testing without real Telegram auth
   if (config.isDev && req.headers["x-dev-user-id"]) {
-    req.telegramUser = {
-      id: BigInt(req.headers["x-dev-user-id"] as string),
-      username: "devuser",
-      first_name: "Dev",
-      last_name: "User",
-    };
-    next();
-    return;
+    try {
+      const userId = BigInt(req.headers["x-dev-user-id"] as string);
+      req.telegramUser = {
+        id: userId,
+        username: "devuser",
+        first_name: "Dev",
+        last_name: "User",
+      };
+      next();
+      return;
+    } catch (error) {
+      console.error("[TelegramAuth] Invalid dev user ID:", error);
+      res.status(400).json({ error: "Invalid x-dev-user-id header" });
+      return;
+    }
   }
 
   const authHeader = req.headers.authorization;
