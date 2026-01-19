@@ -2,7 +2,7 @@ import { Context } from "telegraf";
 import { Message } from "telegraf/types";
 import { config } from "../../lib/config.js";
 import { checkDuplicateReview } from "../../services/review.service.js";
-import { extractBookInfoGPT4o } from "../../services/book-extraction.service.js";
+import { extractBookInfo } from "../../services/book-extraction.service.js";
 import { enrichBookInfo } from "../../services/book-enrichment.service.js";
 import {
   storeConfirmationState,
@@ -168,7 +168,7 @@ async function processReview(
 
   try {
     // Step 1: Extract book info with LLM
-    const extractedInfo = await extractBookInfoGPT4o(messageText, commandParams);
+    const extractedInfo = await extractBookInfo(messageText, commandParams);
 
     // Step 2: If extraction failed, show manual entry options
     if (!extractedInfo || !extractedInfo.title) {

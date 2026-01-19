@@ -11,7 +11,7 @@ import {
   clearTestData,
   seedTestData,
 } from "../helpers/test-db.js";
-import { searchLocalBooks, searchGoogleBooksWithThreshold } from "../../src/services/book-enrichment.service.js";
+import { searchLocalBooks, searchExternalBooksWithThreshold } from "../../src/services/book-enrichment.service.js";
 import { getAllBookFixtures } from "../fixtures/helpers/fixture-loader.js";
 import type { PrismaClient } from "@prisma/client";
 
@@ -89,11 +89,11 @@ describe("Book Enrichment Integration", () => {
     });
   });
 
-  describe("Google Books search with threshold", () => {
-    it("should find match in Google Books (local DB miss)", async () => {
+  describe("External book API search with threshold", () => {
+    it("should find match in external API (local DB miss)", async () => {
       mockClient.setBehavior("success");
 
-      const results = await searchGoogleBooksWithThreshold(
+      const results = await searchExternalBooksWithThreshold(
         "The Great Gatsby",
         "F. Scott Fitzgerald",
         0.9
@@ -104,10 +104,10 @@ describe("Book Enrichment Integration", () => {
       expect(results[0].title).toContain("Great Gatsby");
     });
 
-    it("should return empty array when no Google Books matches", async () => {
+    it("should return empty array when no external API matches", async () => {
       mockClient.setBehavior("empty_results");
 
-      const results = await searchGoogleBooksWithThreshold(
+      const results = await searchExternalBooksWithThreshold(
         "Nonexistent Book xyz123",
         "Unknown Author",
         0.9
@@ -116,11 +116,11 @@ describe("Book Enrichment Integration", () => {
       expect(results).toHaveLength(0);
     });
 
-    it("should handle Google Books API failure gracefully", async () => {
+    it("should handle external API failure gracefully", async () => {
       mockClient.setBehavior("api_error");
 
       // Should not throw, just return empty results
-      const results = await searchGoogleBooksWithThreshold(
+      const results = await searchExternalBooksWithThreshold(
         "Some Book",
         "Some Author",
         0.9

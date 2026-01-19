@@ -12,7 +12,7 @@ import {
 import { authenticateTelegramWebApp } from "../middleware/telegram-auth.js";
 import { sendInfoNotification } from "../../services/notification.service.js";
 import { analyzeSentiment } from "../../services/sentiment.js";
-import { findOrCreateBookFromGoogleBooks } from "../../services/book.service.js";
+import { findOrCreateBookFromExternalMetadata } from "../../services/book.service.js";
 
 const router = Router();
 
@@ -197,7 +197,7 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
     if (googleBooksData) {
       try {
         const { id: createdBookId, isNew } =
-          await findOrCreateBookFromGoogleBooks(googleBooksData);
+          await findOrCreateBookFromExternalMetadata(googleBooksData);
         updateData.bookId = createdBookId;
 
         if (isNew) {

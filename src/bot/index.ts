@@ -7,13 +7,6 @@ import {
   handleStartCommand,
 } from "./handlers/commands.js";
 import {
-  handleBookConfirmed,
-  handleBookAlternative,
-  handleBookISBN,
-  handleISBNInput,
-  handlePendingReviewISBN,
-} from "./handlers/book-selection.js";
-import {
   handleBookSelected,
   handleIsbnRequested,
   handleManualEntryRequested,
@@ -34,12 +27,7 @@ export function createBot() {
   bot.command("start", handleStartCommand);
   bot.command("review", handleReviewCommand);
 
-  // Callback query handlers for book selection (old flow - kept for backward compatibility)
-  bot.action(/^book_confirmed:/, handleBookConfirmed);
-  bot.action(/^book_alternative:/, handleBookAlternative);
-  bot.action(/^book_isbn:/, handleBookISBN);
-
-  // Callback query handlers for new confirmation flow
+  // Callback query handlers for confirmation flow
   bot.action(/^confirm_book:/, handleBookSelected);
   bot.action(/^confirm_isbn$/, handleIsbnRequested);
   bot.action(/^confirm_manual$/, handleManualEntryRequested);
@@ -48,25 +36,14 @@ export function createBot() {
 
   // Message handlers
   // Handle text messages in priority order:
-  // 1. Confirmation flow input (ISBN/title/author from new flow)
-  // 2. Pending review ISBN (when book extraction failed - old flow)
-  // 3. Existing review ISBN update (from book selection menu - old flow)
-  // 4. Regular review message
+  // 1. Confirmation flow input (ISBN/title/author)
+  // 2. Regular review message
   bot.on(message("text"), async (ctx, next) => {
-    // Priority 1: Confirmation flow input (new flow)
+    // Priority 1: Confirmation flow input
     const handledConfirmation = await handleConfirmationTextInput(ctx);
     if (handledConfirmation) {
       return; // Stop here, handled by confirmation flow
     }
-
-    // Priority 2: Check if this is an ISBN for a pending review (old flow)
-    const handledPendingReview = await handlePendingReviewISBN(ctx);
-    if (handledPendingReview) {
-      return; // Stop here, don't process as review
-    }
-
-    // Priority 3: Check if this is an ISBN for updating an existing review (old flow)
-    await handleISBNInput(ctx);
 
     // Continue to review message handler
     return next();

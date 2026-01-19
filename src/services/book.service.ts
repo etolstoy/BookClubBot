@@ -167,10 +167,10 @@ export async function findOrCreateBookByISBN(
 }
 
 /**
- * Find or create book from Google Books API data
- * Used when user selects a book from Google Books in the frontend
+ * Find or create book from external book metadata
+ * Used when user selects a book from external API in the frontend
  */
-export async function findOrCreateBookFromGoogleBooks(googleBooksData: {
+export async function findOrCreateBookFromExternalMetadata(bookData: {
   googleBooksId: string;
   title: string;
   author?: string | null;
@@ -181,43 +181,43 @@ export async function findOrCreateBookFromGoogleBooks(googleBooksData: {
   isbn?: string | null;
   pageCount?: number | null;
 }): Promise<{ id: number; isNew: boolean }> {
-  // First check if book with this Google Books ID already exists
-  const existingByGoogleId = await prisma.book.findUnique({
-    where: { googleBooksId: googleBooksData.googleBooksId },
+  // First check if book with this external ID already exists
+  const existingByExternalId = await prisma.book.findUnique({
+    where: { googleBooksId: bookData.googleBooksId },
   });
 
-  if (existingByGoogleId) {
+  if (existingByExternalId) {
     console.log(
-      `[BookService] Found existing book by Google Books ID: ${googleBooksData.googleBooksId}`
+      `[BookService] Found existing book by external ID: ${bookData.googleBooksId}`
     );
-    return { id: existingByGoogleId.id, isNew: false };
+    return { id: existingByExternalId.id, isNew: false };
   }
 
   // Check for similar book by title/author (avoid duplicates)
   const similar = await findSimilarBook(
-    googleBooksData.title,
-    googleBooksData.author
+    bookData.title,
+    bookData.author
   );
   if (similar) {
     console.log(`[BookService] Found similar book: ${similar.title}`);
     return { id: similar.id, isNew: false };
   }
 
-  // Create new book with Google Books data
+  // Create new book with external metadata
   const book = await createBook({
-    title: googleBooksData.title,
-    author: googleBooksData.author,
-    googleBooksId: googleBooksData.googleBooksId,
-    coverUrl: googleBooksData.coverUrl,
-    genres: googleBooksData.genres,
-    publicationYear: googleBooksData.publicationYear,
-    description: googleBooksData.description,
-    isbn: googleBooksData.isbn,
-    pageCount: googleBooksData.pageCount,
+    title: bookData.title,
+    author: bookData.author,
+    googleBooksId: bookData.googleBooksId,
+    coverUrl: bookData.coverUrl,
+    genres: bookData.genres,
+    publicationYear: bookData.publicationYear,
+    description: bookData.description,
+    isbn: bookData.isbn,
+    pageCount: bookData.pageCount,
   });
 
   console.log(
-    `[BookService] Created new book from Google Books: ${book.title}`
+    `[BookService] Created new book from external metadata: ${book.title}`
   );
   return { id: book.id, isNew: true };
 }

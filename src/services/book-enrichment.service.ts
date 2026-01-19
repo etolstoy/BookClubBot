@@ -171,17 +171,6 @@ export async function searchExternalBooksWithThreshold(
 }
 
 /**
- * @deprecated Use searchExternalBooksWithThreshold() instead. Kept for backward compatibility.
- */
-export async function searchGoogleBooksWithThreshold(
-  title: string,
-  author: string | null,
-  threshold: number = 0.9
-): Promise<EnrichedBook[]> {
-  return searchExternalBooksWithThreshold(title, author, threshold);
-}
-
-/**
  * Enrich extracted book information with local DB and external book API
  * Process primary book + alternatives (up to 3 total)
  * Priority: Local DB first, only try external API if NO local matches found
