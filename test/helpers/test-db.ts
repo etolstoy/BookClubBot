@@ -21,9 +21,9 @@ let testDbPath: string | null = null;
 /**
  * Setup a test database with fresh schema
  * Creates an in-memory SQLite database and applies schema
- * @returns PrismaClient instance connected to test database
+ * @returns Object with PrismaClient instance and database path
  */
-export async function setupTestDatabase(): Promise<PrismaClient> {
+export async function setupTestDatabase(): Promise<{ prisma: PrismaClient; dbPath: string }> {
   // Generate unique database name
   const dbName = `test-${randomBytes(8).toString("hex")}.db`;
   testDbPath = join(projectRoot, "data", dbName);
@@ -66,26 +66,33 @@ export async function setupTestDatabase(): Promise<PrismaClient> {
   await prismaInstance.$connect();
 
   console.log("[Test DB] Test database ready");
-  return prismaInstance;
+  return { prisma: prismaInstance, dbPath: testDbPath };
 }
 
 /**
  * Cleanup test database and disconnect client
  * Deletes the test database file
+ * @param prisma - Optional PrismaClient instance to disconnect (uses module-level instance if not provided)
+ * @param dbPath - Optional database path to delete (uses module-level path if not provided)
  */
-export async function cleanupTestDatabase(): Promise<void> {
-  if (prismaInstance) {
+export async function teardownTestDatabase(prisma?: PrismaClient, dbPath?: string): Promise<void> {
+  const clientToDisconnect = prisma || prismaInstance;
+  const pathToDelete = dbPath || testDbPath;
+
+  if (clientToDisconnect) {
     console.log("[Test DB] Disconnecting from test database");
-    await prismaInstance.$disconnect();
-    prismaInstance = null;
+    await clientToDisconnect.$disconnect();
+    if (clientToDisconnect === prismaInstance) {
+      prismaInstance = null;
+    }
   }
 
-  if (testDbPath && existsSync(testDbPath)) {
+  if (pathToDelete && existsSync(pathToDelete)) {
     console.log("[Test DB] Deleting test database file");
     try {
-      unlinkSync(testDbPath);
+      unlinkSync(pathToDelete);
       // Also clean up journal files if they exist
-      const journalPath = `${testDbPath}-journal`;
+      const journalPath = `${pathToDelete}-journal`;
       if (existsSync(journalPath)) {
         unlinkSync(journalPath);
       }
@@ -94,7 +101,16 @@ export async function cleanupTestDatabase(): Promise<void> {
     }
   }
 
-  testDbPath = null;
+  if (pathToDelete === testDbPath) {
+    testDbPath = null;
+  }
+}
+
+/**
+ * @deprecated Use teardownTestDatabase instead
+ */
+export async function cleanupTestDatabase(): Promise<void> {
+  return teardownTestDatabase();
 }
 
 /**
