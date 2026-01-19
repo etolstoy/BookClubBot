@@ -2,6 +2,7 @@ import { Context, Markup } from "telegraf";
 import { Message } from "telegraf/types";
 import prisma from "../../lib/prisma.js";
 import { config } from "../../lib/config.js";
+import { isValidISBN } from "../../lib/isbn-utils.js";
 import { searchBookByISBN } from "../../services/googlebooks.js";
 import { findOrCreateBook, createBook } from "../../services/book.service.js";
 import { createReview } from "../../services/review.service.js";
@@ -53,19 +54,6 @@ export function cleanupStaleStates(): void {
       pendingBookConfirmations.delete(userId);
     }
   }
-}
-
-/**
- * Generate Goodreads URL (prefer ISBN)
- */
-function getGoodreadsUrl(book: EnrichedBook): string {
-  if (book.isbn) {
-    return `https://www.goodreads.com/book/isbn/${book.isbn}`;
-  }
-  const query = encodeURIComponent(
-    `${book.title}${book.author ? ` ${book.author}` : ""}`
-  );
-  return `https://www.goodreads.com/search?q=${query}`;
 }
 
 /**
@@ -589,10 +577,7 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
       }
 
       // Validate ISBN format
-      const isbnRegex =
-        /^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$/;
-
-      if (!isbnRegex.test(text)) {
+      if (!isValidISBN(text)) {
         await ctx.telegram.editMessageText(
           ctx.chat!.id,
           state.statusMessageId,

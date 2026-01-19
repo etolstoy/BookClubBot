@@ -44,6 +44,7 @@ export const config = {
   port: parseInt(parsed.data.PORT, 10),
   isDev: parsed.data.NODE_ENV === "development",
   isProd: parsed.data.NODE_ENV === "production",
+  isTest: parsed.data.NODE_ENV === "test",
 };
 
 export default config;

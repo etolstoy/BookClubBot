@@ -1,14 +1,8 @@
 import prisma from "../lib/prisma.js";
 import { calculateSimilarity } from "../lib/string-utils.js";
+import { getGoogleBooksUrl } from "../lib/url-utils.js";
 import { searchBookWithFallbacks, searchBookByISBN } from "./googlebooks.js";
 import { extractBookInfo, type ExtractedBookInfo } from "./llm.js";
-
-/**
- * Compute Google Books URL from Google Books ID
- */
-export function getGoogleBooksUrl(googleBooksId: string | null): string | null {
-  return googleBooksId ? `https://books.google.com/books?id=${googleBooksId}` : null;
-}
 
 export interface CreateBookInput {
   title: string;
