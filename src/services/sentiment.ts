@@ -1,11 +1,13 @@
 import OpenAI from "openai";
 import { config } from "../lib/config.js";
+import type { Sentiment } from "../lib/interfaces/index.js";
 
 const openai = new OpenAI({
   apiKey: config.openaiApiKey,
 });
 
-export type Sentiment = "positive" | "negative" | "neutral";
+// Re-export Sentiment for backward compatibility
+export type { Sentiment };
 
 export async function analyzeSentiment(
   reviewText: string

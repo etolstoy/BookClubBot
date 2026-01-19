@@ -2,18 +2,10 @@
  * Type definitions for book confirmation flow state machine
  */
 
-/**
- * Book information extracted from review text by GPT-4o
- */
-export interface ExtractedBookInfo {
-  title: string;
-  author: string | null;
-  confidence: "high" | "medium" | "low";
-  alternativeBooks?: Array<{
-    title: string;
-    author: string | null;
-  }>;
-}
+import type { ExtractedBookInfo } from "../../lib/interfaces/index.js";
+
+// Re-export ExtractedBookInfo for backward compatibility
+export type { ExtractedBookInfo };
 
 /**
  * Enriched book data from local DB or Google Books with similarity score

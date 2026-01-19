@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { config } from "../lib/config.js";
 import { sendErrorNotification, sendWarningNotification } from "./notification.service.js";
-import type { ExtractedBookInfo } from "../bot/types/confirmation-state.js";
+import type { ExtractedBookInfo } from "../lib/interfaces/index.js";
 
 const openai = new OpenAI({
   apiKey: config.openaiApiKey,

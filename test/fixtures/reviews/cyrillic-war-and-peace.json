@@ -1,0 +1,15 @@
+{
+  "reviewText": "Закончил читать «Война и мир» Льва Толстого. Монументальное произведение! Невероятная глубина характеров и философских размышлений. Обязательно к прочтению. #рецензия",
+  "expectedExtraction": {
+    "title": "Война и мир",
+    "author": "Лев Толстой",
+    "confidence": "high",
+    "alternativeBooks": []
+  },
+  "expectedSentiment": "positive",
+  "expectedBookMatch": {
+    "googleBooksId": "0V5aswEACAAJ",
+    "title": "Война и мир",
+    "author": "Лев Толстой"
+  }
+}

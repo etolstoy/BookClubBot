@@ -1,6 +1,7 @@
 import { config } from "../lib/config.js";
 import { cleanISBN } from "../lib/isbn-utils.js";
 import { sendWarningNotification } from "./notification.service.js";
+import type { BookSearchResult } from "../lib/interfaces/index.js";
 
 // Rate limiting configuration (configurable via environment)
 const GOOGLE_BOOKS_DELAY_MS = parseInt(process.env.GOOGLE_BOOKS_DELAY_MS || '200'); // Delay between requests
@@ -63,6 +64,9 @@ async function fetchWithRetry(url: string, retryCount = 0): Promise<Response> {
   return response;
 }
 
+// Re-export BookSearchResult for backward compatibility
+export type { BookSearchResult };
+
 export interface GoogleBookResult {
   id: string;
   title: string;
@@ -83,18 +87,6 @@ export interface GoogleBookResult {
     identifier: string;
   }>;
   infoLink?: string;
-}
-
-export interface BookSearchResult {
-  googleBooksId: string;
-  title: string;
-  author: string | null;
-  description: string | null;
-  genres: string[];
-  publicationYear: number | null;
-  coverUrl: string | null;
-  isbn: string | null;
-  pageCount: number | null;
 }
 
 function extractYear(dateStr?: string): number | null {
