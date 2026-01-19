@@ -12,6 +12,7 @@ import type {
   BookConfirmationState,
   EnrichedBook,
 } from "../types/confirmation-state.js";
+import type { BotContext } from "../types/bot-context.js";
 
 // State storage (in production, consider using Redis)
 const pendingBookConfirmations = new Map<string, BookConfirmationState>();
@@ -312,7 +313,7 @@ function generateSuccessMessage(
 /**
  * Callback handler: Book selected from options
  */
-export async function handleBookSelected(ctx: Context) {
+export async function handleBookSelected(ctx: Context, botContext?: BotContext) {
   const callbackQuery = ctx.callbackQuery;
   if (!callbackQuery || !("data" in callbackQuery) || !("from" in callbackQuery))
     return;
@@ -356,7 +357,7 @@ export async function handleBookSelected(ctx: Context) {
     }
 
     // Analyze sentiment
-    const sentiment = await analyzeSentiment(state.reviewData.reviewText);
+    const sentiment = await analyzeSentiment(state.reviewData.reviewText, botContext?.llmClient);
 
     // Create review
     await createReview({
@@ -468,7 +469,7 @@ export async function handleCancel(ctx: Context) {
 /**
  * Callback handler: User confirms using extracted book info
  */
-export async function handleExtractedBookConfirmed(ctx: Context) {
+export async function handleExtractedBookConfirmed(ctx: Context, botContext?: BotContext) {
   const callbackQuery = ctx.callbackQuery;
   if (!callbackQuery || !("from" in callbackQuery)) return;
 
@@ -510,7 +511,7 @@ export async function handleExtractedBookConfirmed(ctx: Context) {
     }
 
     // Analyze sentiment
-    const sentiment = await analyzeSentiment(state.reviewData.reviewText);
+    const sentiment = await analyzeSentiment(state.reviewData.reviewText, botContext?.llmClient);
 
     // Create review
     await createReview({
@@ -552,7 +553,7 @@ export async function handleExtractedBookConfirmed(ctx: Context) {
  * Text input handler for ISBN/title/author
  * Returns true if message was handled, false otherwise
  */
-export async function handleTextInput(ctx: Context): Promise<boolean> {
+export async function handleTextInput(ctx: Context, botContext?: BotContext): Promise<boolean> {
   const message = ctx.message;
   if (!message || !("text" in message) || !("from" in message)) return false;
 
@@ -593,7 +594,7 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
 
       // Search external book API by ISBN
       try {
-        const bookDataClient = createBookDataClient();
+        const bookDataClient = botContext?.bookDataClient || createBookDataClient();
         const result = await bookDataClient.searchBookByISBN(text);
 
         if (!result) {
@@ -617,7 +618,7 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
           title: result.title,
           author: result.author,
           confidence: "high",
-        });
+        }, undefined, botContext?.bookDataClient);
 
         // Update state with new enrichment results
         state.enrichmentResults = enrichmentResults;
@@ -717,7 +718,7 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
         }
 
         // Analyze sentiment
-        const sentiment = await analyzeSentiment(state.reviewData.reviewText);
+        const sentiment = await analyzeSentiment(state.reviewData.reviewText, botContext?.llmClient);
 
         // Create review
         await createReview({

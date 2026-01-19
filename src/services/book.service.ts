@@ -2,7 +2,8 @@ import prisma from "../lib/prisma.js";
 import { calculateSimilarity } from "../lib/string-utils.js";
 import { getGoogleBooksUrl } from "../lib/url-utils.js";
 import { createBookDataClient } from "../clients/book-data/factory.js";
-import { extractBookInfo, type ExtractedBookInfo } from "./llm.js";
+import type { IBookDataClient, ExtractedBookInfo } from "../lib/interfaces/index.js";
+import { extractBookInfo } from "./book-extraction.service.js";
 
 export interface CreateBookInput {
   title: string;
@@ -75,7 +76,8 @@ export async function findOrCreateBook(
   title: string,
   author?: string | null,
   titleVariants?: string[],
-  authorVariants?: string[]
+  authorVariants?: string[],
+  bookDataClient?: IBookDataClient
 ): Promise<{ id: number; isNew: boolean }> {
   // First, try to find an existing similar book
   const existingBook = await findSimilarBook(title, author);
@@ -84,8 +86,8 @@ export async function findOrCreateBook(
   }
 
   // Search external book API with cascading fallbacks
-  const bookDataClient = createBookDataClient();
-  const externalBook = await bookDataClient.searchBookWithFallbacks({
+  const client = bookDataClient || createBookDataClient();
+  const externalBook = await client.searchBookWithFallbacks({
     title,
     author: author || undefined,
     titleVariants,
@@ -129,13 +131,15 @@ export async function findOrCreateBook(
 
 /**
  * Create book from ISBN (most reliable)
+ * @param bookDataClient - Optional book data client for testing (defaults to factory-created instance)
  */
 export async function findOrCreateBookByISBN(
-  isbn: string
+  isbn: string,
+  bookDataClient?: IBookDataClient
 ): Promise<{ id: number; isNew: boolean } | null> {
   // Search external book API by ISBN
-  const bookDataClient = createBookDataClient();
-  const externalBook = await bookDataClient.searchBookByISBN(isbn);
+  const client = bookDataClient || createBookDataClient();
+  const externalBook = await client.searchBookByISBN(isbn);
 
   if (!externalBook) {
     return null;
@@ -474,7 +478,10 @@ export async function searchBooks(query: string, limit = 20) {
   return booksWithReviews;
 }
 
-export async function processReviewText(reviewText: string): Promise<{
+export async function processReviewText(
+  reviewText: string,
+  bookDataClient?: IBookDataClient
+): Promise<{
   bookId: number;
   isNewBook: boolean;
   bookTitle: string;
@@ -493,7 +500,8 @@ export async function processReviewText(reviewText: string): Promise<{
     bookInfo.title,
     bookInfo.author,
     bookInfo.titleVariants,
-    bookInfo.authorVariants
+    bookInfo.authorVariants,
+    bookDataClient
   );
 
   const book = await prisma.book.findUnique({

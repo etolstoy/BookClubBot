@@ -2,6 +2,7 @@ import prisma from "../lib/prisma.js";
 import { calculateSimilarity, normalizeString } from "../lib/string-utils.js";
 import { createBookDataClient } from "../clients/book-data/factory.js";
 import type { PrismaClient } from "@prisma/client";
+import type { IBookDataClient } from "../lib/interfaces/index.js";
 import type {
   ExtractedBookInfo,
   EnrichedBook,
@@ -93,11 +94,13 @@ export async function searchLocalBooks(
 /**
  * Search external book API and filter results with 90% similarity threshold
  * BOTH title AND author must be ≥90% independently
+ * @param bookDataClient - Optional book data client for testing (defaults to factory-created instance)
  */
 export async function searchExternalBooksWithThreshold(
   title: string,
   author: string | null,
-  threshold: number = 0.9
+  threshold: number = 0.9,
+  bookDataClient?: IBookDataClient
 ): Promise<EnrichedBook[]> {
   try {
     // Build query for book API
@@ -106,8 +109,8 @@ export async function searchExternalBooksWithThreshold(
       query += `+inauthor:${author}`;
     }
 
-    const bookDataClient = createBookDataClient();
-    const results = await bookDataClient.searchBooks(query);
+    const client = bookDataClient || createBookDataClient();
+    const results = await client.searchBooks(query);
     const matches: EnrichedBook[] = [];
 
     for (const result of results) {
@@ -175,10 +178,12 @@ export async function searchExternalBooksWithThreshold(
  * Process primary book + alternatives (up to 3 total)
  * Priority: Local DB first, only try external API if NO local matches found
  * @param prismaClient - Optional Prisma client for testing (defaults to global instance)
+ * @param bookDataClient - Optional book data client for testing (defaults to factory-created instance)
  */
 export async function enrichBookInfo(
   extractedInfo: ExtractedBookInfo,
-  prismaClient?: PrismaClient
+  prismaClient?: PrismaClient,
+  bookDataClient?: IBookDataClient
 ): Promise<EnrichmentResult> {
   // Collect all books to enrich (primary + alternatives, max 3 total)
   const booksToEnrich: Array<{ title: string; author: string | null }> = [
@@ -222,7 +227,7 @@ export async function enrichBookInfo(
       `[Book Enrichment] Searching external book API for ${booksToSearchExternal.length} books not found locally`
     );
     for (const book of booksToSearchExternal) {
-      const matches = await searchExternalBooksWithThreshold(book.title, book.author);
+      const matches = await searchExternalBooksWithThreshold(book.title, book.author, 0.9, bookDataClient);
       externalMatches.push(...matches);
     }
   }

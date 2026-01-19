@@ -10,6 +10,7 @@ import {
   generateOptionsMessage,
 } from "./book-confirmation.js";
 import type { BookConfirmationState } from "../types/confirmation-state.js";
+import type { BotContext } from "../types/bot-context.js";
 
 function getDisplayName(from: Message["from"]): string | null {
   if (!from) return null;
@@ -49,7 +50,7 @@ function getMessageAuthor(message: Message): Message["from"] | undefined {
   return undefined;
 }
 
-export async function handleReviewMessage(ctx: Context) {
+export async function handleReviewMessage(ctx: Context, botContext?: BotContext) {
   const message = ctx.message;
 
   if (!message) {
@@ -78,10 +79,10 @@ export async function handleReviewMessage(ctx: Context) {
     return;
   }
 
-  await processReview(ctx, message);
+  await processReview(ctx, message, undefined, botContext);
 }
 
-export async function handleReviewCommand(ctx: Context) {
+export async function handleReviewCommand(ctx: Context, botContext?: BotContext) {
   const message = ctx.message;
 
   if (!message) {
@@ -120,13 +121,14 @@ export async function handleReviewCommand(ctx: Context) {
     return;
   }
 
-  await processReview(ctx, replyMessage, commandParams);
+  await processReview(ctx, replyMessage, commandParams, botContext);
 }
 
 async function processReview(
   ctx: Context,
   message: Message,
-  commandParams?: string
+  commandParams?: string,
+  botContext?: BotContext
 ) {
   if (!message.from) {
     return;
@@ -168,7 +170,7 @@ async function processReview(
 
   try {
     // Step 1: Extract book info with LLM
-    const extractedInfo = await extractBookInfo(messageText, commandParams);
+    const extractedInfo = await extractBookInfo(messageText, commandParams, botContext?.llmClient);
 
     // Step 2: If extraction failed, show manual entry options
     if (!extractedInfo || !extractedInfo.title) {
@@ -210,7 +212,7 @@ async function processReview(
     );
 
     // Step 3: Enrich with 90% matching (local DB + external API)
-    const enrichmentResults = await enrichBookInfo(extractedInfo);
+    const enrichmentResults = await enrichBookInfo(extractedInfo, undefined, botContext?.bookDataClient);
 
     console.log(
       `[Review] Enrichment results: source=${enrichmentResults.source}, matches=${enrichmentResults.matches.length}`
