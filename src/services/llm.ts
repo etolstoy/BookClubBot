@@ -1,3 +1,9 @@
+/**
+ * @deprecated This service is legacy and maintained for backward compatibility only.
+ * Use book-extraction.service.ts with OpenAIClient instead.
+ * This file will be removed in a future version.
+ */
+
 import OpenAI from "openai";
 import { config } from "../lib/config.js";
 import { sendErrorNotification, sendWarningNotification } from "./notification.service.js";
