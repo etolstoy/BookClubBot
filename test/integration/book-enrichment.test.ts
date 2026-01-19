@@ -100,7 +100,7 @@ describe("Book Enrichment Integration", () => {
       );
 
       expect(results.length).toBeGreaterThan(0);
-      expect(results[0].source).toBe("google");
+      expect(results[0].source).toBe("external");
       expect(results[0].title).toContain("Great Gatsby");
     });
 

@@ -5,8 +5,7 @@ import type { Sentiment } from "../lib/interfaces/index.js";
 export type { Sentiment };
 
 /**
- * Analyze sentiment of review text
- * Now uses OpenAIClient internally for better abstraction
+ * Analyze sentiment of review text using LLM
  * @param reviewText - The review text to analyze
  * @returns Sentiment classification or null if analysis fails
  */

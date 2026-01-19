@@ -83,42 +83,42 @@ export async function findOrCreateBook(
     return { id: existingBook.id, isNew: false };
   }
 
-  // Search Google Books with cascading fallbacks
+  // Search external book API with cascading fallbacks
   const bookDataClient = createBookDataClient();
-  const googleBook = await bookDataClient.searchBookWithFallbacks({
+  const externalBook = await bookDataClient.searchBookWithFallbacks({
     title,
     author: author || undefined,
     titleVariants,
     authorVariants,
   });
 
-  if (googleBook) {
-    // Check if we already have this Google Books ID
+  if (externalBook) {
+    // Check if we already have this book by external ID
     const existing = await prisma.book.findUnique({
-      where: { googleBooksId: googleBook.googleBooksId },
+      where: { googleBooksId: externalBook.googleBooksId },
     });
 
     if (existing) {
       return { id: existing.id, isNew: false };
     }
 
-    // Create new book with Google Books data
+    // Create new book with external API data
     const book = await createBook({
-      title: googleBook.title,
-      author: googleBook.author,
-      googleBooksId: googleBook.googleBooksId,
-      coverUrl: googleBook.coverUrl,
-      genres: googleBook.genres,
-      publicationYear: googleBook.publicationYear,
-      description: googleBook.description,
-      isbn: googleBook.isbn,
-      pageCount: googleBook.pageCount,
+      title: externalBook.title,
+      author: externalBook.author,
+      googleBooksId: externalBook.googleBooksId,
+      coverUrl: externalBook.coverUrl,
+      genres: externalBook.genres,
+      publicationYear: externalBook.publicationYear,
+      description: externalBook.description,
+      isbn: externalBook.isbn,
+      pageCount: externalBook.pageCount,
     });
 
     return { id: book.id, isNew: true };
   }
 
-  // No Google Books result, create with basic info
+  // No external API result, create with basic info
   const book = await createBook({
     title,
     author,
@@ -133,34 +133,34 @@ export async function findOrCreateBook(
 export async function findOrCreateBookByISBN(
   isbn: string
 ): Promise<{ id: number; isNew: boolean } | null> {
-  // Search Google Books by ISBN
+  // Search external book API by ISBN
   const bookDataClient = createBookDataClient();
-  const googleBook = await bookDataClient.searchBookByISBN(isbn);
+  const externalBook = await bookDataClient.searchBookByISBN(isbn);
 
-  if (!googleBook) {
+  if (!externalBook) {
     return null;
   }
 
-  // Check if we already have this Google Books ID
+  // Check if we already have this book by external ID
   const existing = await prisma.book.findUnique({
-    where: { googleBooksId: googleBook.googleBooksId },
+    where: { googleBooksId: externalBook.googleBooksId },
   });
 
   if (existing) {
     return { id: existing.id, isNew: false };
   }
 
-  // Create new book with Google Books data
+  // Create new book with external API data
   const book = await createBook({
-    title: googleBook.title,
-    author: googleBook.author,
-    googleBooksId: googleBook.googleBooksId,
-    coverUrl: googleBook.coverUrl,
-    genres: googleBook.genres,
-    publicationYear: googleBook.publicationYear,
-    description: googleBook.description,
-    isbn: googleBook.isbn,
-    pageCount: googleBook.pageCount,
+    title: externalBook.title,
+    author: externalBook.author,
+    googleBooksId: externalBook.googleBooksId,
+    coverUrl: externalBook.coverUrl,
+    genres: externalBook.genres,
+    publicationYear: externalBook.publicationYear,
+    description: externalBook.description,
+    isbn: externalBook.isbn,
+    pageCount: externalBook.pageCount,
   });
 
   return { id: book.id, isNew: true };

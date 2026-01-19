@@ -167,12 +167,12 @@ async function processReview(
   });
 
   try {
-    // Step 1: Extract book info with GPT-4o
+    // Step 1: Extract book info with LLM
     const extractedInfo = await extractBookInfoGPT4o(messageText, commandParams);
 
     // Step 2: If extraction failed, show manual entry options
     if (!extractedInfo || !extractedInfo.title) {
-      console.log("[Review] GPT-4o extraction failed, showing manual entry options");
+      console.log("[Review] LLM extraction failed, showing manual entry options");
 
       const state: BookConfirmationState = {
         reviewData: {
@@ -209,7 +209,7 @@ async function processReview(
       `[Review] Extracted: ${extractedInfo.title} by ${extractedInfo.author}, confidence: ${extractedInfo.confidence}`
     );
 
-    // Step 3: Enrich with 90% matching (local DB + Google Books)
+    // Step 3: Enrich with 90% matching (local DB + external API)
     const enrichmentResults = await enrichBookInfo(extractedInfo);
 
     console.log(

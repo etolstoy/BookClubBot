@@ -71,15 +71,15 @@ export function generateOptionsMessage(state: BookConfirmationState): {
 
     // Check if we have mixed sources
     const hasLocalBooks = matches.some((m) => m.source === "local");
-    const hasGoogleBooks = matches.some((m) => m.source === "google");
+    const hasExternalBooks = matches.some((m) => m.source === "external" || m.source === "google");
 
     let sourceLabel: string;
-    if (hasLocalBooks && hasGoogleBooks) {
+    if (hasLocalBooks && hasExternalBooks) {
       sourceLabel = "базе данных";
     } else if (source === "local") {
       sourceLabel = "локальной БД";
     } else {
-      sourceLabel = "Google Books";
+      sourceLabel = "Google Books"; // Keep user-facing text for now
     }
 
     let text = `📚 Найдены книги в ${sourceLabel}:\n\n`;
@@ -591,7 +591,7 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
         return true;
       }
 
-      // Search Google Books by ISBN
+      // Search external book API by ISBN
       try {
         const bookDataClient = createBookDataClient();
         const result = await bookDataClient.searchBookByISBN(text);

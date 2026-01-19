@@ -91,16 +91,16 @@ export async function searchLocalBooks(
 }
 
 /**
- * Search Google Books and filter results with 90% similarity threshold
+ * Search external book API and filter results with 90% similarity threshold
  * BOTH title AND author must be ≥90% independently
  */
-export async function searchGoogleBooksWithThreshold(
+export async function searchExternalBooksWithThreshold(
   title: string,
   author: string | null,
   threshold: number = 0.9
 ): Promise<EnrichedBook[]> {
   try {
-    // Build query for Google Books
+    // Build query for book API
     let query = `intitle:${title}`;
     if (author) {
       query += `+inauthor:${author}`;
@@ -132,7 +132,7 @@ export async function searchGoogleBooksWithThreshold(
           isbn: result.isbn,
           coverUrl: result.coverUrl,
           googleBooksId: result.googleBooksId,
-          source: "google",
+          source: "external",
           similarity: {
             title: titleSimilarity,
             author: authorSimilarity,
@@ -146,7 +146,7 @@ export async function searchGoogleBooksWithThreshold(
           isbn: result.isbn,
           coverUrl: result.coverUrl,
           googleBooksId: result.googleBooksId,
-          source: "google",
+          source: "external",
           similarity: {
             title: titleSimilarity,
             author: 1.0, // No author comparison
@@ -165,15 +165,26 @@ export async function searchGoogleBooksWithThreshold(
     // Return top 3 matches
     return matches.slice(0, 3);
   } catch (error) {
-    console.error("[Book Enrichment] Error searching Google Books:", error);
+    console.error("[Book Enrichment] Error searching external book API:", error);
     return [];
   }
 }
 
 /**
- * Enrich extracted book information with local DB and Google Books data
+ * @deprecated Use searchExternalBooksWithThreshold() instead. Kept for backward compatibility.
+ */
+export async function searchGoogleBooksWithThreshold(
+  title: string,
+  author: string | null,
+  threshold: number = 0.9
+): Promise<EnrichedBook[]> {
+  return searchExternalBooksWithThreshold(title, author, threshold);
+}
+
+/**
+ * Enrich extracted book information with local DB and external book API
  * Process primary book + alternatives (up to 3 total)
- * Priority: Local DB first, only try Google Books if NO local matches found
+ * Priority: Local DB first, only try external API if NO local matches found
  * @param prismaClient - Optional Prisma client for testing (defaults to global instance)
  */
 export async function enrichBookInfo(
@@ -211,26 +222,26 @@ export async function enrichBookInfo(
     `[Book Enrichment] Local DB: found ${localMatches.length} matches for ${booksFoundLocally.size}/${booksToEnrich.length} books`
   );
 
-  // Step 2: Search Google Books ONLY for books NOT found locally
-  const googleMatches: EnrichedBook[] = [];
-  const booksToSearchGoogle = booksToEnrich.filter(
+  // Step 2: Search external book API ONLY for books NOT found locally
+  const externalMatches: EnrichedBook[] = [];
+  const booksToSearchExternal = booksToEnrich.filter(
     (book) => !booksFoundLocally.has(`${book.title}|||${book.author}`)
   );
 
-  if (booksToSearchGoogle.length > 0) {
+  if (booksToSearchExternal.length > 0) {
     console.log(
-      `[Book Enrichment] Searching Google Books for ${booksToSearchGoogle.length} books not found locally`
+      `[Book Enrichment] Searching external book API for ${booksToSearchExternal.length} books not found locally`
     );
-    for (const book of booksToSearchGoogle) {
-      const matches = await searchGoogleBooksWithThreshold(book.title, book.author);
-      googleMatches.push(...matches);
+    for (const book of booksToSearchExternal) {
+      const matches = await searchExternalBooksWithThreshold(book.title, book.author);
+      externalMatches.push(...matches);
     }
   }
 
-  console.log(`[Book Enrichment] Google Books: found ${googleMatches.length} matches`);
+  console.log(`[Book Enrichment] External API: found ${externalMatches.length} matches`);
 
   // Step 3: Combine results from both sources
-  const allMatches: EnrichedBook[] = [...localMatches, ...googleMatches];
+  const allMatches: EnrichedBook[] = [...localMatches, ...externalMatches];
 
   if (allMatches.length === 0) {
     console.log("[Book Enrichment] No matches found anywhere");
@@ -242,11 +253,11 @@ export async function enrichBookInfo(
 
   // Determine source based on what we found
   const source =
-    localMatches.length > 0 && googleMatches.length > 0
+    localMatches.length > 0 && externalMatches.length > 0
       ? "local" // If we have both, prefer showing "local" as primary source
       : localMatches.length > 0
       ? "local"
-      : "google";
+      : "external";
 
   // Remove duplicates by normalized title+author and limit to 3
   // This ensures we don't show multiple editions of the same book
