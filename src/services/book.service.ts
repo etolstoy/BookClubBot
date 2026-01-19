@@ -247,7 +247,7 @@ export async function getBookWithReviewCount(id: number) {
 /**
  * Update book metadata
  * Simply updates the fields provided - no automatic re-enrichment
- * Use the frontend sync button for Google Books enrichment
+ * Use the frontend sync button for external book API enrichment
  */
 export async function updateBook(id: number, input: UpdateBookInput) {
   // Check if book exists

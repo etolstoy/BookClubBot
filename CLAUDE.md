@@ -21,14 +21,12 @@ All three components start together via `src/index.ts`:
 
 ### Key Services
 
-- **Book Extraction Service** (`src/services/book-extraction.service.ts`): GPT-4o integration for extracting primary book and alternative books from review text. Returns confidence scores (high/medium/low) and handles command parameters like `/review Title — Author`. Falls back to regex patterns if OpenAI fails/rate-limits.
-- **Book Enrichment Service** (`src/services/book-enrichment.service.ts`): Searches for book matches using 90% similarity threshold for both title AND author independently. Searches local database first, then queries Google Books API only for unmatched books. Returns top 3 deduplicated results sorted by similarity score.
-- **Google Books Service** (`src/services/googlebooks.ts`): Google Books API integration with rate limiting (configurable delay between requests), exponential backoff for 429 errors, ISBN and query-based searches, and admin notifications for rate limit/quota errors.
-- **Book Service** (`src/services/book.service.ts`): Manages book CRUD operations, book creation with Google Books enrichment, similarity-based matching, and dynamic URL generation for Google Books and Goodreads (URLs computed on-the-fly, not stored).
+- **Book Extraction Service** (`src/services/book-extraction.service.ts`): LLM-based extraction of primary book and alternative books from review text. Returns confidence scores (high/medium/low) and handles command parameters like `/review Title — Author`. Uses OpenAI client implementation.
+- **Book Enrichment Service** (`src/services/book-enrichment.service.ts`): Searches for book matches using 90% similarity threshold for both title AND author independently. Searches local database first, then queries external book API only for unmatched books. Returns top 3 deduplicated results sorted by similarity score.
+- **Book Service** (`src/services/book.service.ts`): Manages book CRUD operations, book creation with external API enrichment, similarity-based matching, and dynamic URL generation for Google Books and Goodreads (URLs computed on-the-fly, not stored).
 - **Review Service** (`src/services/review.service.ts`): Handles review creation, duplicate detection, sentiment assignment, statistics aggregation, and leaderboards (monthly/yearly/overall/last30/last365 days).
 - **Notification Service** (`src/services/notification.service.ts`): Sends formatted notifications to admin chat with emoji, error details, timestamps, and stack traces (in development mode).
-- **Sentiment Analysis** (`src/services/sentiment.ts`): Uses GPT-4o-mini to classify reviews as positive/negative/neutral.
-- **LLM Service** (`src/services/llm.ts`): Legacy service kept for backward compatibility.
+- **Sentiment Analysis** (`src/services/sentiment.ts`): LLM-based sentiment classification (positive/negative/neutral).
 
 ### Data Flow for Review Processing
 
@@ -36,12 +34,12 @@ All three components start together via `src/index.ts`:
 2. **Validation**: `handleReviewMessage`/`handleReviewCommand` in `src/bot/handlers/review.ts` checks for:
    - Duplicate reviews (same telegramUserId + messageId)
    - Existing pending confirmation state (prevents overlapping confirmations)
-3. **Book Extraction**: GPT-4o extracts primary book and alternative books from review text via `book-extraction.service.ts`
+3. **Book Extraction**: LLM extracts primary book and alternative books from review text via `book-extraction.service.ts`
    - Returns confidence scores (high/medium/low) for each book
    - If extraction fails → shows manual entry options (enter book info or cancel)
 4. **Book Enrichment**: `book-enrichment.service.ts` finds matching books:
    - Searches local database with 90% similarity threshold (title AND author)
-   - Queries Google Books API for unmatched books
+   - Queries external book API for unmatched books
    - Deduplicates and returns top 3 results sorted by similarity
 5. **Confirmation Flow**: Bot enters state machine managed by `book-confirmation.ts`:
    - Stores state in memory with 15-minute timeout (auto-cleanup every 5 minutes)
@@ -52,11 +50,11 @@ All three components start together via `src/index.ts`:
      - Cancel and delete confirmation state
 6. **User Selection**: User interacts with inline keyboard or sends text input
    - Book selection → proceeds to review creation
-   - ISBN entry → searches Google Books → shows confirmation
+   - ISBN entry → searches external book API → shows confirmation
    - Manual entry → sequential prompts for title and author → shows confirmation
    - Cancel → cleans up state and exits flow
 7. **Review Creation**: After book confirmation:
-   - Sentiment analysis runs via GPT-4o-mini
+   - Sentiment analysis runs via LLM
    - Review saved to database with book association
    - User receives success message with deep link to Mini App book page
 8. **State Cleanup**: Confirmation state is removed from memory after completion or 15-minute timeout
@@ -88,8 +86,8 @@ All configuration is centralized in `src/lib/config.ts`, loaded from environment
 ### Error Handling & Observability
 
 The notification service sends errors and warnings to `ADMIN_CHAT_ID`:
-- Critical: OpenAI rate limits/quota exceeded
-- Warnings: OpenAI failures (falls back to regex)
+- Critical: LLM rate limits/quota exceeded, external book API rate limits
+- Warnings: LLM extraction failures, external API failures
 - Errors: Application startup failures, unexpected errors
 
 When debugging issues, check notification service calls and admin chat logs.
@@ -194,7 +192,7 @@ The bot expects review text to mention a book. Common patterns:
 - `"Title" - Author`
 - Any quoted text (assumes it's a title)
 
-If OpenAI fails to extract, regex fallback attempts these patterns.
+The LLM extracts book information using these patterns and context clues.
 
 ## Deployment
 
@@ -227,7 +225,7 @@ The bot implements a sophisticated state machine (`src/bot/handlers/book-confirm
 - Prevents overlapping confirmations for the same user
 
 **User Interaction Modes:**
-1. **Matched Books Selection**: When GPT-4o extraction succeeds and enrichment finds matches
+1. **Matched Books Selection**: When LLM extraction succeeds and enrichment finds matches
    - Shows up to 3 best-matching books with inline keyboard buttons
    - Displays confidence scores and match quality
    - User selects correct book or chooses alternative input method
@@ -264,15 +262,15 @@ AWAITING_AUTHOR → [author provided] → CONFIRMING_MANUAL_BOOK
 CONFIRMING_MANUAL_BOOK → [confirmed] → CREATE_REVIEW
 ```
 
-### OpenAI Integration
+### LLM Integration
 
-- Uses `gpt-4o` for book extraction from review text (high accuracy for complex parsing)
-- Uses `gpt-4o-mini` for sentiment analysis (cost-efficient for simple classification)
+- Book extraction service uses LLM for extracting book information from review text
+- Sentiment analysis service uses LLM for classifying review sentiment
 - JSON response format enforced for structured outputs
-- Book extraction always falls back to regex patterns if API fails/rate-limits
 - Rate limit/quota errors trigger admin notifications via notification service
-- Regex patterns support both English and Russian (Cyrillic) text
 - Handles command parameters like `/review Title — Author` for direct book specification
+- Current implementation uses OpenAI (gpt-4o for extraction, gpt-4o-mini for sentiment)
+- Implementation is abstracted via ILLMClient interface for easy swapping
 
 ### BigInt Handling
 

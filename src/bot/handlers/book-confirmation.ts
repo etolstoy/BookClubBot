@@ -71,7 +71,7 @@ export function generateOptionsMessage(state: BookConfirmationState): {
 
     // Check if we have mixed sources
     const hasLocalBooks = matches.some((m) => m.source === "local");
-    const hasExternalBooks = matches.some((m) => m.source === "external" || m.source === "google");
+    const hasExternalBooks = matches.some((m) => m.source === "external");
 
     let sourceLabel: string;
     if (hasLocalBooks && hasExternalBooks) {
