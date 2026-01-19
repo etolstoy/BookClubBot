@@ -149,14 +149,14 @@ export async function seedTestData(
       await prisma.book.create({
         data: {
           title: book.title,
-          author: book.author,
+          author: book.author || null,
           isbn: book.isbn || null,
           googleBooksId: book.googleBooksId || null,
           coverUrl: book.coverUrl || null,
           description: book.description || null,
           publicationYear: book.publicationYear || null,
           pageCount: book.pageCount || null,
-          genres: book.genres || [],
+          genres: book.genres ? JSON.stringify(book.genres) : null, // Convert array to JSON string for SQLite
         },
       });
     }

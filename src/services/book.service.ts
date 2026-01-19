@@ -1,7 +1,7 @@
 import prisma from "../lib/prisma.js";
 import { calculateSimilarity } from "../lib/string-utils.js";
 import { getGoogleBooksUrl } from "../lib/url-utils.js";
-import { searchBookWithFallbacks, searchBookByISBN } from "./googlebooks.js";
+import { createBookDataClient } from "../clients/book-data/factory.js";
 import { extractBookInfo, type ExtractedBookInfo } from "./llm.js";
 
 export interface CreateBookInput {
@@ -84,12 +84,13 @@ export async function findOrCreateBook(
   }
 
   // Search Google Books with cascading fallbacks
-  const googleBook = await searchBookWithFallbacks(
+  const bookDataClient = createBookDataClient();
+  const googleBook = await bookDataClient.searchBookWithFallbacks({
     title,
-    author || undefined,
+    author: author || undefined,
     titleVariants,
-    authorVariants
-  );
+    authorVariants,
+  });
 
   if (googleBook) {
     // Check if we already have this Google Books ID
@@ -133,7 +134,8 @@ export async function findOrCreateBookByISBN(
   isbn: string
 ): Promise<{ id: number; isNew: boolean } | null> {
   // Search Google Books by ISBN
-  const googleBook = await searchBookByISBN(isbn);
+  const bookDataClient = createBookDataClient();
+  const googleBook = await bookDataClient.searchBookByISBN(isbn);
 
   if (!googleBook) {
     return null;

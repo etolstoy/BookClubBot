@@ -1,3 +1,9 @@
+/**
+ * @deprecated This service is legacy and maintained for backward compatibility only.
+ * Use GoogleBooksClient from clients/book-data/google-books-client.ts instead.
+ * This file will be removed in a future version.
+ */
+
 import { config } from "../lib/config.js";
 import { cleanISBN } from "../lib/isbn-utils.js";
 import { sendWarningNotification } from "./notification.service.js";

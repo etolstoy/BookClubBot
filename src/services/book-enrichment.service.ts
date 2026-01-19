@@ -1,6 +1,7 @@
 import prisma from "../lib/prisma.js";
 import { calculateSimilarity, normalizeString } from "../lib/string-utils.js";
-import { searchBooks } from "./googlebooks.js";
+import { createBookDataClient } from "../clients/book-data/factory.js";
+import type { PrismaClient } from "@prisma/client";
 import type {
   ExtractedBookInfo,
   EnrichedBook,
@@ -10,13 +11,16 @@ import type {
 /**
  * Search local database for books matching title and author with 90% similarity threshold
  * BOTH title AND author must be ≥90% independently
+ * @param prismaClient - Optional Prisma client for testing (defaults to global instance)
  */
 export async function searchLocalBooks(
   title: string,
   author: string | null,
-  threshold: number = 0.9
+  threshold: number = 0.9,
+  prismaClient?: PrismaClient
 ): Promise<EnrichedBook[]> {
-  const allBooks = await prisma.book.findMany({
+  const db = prismaClient || prisma;
+  const allBooks = await db.book.findMany({
     select: {
       id: true,
       title: true,
@@ -102,7 +106,8 @@ export async function searchGoogleBooksWithThreshold(
       query += `+inauthor:${author}`;
     }
 
-    const results = await searchBooks(query);
+    const bookDataClient = createBookDataClient();
+    const results = await bookDataClient.searchBooks(query);
     const matches: EnrichedBook[] = [];
 
     for (const result of results) {
@@ -169,9 +174,11 @@ export async function searchGoogleBooksWithThreshold(
  * Enrich extracted book information with local DB and Google Books data
  * Process primary book + alternatives (up to 3 total)
  * Priority: Local DB first, only try Google Books if NO local matches found
+ * @param prismaClient - Optional Prisma client for testing (defaults to global instance)
  */
 export async function enrichBookInfo(
-  extractedInfo: ExtractedBookInfo
+  extractedInfo: ExtractedBookInfo,
+  prismaClient?: PrismaClient
 ): Promise<EnrichmentResult> {
   // Collect all books to enrich (primary + alternatives, max 3 total)
   const booksToEnrich: Array<{ title: string; author: string | null }> = [
@@ -193,7 +200,7 @@ export async function enrichBookInfo(
   const booksFoundLocally = new Set<string>();
 
   for (const book of booksToEnrich) {
-    const matches = await searchLocalBooks(book.title, book.author);
+    const matches = await searchLocalBooks(book.title, book.author, 0.9, prismaClient);
     if (matches.length > 0) {
       localMatches.push(...matches);
       booksFoundLocally.add(`${book.title}|||${book.author}`); // Track found books

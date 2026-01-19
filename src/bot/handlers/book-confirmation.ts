@@ -3,7 +3,7 @@ import { Message } from "telegraf/types";
 import prisma from "../../lib/prisma.js";
 import { config } from "../../lib/config.js";
 import { isValidISBN } from "../../lib/isbn-utils.js";
-import { searchBookByISBN } from "../../services/googlebooks.js";
+import { createBookDataClient } from "../../clients/book-data/factory.js";
 import { findOrCreateBook, createBook } from "../../services/book.service.js";
 import { createReview } from "../../services/review.service.js";
 import { analyzeSentiment } from "../../services/sentiment.js";
@@ -593,7 +593,8 @@ export async function handleTextInput(ctx: Context): Promise<boolean> {
 
       // Search Google Books by ISBN
       try {
-        const result = await searchBookByISBN(text);
+        const bookDataClient = createBookDataClient();
+        const result = await bookDataClient.searchBookByISBN(text);
 
         if (!result) {
           await ctx.telegram.editMessageText(

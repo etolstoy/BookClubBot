@@ -9,11 +9,8 @@ import {
 import { getReviewsByBookId, isAdmin } from "../../services/review.service.js";
 import { authenticateTelegramWebApp } from "../middleware/telegram-auth.js";
 import { sendInfoNotification } from "../../services/notification.service.js";
-import {
-  searchBooks as searchGoogleBooks,
-  searchBookByISBN,
-  type BookSearchResult,
-} from "../../services/googlebooks.js";
+import { createBookDataClient } from "../../clients/book-data/factory.js";
+import type { BookSearchResult } from "../../lib/interfaces/index.js";
 import { getGoogleBooksUrl, generateGoodreadsUrl } from "../../lib/url-utils.js";
 import { detectISBN } from "../../lib/isbn-utils.js";
 
@@ -124,16 +121,17 @@ router.get("/search-google", async (req, res) => {
     // Check if query is an ISBN
     const isbn = detectISBN(q);
     let results: BookSearchResult[];
+    const bookDataClient = createBookDataClient();
 
     if (isbn) {
       // ISBN search (most precise)
       console.log(`[API] Searching Google Books by ISBN: ${isbn}`);
-      const result = await searchBookByISBN(isbn);
+      const result = await bookDataClient.searchBookByISBN(isbn);
       results = result ? [result] : [];
     } else {
       // Regular title/author search
       console.log(`[API] Searching Google Books by query: ${q}`);
-      results = await searchGoogleBooks(q);
+      results = await bookDataClient.searchBooks(q);
     }
 
     // Map to frontend format
