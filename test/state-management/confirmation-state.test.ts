@@ -128,7 +128,7 @@ describe("State Management - Confirmation Flow", () => {
     vi.clearAllMocks();
   });
 
-  it("Test 1: User selects first option", async () => {
+  it("User selects first option", async () => {
     const userId = "123";
     const ctx = createMockContext(userId) as Context;
 
@@ -152,7 +152,7 @@ describe("State Management - Confirmation Flow", () => {
     expect(ctx.answerCbQuery).toHaveBeenCalledWith("✅ Создаю рецензию...");
   });
 
-  it("Test 2: User selects second option", async () => {
+  it("User selects second option", async () => {
     const userId = "124";
     const ctx = createMockContext(userId) as Context;
 
@@ -176,7 +176,7 @@ describe("State Management - Confirmation Flow", () => {
     expect(ctx.answerCbQuery).toHaveBeenCalledWith("✅ Создаю рецензию...");
   });
 
-  it("Test 3: User cancels confirmation", async () => {
+  it("User cancels confirmation", async () => {
     const userId = "125";
     const ctx = createMockContext(userId) as Context;
 
@@ -198,7 +198,7 @@ describe("State Management - Confirmation Flow", () => {
     expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Отменено");
   });
 
-  it("Test 4: State timeout after 15 minutes", () => {
+  it("State timeout after 15 minutes", () => {
     const userId = "126";
 
     // Setup: Create state with timestamp 16 minutes ago
@@ -217,7 +217,7 @@ describe("State Management - Confirmation Flow", () => {
     expect(finalState).toBeNull();
   });
 
-  it("Test 5: Prevent overlapping confirmations (same user)", () => {
+  it("Prevent overlapping confirmations (same user)", () => {
     const userId = "127";
 
     // Setup: Store initial state
@@ -240,7 +240,7 @@ describe("State Management - Confirmation Flow", () => {
     expect(finalState?.extractedInfo?.title).toBe("Different Book");
   });
 
-  it("Test 6: Multiple users concurrent confirmations (allowed)", () => {
+  it("Multiple users concurrent confirmations (allowed)", () => {
     const user1 = "128";
     const user2 = "129";
 
@@ -281,7 +281,7 @@ describe("State Management - Confirmation Flow", () => {
     expect(finalState2?.reviewData.telegramUserId).toBe(BigInt(129));
   });
 
-  it("Test 7: State cleanup on completion", async () => {
+  it("State cleanup on completion", async () => {
     const userId = "130";
     const ctx = createMockContext(userId) as Context;
 
@@ -305,7 +305,7 @@ describe("State Management - Confirmation Flow", () => {
     expect(finalState).toBeNull();
   });
 
-  it("Test 8: State cleanup on cancellation", async () => {
+  it("State cleanup on cancellation", async () => {
     const userId = "131";
     const ctx = createMockContext(userId) as Context;
 
@@ -324,7 +324,7 @@ describe("State Management - Confirmation Flow", () => {
     expect(finalState).toBeNull();
   });
 
-  it("Test 9: Invalid option selection", async () => {
+  it("Invalid option selection", async () => {
     const userId = "132";
     const ctx = createMockContext(userId) as Context;
 
@@ -348,7 +348,7 @@ describe("State Management - Confirmation Flow", () => {
     expect(finalState).not.toBeNull();
   });
 
-  it("Test 10: State persistence across messages", async () => {
+  it("State persistence across messages", async () => {
     const userId = "133";
 
     // Setup: Store initial state for ISBN entry flow

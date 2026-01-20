@@ -7,6 +7,7 @@ import { MockBookDataClient } from "../../src/clients/book-data/mock-book-data-c
 import { createTestContext } from "../../src/bot/types/bot-context.js";
 import { setupTestDatabase, teardownTestDatabase } from "../helpers/test-db.js";
 import { createMockMessageContext, createMockCallbackContext, createMockReviewCommandContext } from "../helpers/mock-context.js";
+import { loadReviewFixture, loadBookFixture } from "../fixtures/helpers/fixture-loader.js";
 import type { PrismaClient } from "@prisma/client";
 
 /**
@@ -41,39 +42,26 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
 
   it("Hashtag message → extraction → enrichment → confirm → saved", async () => {
     const userId = 400;
-    const reviewText = 'Just read "The Great Gatsby" by F. Scott Fitzgerald. Brilliant! #рецензия';
+    const fixture = loadReviewFixture("positive-gatsby");
+    const bookFixture = loadBookFixture("great-gatsby");
 
     // Mock: LLM extraction
     mockLLMClient.mockResponse(
-      { reviewText },
-      {
-        extractedInfo: {
-          title: "The Great Gatsby",
-          author: "F. Scott Fitzgerald",
-          confidence: "high",
-        },
-      }
+      { reviewText: fixture.reviewText },
+      { extractedInfo: fixture.expectedExtraction }
     );
 
     // Mock: Book data client enrichment
-    mockBookDataClient.seedBooks([
-      {
-        googleBooksId: "gatsby-id",
-        title: "The Great Gatsby",
-        author: "F. Scott Fitzgerald",
-        isbn: "978-0-7432-7356-5",
-        coverUrl: "https://example.com/gatsby.jpg",
-      },
-    ]);
+    mockBookDataClient.seedBooks([bookFixture]);
 
     // Mock: Sentiment analysis
     mockLLMClient.mockResponse(
-      { reviewText },
-      { sentiment: "positive" }
+      { reviewText: fixture.reviewText },
+      { sentiment: fixture.expectedSentiment }
     );
 
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
-    const ctx = createMockMessageContext(userId, reviewText) as Context;
+    const ctx = createMockMessageContext(userId, fixture.reviewText) as Context;
 
     // Act: User sends hashtag message
     await handleReviewMessage(ctx, botContext);
@@ -90,38 +78,25 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     // Assert: Confirmation state was created
     const state = getConfirmationState(userId.toString());
     expect(state).not.toBeNull();
-    expect(state?.extractedInfo?.title).toBe("The Great Gatsby");
+    expect(state?.extractedInfo?.title).toBe(fixture.expectedExtraction.title);
   });
 
   it("/review command → extraction → confirm → saved", async () => {
     const userId = 401;
-    const reviewText = 'Finished "1984" by George Orwell. Mind-blowing dystopia.';
+    const fixture = loadReviewFixture("negative-1984");
+    const bookFixture = loadBookFixture("1984");
 
     // Mock: LLM extraction
     mockLLMClient.mockResponse(
-      { reviewText },
-      {
-        extractedInfo: {
-          title: "1984",
-          author: "George Orwell",
-          confidence: "high",
-        },
-      }
+      { reviewText: fixture.reviewText },
+      { extractedInfo: fixture.expectedExtraction }
     );
 
     // Mock: Book data client
-    mockBookDataClient.seedBooks([
-      {
-        googleBooksId: "1984-id",
-        title: "1984",
-        author: "George Orwell",
-        isbn: "978-0-452-28423-4",
-        coverUrl: "https://example.com/1984.jpg",
-      },
-    ]);
+    mockBookDataClient.seedBooks([bookFixture]);
 
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
-    const ctx = createMockReviewCommandContext(userId, "/review", reviewText) as Context;
+    const ctx = createMockReviewCommandContext(userId, "/review", fixture.reviewText) as Context;
 
     // Act: User sends /review command
     await handleReviewCommand(ctx as Context, botContext);
@@ -182,37 +157,24 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
 
   it("Review saved → leaderboard updated", async () => {
     const userId = 404;
-    const reviewText = 'Read "Pride and Prejudice" by Jane Austen. #рецензия';
+    const fixture = loadReviewFixture("positive-gatsby");
+    const bookFixture = loadBookFixture("great-gatsby");
 
     // Mock: Complete flow
     mockLLMClient.mockResponse(
-      { reviewText },
-      {
-        extractedInfo: {
-          title: "Pride and Prejudice",
-          author: "Jane Austen",
-          confidence: "high",
-        },
-      }
+      { reviewText: fixture.reviewText },
+      { extractedInfo: fixture.expectedExtraction }
     );
 
-    mockBookDataClient.seedBooks([
-      {
-        googleBooksId: "pride-id",
-        title: "Pride and Prejudice",
-        author: "Jane Austen",
-        isbn: "978-0-14-143951-8",
-        coverUrl: "https://example.com/pride.jpg",
-      },
-    ]);
+    mockBookDataClient.seedBooks([bookFixture]);
 
     mockLLMClient.mockResponse(
-      { reviewText },
-      { sentiment: "positive" }
+      { reviewText: fixture.reviewText },
+      { sentiment: fixture.expectedSentiment }
     );
 
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
-    const ctx1 = createMockMessageContext(userId, reviewText) as Context;
+    const ctx1 = createMockMessageContext(userId, fixture.reviewText) as Context;
 
     // Act: User sends review
     await handleReviewMessage(ctx1, botContext);
@@ -240,6 +202,6 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
 
     // Verify sentiment was saved
     const review = reviews[0];
-    expect(review.sentiment).toBe("positive");
+    expect(review.sentiment).toBe(fixture.expectedSentiment);
   });
 });

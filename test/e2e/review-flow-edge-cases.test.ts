@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { extractBookInfo } from "../../src/services/book-extraction.service.js";
 import { MockLLMClient } from "../../src/clients/llm/mock-llm-client.js";
+import { loadReviewFixture } from "../fixtures/helpers/fixture-loader.js";
 
 /**
  * E2E Tests: Edge Cases
@@ -15,41 +16,31 @@ describe("E2E: Edge Cases", () => {
   });
 
   it("Multiple books mentioned → primary book selected", async () => {
-    const reviewText = `
-      This year I read three amazing books: "1984" by George Orwell,
-      "Brave New World" by Aldous Huxley, and "Fahrenheit 451" by Ray Bradbury.
-      But "1984" left the biggest impression on me. Orwell's vision is terrifying.
-      #рецензия
-    `;
+    const fixture = loadReviewFixture("multiple-books");
 
     // Mock: LLM identifies primary book and alternatives
-    mockLLMClient.mockResponse(reviewText, {
-      extractedInfo: {
-        title: "1984",
-        author: "George Orwell",
-        confidence: "high",
-        alternativeBooks: [
-          { title: "Brave New World", author: "Aldous Huxley" },
-          { title: "Fahrenheit 451", author: "Ray Bradbury" },
-        ],
-      },
+    mockLLMClient.mockResponse(fixture.reviewText, {
+      extractedInfo: fixture.expectedExtraction,
     });
 
     // Act: Extract book info from text mentioning multiple books
-    const result = await extractBookInfo(reviewText, undefined, mockLLMClient);
+    const result = await extractBookInfo(fixture.reviewText, undefined, mockLLMClient);
 
     // Assert: Primary book was identified
     expect(result).not.toBeNull();
-    expect(result?.title).toBe("1984");
-    expect(result?.author).toBe("George Orwell");
+    expect(result?.title).toBe(fixture.expectedExtraction.title);
+    expect(result?.author).toBe(fixture.expectedExtraction.author);
+    expect(result?.confidence).toBe(fixture.expectedExtraction.confidence);
 
     // Assert: Alternative books were captured
     expect(result?.alternativeBooks).toBeDefined();
-    expect(result?.alternativeBooks?.length).toBe(2);
-    expect(result?.alternativeBooks?.[0].title).toBe("Brave New World");
-    expect(result?.alternativeBooks?.[1].title).toBe("Fahrenheit 451");
+    expect(result?.alternativeBooks?.length).toBe(fixture.expectedExtraction.alternativeBooks?.length);
 
-    // Assert: Confidence is high for primary book
-    expect(result?.confidence).toBe("high");
+    if (fixture.expectedExtraction.alternativeBooks && result?.alternativeBooks) {
+      fixture.expectedExtraction.alternativeBooks.forEach((expectedBook, index) => {
+        expect(result.alternativeBooks?.[index].title).toBe(expectedBook.title);
+        expect(result.alternativeBooks?.[index].author).toBe(expectedBook.author);
+      });
+    }
   });
 });
