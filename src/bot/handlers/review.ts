@@ -2,7 +2,7 @@ import { Context } from "telegraf";
 import { Message } from "telegraf/types";
 import { config } from "../../lib/config.js";
 import { checkDuplicateReview } from "../../services/review.service.js";
-import { extractBookInfoGPT4o } from "../../services/book-extraction.service.js";
+import { extractBookInfo } from "../../services/book-extraction.service.js";
 import { enrichBookInfo } from "../../services/book-enrichment.service.js";
 import {
   storeConfirmationState,
@@ -10,6 +10,7 @@ import {
   generateOptionsMessage,
 } from "./book-confirmation.js";
 import type { BookConfirmationState } from "../types/confirmation-state.js";
+import type { BotContext } from "../types/bot-context.js";
 
 function getDisplayName(from: Message["from"]): string | null {
   if (!from) return null;
@@ -49,7 +50,7 @@ function getMessageAuthor(message: Message): Message["from"] | undefined {
   return undefined;
 }
 
-export async function handleReviewMessage(ctx: Context) {
+export async function handleReviewMessage(ctx: Context, botContext?: BotContext) {
   const message = ctx.message;
 
   if (!message) {
@@ -78,10 +79,10 @@ export async function handleReviewMessage(ctx: Context) {
     return;
   }
 
-  await processReview(ctx, message);
+  await processReview(ctx, message, undefined, botContext);
 }
 
-export async function handleReviewCommand(ctx: Context) {
+export async function handleReviewCommand(ctx: Context, botContext?: BotContext) {
   const message = ctx.message;
 
   if (!message) {
@@ -120,13 +121,14 @@ export async function handleReviewCommand(ctx: Context) {
     return;
   }
 
-  await processReview(ctx, replyMessage, commandParams);
+  await processReview(ctx, replyMessage, commandParams, botContext);
 }
 
 async function processReview(
   ctx: Context,
   message: Message,
-  commandParams?: string
+  commandParams?: string,
+  botContext?: BotContext
 ) {
   if (!message.from) {
     return;
@@ -167,12 +169,12 @@ async function processReview(
   });
 
   try {
-    // Step 1: Extract book info with GPT-4o
-    const extractedInfo = await extractBookInfoGPT4o(messageText, commandParams);
+    // Step 1: Extract book info with LLM
+    const extractedInfo = await extractBookInfo(messageText, commandParams, botContext?.llmClient);
 
     // Step 2: If extraction failed, show manual entry options
     if (!extractedInfo || !extractedInfo.title) {
-      console.log("[Review] GPT-4o extraction failed, showing manual entry options");
+      console.log("[Review] LLM extraction failed, showing manual entry options");
 
       const state: BookConfirmationState = {
         reviewData: {
@@ -209,8 +211,8 @@ async function processReview(
       `[Review] Extracted: ${extractedInfo.title} by ${extractedInfo.author}, confidence: ${extractedInfo.confidence}`
     );
 
-    // Step 3: Enrich with 90% matching (local DB + Google Books)
-    const enrichmentResults = await enrichBookInfo(extractedInfo);
+    // Step 3: Enrich with 90% matching (local DB + external API)
+    const enrichmentResults = await enrichBookInfo(extractedInfo, undefined, botContext?.bookDataClient);
 
     console.log(
       `[Review] Enrichment results: source=${enrichmentResults.source}, matches=${enrichmentResults.matches.length}`

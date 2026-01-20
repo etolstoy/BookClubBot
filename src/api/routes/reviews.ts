@@ -12,7 +12,7 @@ import {
 import { authenticateTelegramWebApp } from "../middleware/telegram-auth.js";
 import { sendInfoNotification } from "../../services/notification.service.js";
 import { analyzeSentiment } from "../../services/sentiment.js";
-import { findOrCreateBookFromGoogleBooks } from "../../services/book.service.js";
+import { findOrCreateBookFromExternalMetadata } from "../../services/book.service.js";
 
 const router = Router();
 
@@ -193,16 +193,16 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
       updateData.sentiment = sentiment;
     }
 
-    // Handle Google Books data - create book first if needed
+    // Handle external book API data - create book first if needed
     if (googleBooksData) {
       try {
         const { id: createdBookId, isNew } =
-          await findOrCreateBookFromGoogleBooks(googleBooksData);
+          await findOrCreateBookFromExternalMetadata(googleBooksData);
         updateData.bookId = createdBookId;
 
         if (isNew) {
           console.log(
-            `[ReviewUpdate] Created new book from Google Books: ${googleBooksData.title}`
+            `[ReviewUpdate] Created new book from external API: ${googleBooksData.title}`
           );
         } else {
           console.log(
@@ -211,7 +211,7 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
         }
       } catch (error) {
         console.error(
-          "[ReviewUpdate] Error creating book from Google Books:",
+          "[ReviewUpdate] Error creating book from external API:",
           error
         );
 
@@ -219,13 +219,13 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
         if (error instanceof Error && error.message.includes("Rate limit exceeded")) {
           res
             .status(429)
-            .json({ error: "Google Books rate limit exceeded. Please try again later." });
+            .json({ error: "External book API rate limit exceeded. Please try again later." });
           return;
         }
 
         res
           .status(500)
-          .json({ error: "Failed to create book from Google Books data" });
+          .json({ error: "Failed to create book from external API data" });
         return;
       }
     } else if (bookId !== undefined) {

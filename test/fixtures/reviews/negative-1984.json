@@ -1,0 +1,15 @@
+{
+  "reviewText": "Read \"1984\" by George Orwell. Found it rather depressing and overly pessimistic. The writing style was dry and I struggled to connect with the characters. Not my cup of tea. #рецензия",
+  "expectedExtraction": {
+    "title": "1984",
+    "author": "George Orwell",
+    "confidence": "high",
+    "alternativeBooks": []
+  },
+  "expectedSentiment": "negative",
+  "expectedBookMatch": {
+    "googleBooksId": "kotPYEqx7kMC",
+    "title": "1984",
+    "author": "George Orwell"
+  }
+}

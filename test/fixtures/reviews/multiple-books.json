@@ -1,0 +1,20 @@
+{
+  "reviewText": "Comparing \"The Great Gatsby\" by F. Scott Fitzgerald with \"1984\" by George Orwell. Both are classics but very different. Gatsby captures the American Dream's disillusionment, while 1984 warns of totalitarian futures. Gatsby is my favorite though. #рецензия",
+  "expectedExtraction": {
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "confidence": "medium",
+    "alternativeBooks": [
+      {
+        "title": "1984",
+        "author": "George Orwell"
+      }
+    ]
+  },
+  "expectedSentiment": "neutral",
+  "expectedBookMatch": {
+    "googleBooksId": "iXN-swEACAAJ",
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald"
+  }
+}

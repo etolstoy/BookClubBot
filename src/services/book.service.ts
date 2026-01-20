@@ -1,8 +1,9 @@
 import prisma from "../lib/prisma.js";
 import { calculateSimilarity } from "../lib/string-utils.js";
 import { getGoogleBooksUrl } from "../lib/url-utils.js";
-import { searchBookWithFallbacks, searchBookByISBN } from "./googlebooks.js";
-import { extractBookInfo, type ExtractedBookInfo } from "./llm.js";
+import { createBookDataClient } from "../clients/book-data/factory.js";
+import type { IBookDataClient, ExtractedBookInfo } from "../lib/interfaces/index.js";
+import { extractBookInfo } from "./book-extraction.service.js";
 
 export interface CreateBookInput {
   title: string;
@@ -75,7 +76,8 @@ export async function findOrCreateBook(
   title: string,
   author?: string | null,
   titleVariants?: string[],
-  authorVariants?: string[]
+  authorVariants?: string[],
+  bookDataClient?: IBookDataClient
 ): Promise<{ id: number; isNew: boolean }> {
   // First, try to find an existing similar book
   const existingBook = await findSimilarBook(title, author);
@@ -83,41 +85,42 @@ export async function findOrCreateBook(
     return { id: existingBook.id, isNew: false };
   }
 
-  // Search Google Books with cascading fallbacks
-  const googleBook = await searchBookWithFallbacks(
+  // Search external book API with cascading fallbacks
+  const client = bookDataClient || createBookDataClient();
+  const externalBook = await client.searchBookWithFallbacks({
     title,
-    author || undefined,
+    author: author || undefined,
     titleVariants,
-    authorVariants
-  );
+    authorVariants,
+  });
 
-  if (googleBook) {
-    // Check if we already have this Google Books ID
+  if (externalBook) {
+    // Check if we already have this book by external ID
     const existing = await prisma.book.findUnique({
-      where: { googleBooksId: googleBook.googleBooksId },
+      where: { googleBooksId: externalBook.googleBooksId },
     });
 
     if (existing) {
       return { id: existing.id, isNew: false };
     }
 
-    // Create new book with Google Books data
+    // Create new book with external API data
     const book = await createBook({
-      title: googleBook.title,
-      author: googleBook.author,
-      googleBooksId: googleBook.googleBooksId,
-      coverUrl: googleBook.coverUrl,
-      genres: googleBook.genres,
-      publicationYear: googleBook.publicationYear,
-      description: googleBook.description,
-      isbn: googleBook.isbn,
-      pageCount: googleBook.pageCount,
+      title: externalBook.title,
+      author: externalBook.author,
+      googleBooksId: externalBook.googleBooksId,
+      coverUrl: externalBook.coverUrl,
+      genres: externalBook.genres,
+      publicationYear: externalBook.publicationYear,
+      description: externalBook.description,
+      isbn: externalBook.isbn,
+      pageCount: externalBook.pageCount,
     });
 
     return { id: book.id, isNew: true };
   }
 
-  // No Google Books result, create with basic info
+  // No external API result, create with basic info
   const book = await createBook({
     title,
     author,
@@ -128,47 +131,50 @@ export async function findOrCreateBook(
 
 /**
  * Create book from ISBN (most reliable)
+ * @param bookDataClient - Optional book data client for testing (defaults to factory-created instance)
  */
 export async function findOrCreateBookByISBN(
-  isbn: string
+  isbn: string,
+  bookDataClient?: IBookDataClient
 ): Promise<{ id: number; isNew: boolean } | null> {
-  // Search Google Books by ISBN
-  const googleBook = await searchBookByISBN(isbn);
+  // Search external book API by ISBN
+  const client = bookDataClient || createBookDataClient();
+  const externalBook = await client.searchBookByISBN(isbn);
 
-  if (!googleBook) {
+  if (!externalBook) {
     return null;
   }
 
-  // Check if we already have this Google Books ID
+  // Check if we already have this book by external ID
   const existing = await prisma.book.findUnique({
-    where: { googleBooksId: googleBook.googleBooksId },
+    where: { googleBooksId: externalBook.googleBooksId },
   });
 
   if (existing) {
     return { id: existing.id, isNew: false };
   }
 
-  // Create new book with Google Books data
+  // Create new book with external API data
   const book = await createBook({
-    title: googleBook.title,
-    author: googleBook.author,
-    googleBooksId: googleBook.googleBooksId,
-    coverUrl: googleBook.coverUrl,
-    genres: googleBook.genres,
-    publicationYear: googleBook.publicationYear,
-    description: googleBook.description,
-    isbn: googleBook.isbn,
-    pageCount: googleBook.pageCount,
+    title: externalBook.title,
+    author: externalBook.author,
+    googleBooksId: externalBook.googleBooksId,
+    coverUrl: externalBook.coverUrl,
+    genres: externalBook.genres,
+    publicationYear: externalBook.publicationYear,
+    description: externalBook.description,
+    isbn: externalBook.isbn,
+    pageCount: externalBook.pageCount,
   });
 
   return { id: book.id, isNew: true };
 }
 
 /**
- * Find or create book from Google Books API data
- * Used when user selects a book from Google Books in the frontend
+ * Find or create book from external book metadata
+ * Used when user selects a book from external API in the frontend
  */
-export async function findOrCreateBookFromGoogleBooks(googleBooksData: {
+export async function findOrCreateBookFromExternalMetadata(bookData: {
   googleBooksId: string;
   title: string;
   author?: string | null;
@@ -179,43 +185,43 @@ export async function findOrCreateBookFromGoogleBooks(googleBooksData: {
   isbn?: string | null;
   pageCount?: number | null;
 }): Promise<{ id: number; isNew: boolean }> {
-  // First check if book with this Google Books ID already exists
-  const existingByGoogleId = await prisma.book.findUnique({
-    where: { googleBooksId: googleBooksData.googleBooksId },
+  // First check if book with this external ID already exists
+  const existingByExternalId = await prisma.book.findUnique({
+    where: { googleBooksId: bookData.googleBooksId },
   });
 
-  if (existingByGoogleId) {
+  if (existingByExternalId) {
     console.log(
-      `[BookService] Found existing book by Google Books ID: ${googleBooksData.googleBooksId}`
+      `[BookService] Found existing book by external ID: ${bookData.googleBooksId}`
     );
-    return { id: existingByGoogleId.id, isNew: false };
+    return { id: existingByExternalId.id, isNew: false };
   }
 
   // Check for similar book by title/author (avoid duplicates)
   const similar = await findSimilarBook(
-    googleBooksData.title,
-    googleBooksData.author
+    bookData.title,
+    bookData.author
   );
   if (similar) {
     console.log(`[BookService] Found similar book: ${similar.title}`);
     return { id: similar.id, isNew: false };
   }
 
-  // Create new book with Google Books data
+  // Create new book with external metadata
   const book = await createBook({
-    title: googleBooksData.title,
-    author: googleBooksData.author,
-    googleBooksId: googleBooksData.googleBooksId,
-    coverUrl: googleBooksData.coverUrl,
-    genres: googleBooksData.genres,
-    publicationYear: googleBooksData.publicationYear,
-    description: googleBooksData.description,
-    isbn: googleBooksData.isbn,
-    pageCount: googleBooksData.pageCount,
+    title: bookData.title,
+    author: bookData.author,
+    googleBooksId: bookData.googleBooksId,
+    coverUrl: bookData.coverUrl,
+    genres: bookData.genres,
+    publicationYear: bookData.publicationYear,
+    description: bookData.description,
+    isbn: bookData.isbn,
+    pageCount: bookData.pageCount,
   });
 
   console.log(
-    `[BookService] Created new book from Google Books: ${book.title}`
+    `[BookService] Created new book from external metadata: ${book.title}`
   );
   return { id: book.id, isNew: true };
 }
@@ -245,7 +251,7 @@ export async function getBookWithReviewCount(id: number) {
 /**
  * Update book metadata
  * Simply updates the fields provided - no automatic re-enrichment
- * Use the frontend sync button for Google Books enrichment
+ * Use the frontend sync button for external book API enrichment
  */
 export async function updateBook(id: number, input: UpdateBookInput) {
   // Check if book exists
@@ -472,7 +478,10 @@ export async function searchBooks(query: string, limit = 20) {
   return booksWithReviews;
 }
 
-export async function processReviewText(reviewText: string): Promise<{
+export async function processReviewText(
+  reviewText: string,
+  bookDataClient?: IBookDataClient
+): Promise<{
   bookId: number;
   isNewBook: boolean;
   bookTitle: string;
@@ -491,7 +500,8 @@ export async function processReviewText(reviewText: string): Promise<{
     bookInfo.title,
     bookInfo.author,
     bookInfo.titleVariants,
-    bookInfo.authorVariants
+    bookInfo.authorVariants,
+    bookDataClient
   );
 
   const book = await prisma.book.findUnique({

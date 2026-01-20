@@ -2,21 +2,13 @@
  * Type definitions for book confirmation flow state machine
  */
 
-/**
- * Book information extracted from review text by GPT-4o
- */
-export interface ExtractedBookInfo {
-  title: string;
-  author: string | null;
-  confidence: "high" | "medium" | "low";
-  alternativeBooks?: Array<{
-    title: string;
-    author: string | null;
-  }>;
-}
+import type { ExtractedBookInfo } from "../../lib/interfaces/index.js";
+
+// Re-export ExtractedBookInfo for backward compatibility
+export type { ExtractedBookInfo };
 
 /**
- * Enriched book data from local DB or Google Books with similarity score
+ * Enriched book data from local DB or external API with similarity score
  */
 export interface EnrichedBook {
   id?: number; // Present if from local DB
@@ -25,7 +17,7 @@ export interface EnrichedBook {
   isbn: string | null;
   coverUrl: string | null;
   googleBooksId?: string | null;
-  source: "local" | "google";
+  source: "local" | "external";
   similarity: {
     title: number;
     author: number;
@@ -33,10 +25,10 @@ export interface EnrichedBook {
 }
 
 /**
- * Result of enrichment process (local DB + Google Books search)
+ * Result of enrichment process (local DB + external API search)
  */
 export interface EnrichmentResult {
-  source: "local" | "google" | "none";
+  source: "local" | "external" | "none";
   matches: EnrichedBook[];
 }
 

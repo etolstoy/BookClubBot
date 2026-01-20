@@ -1,0 +1,15 @@
+{
+  "reviewText": "Just finished reading \"The Great Gatsby\" by F. Scott Fitzgerald. Absolutely brilliant! The prose is exquisite and the characters are unforgettable. Highly recommend this masterpiece of American literature. #рецензия",
+  "expectedExtraction": {
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "confidence": "high",
+    "alternativeBooks": []
+  },
+  "expectedSentiment": "positive",
+  "expectedBookMatch": {
+    "googleBooksId": "iXN-swEACAAJ",
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald"
+  }
+}

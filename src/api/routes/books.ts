@@ -9,11 +9,8 @@ import {
 import { getReviewsByBookId, isAdmin } from "../../services/review.service.js";
 import { authenticateTelegramWebApp } from "../middleware/telegram-auth.js";
 import { sendInfoNotification } from "../../services/notification.service.js";
-import {
-  searchBooks as searchGoogleBooks,
-  searchBookByISBN,
-  type BookSearchResult,
-} from "../../services/googlebooks.js";
+import { createBookDataClient } from "../../clients/book-data/factory.js";
+import type { BookSearchResult } from "../../lib/interfaces/index.js";
 import { getGoogleBooksUrl, generateGoodreadsUrl } from "../../lib/url-utils.js";
 import { detectISBN } from "../../lib/isbn-utils.js";
 
@@ -111,7 +108,7 @@ router.get("/search", async (req, res) => {
   }
 });
 
-// GET /api/books/search-google - Search Google Books API
+// GET /api/books/search-google - Search External Book API
 router.get("/search-google", async (req, res) => {
   try {
     const { q } = req.query;
@@ -124,16 +121,17 @@ router.get("/search-google", async (req, res) => {
     // Check if query is an ISBN
     const isbn = detectISBN(q);
     let results: BookSearchResult[];
+    const bookDataClient = createBookDataClient();
 
     if (isbn) {
       // ISBN search (most precise)
-      console.log(`[API] Searching Google Books by ISBN: ${isbn}`);
-      const result = await searchBookByISBN(isbn);
+      console.log(`[API] Searching external book API by ISBN: ${isbn}`);
+      const result = await bookDataClient.searchBookByISBN(isbn);
       results = result ? [result] : [];
     } else {
       // Regular title/author search
-      console.log(`[API] Searching Google Books by query: ${q}`);
-      results = await searchGoogleBooks(q);
+      console.log(`[API] Searching external book API by query: ${q}`);
+      results = await bookDataClient.searchBooks(q);
     }
 
     // Map to frontend format
@@ -151,19 +149,19 @@ router.get("/search-google", async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error("Error searching Google Books:", error);
+    console.error("Error searching external book API:", error);
 
     // Check for rate limit error
     if (error instanceof Error && error.message.includes("Rate limit exceeded")) {
       res
         .status(429)
         .json({
-          error: "Google Books rate limit exceeded. Please try again later.",
+          error: "External book API rate limit exceeded. Please try again later.",
         });
       return;
     }
 
-    res.status(500).json({ error: "Failed to search Google Books" });
+    res.status(500).json({ error: "Failed to search external book API" });
   }
 });
 
