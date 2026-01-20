@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { Context } from "telegraf";
 import { handleReviewMessage, handleReviewCommand } from "../../src/bot/handlers/review.js";
 import { handleBookSelected, handleTextInput, clearConfirmationState, getConfirmationState } from "../../src/bot/handlers/book-confirmation.js";
@@ -6,75 +6,13 @@ import { MockLLMClient } from "../../src/clients/llm/mock-llm-client.js";
 import { MockBookDataClient } from "../../src/clients/book-data/mock-book-data-client.js";
 import { createTestContext } from "../../src/bot/types/bot-context.js";
 import { setupTestDatabase, teardownTestDatabase } from "../helpers/test-db.js";
+import { createMockMessageContext, createMockCallbackContext } from "../helpers/mock-context.js";
 import type { PrismaClient } from "@prisma/client";
 
 /**
  * E2E Tests: Happy Path Smoke Tests
  * Full end-to-end tests covering complete user workflows from start to finish
  */
-
-function createMockMessage(userId: number, text: string, messageId: number = 1): Partial<Context> {
-  return {
-    message: {
-      message_id: messageId,
-      date: Date.now() / 1000,
-      chat: {
-        id: 1,
-        type: "group" as const,
-      },
-      from: {
-        id: userId,
-        is_bot: false,
-        first_name: "Test User",
-        username: "testuser",
-      },
-      text,
-    },
-    chat: {
-      id: 1,
-      type: "group" as const,
-    },
-    telegram: {
-      editMessageText: vi.fn().mockResolvedValue({}),
-      deleteMessage: vi.fn().mockResolvedValue(true),
-    } as any,
-    reply: vi.fn().mockResolvedValue({}),
-  } as Partial<Context>;
-}
-
-function createMockCallback(userId: number, data: string): Partial<Context> {
-  return {
-    callbackQuery: {
-      id: "callback-1",
-      from: {
-        id: userId,
-        is_bot: false,
-        first_name: "Test User",
-        username: "testuser",
-      },
-      chat_instance: "test",
-      message: {
-        message_id: 100,
-        date: Date.now() / 1000,
-        chat: {
-          id: 1,
-          type: "group" as const,
-        },
-      },
-      data,
-    },
-    chat: {
-      id: 1,
-      type: "group" as const,
-    },
-    telegram: {
-      editMessageText: vi.fn().mockResolvedValue({}),
-      deleteMessage: vi.fn().mockResolvedValue(true),
-    } as any,
-    answerCbQuery: vi.fn().mockResolvedValue(true),
-    editMessageText: vi.fn().mockResolvedValue({}),
-  } as Partial<Context>;
-}
 
 describe.skip("E2E: Happy Path Smoke Tests", () => {
   let mockLLMClient: MockLLMClient;
@@ -96,8 +34,6 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     clearConfirmationState("402");
     clearConfirmationState("403");
     clearConfirmationState("404");
-
-    vi.clearAllMocks();
   });
 
   afterEach(async () => {
@@ -138,7 +74,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     );
 
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
-    const ctx = createMockMessage(userId, reviewText) as Context;
+    const ctx = createMockMessageContext(userId, reviewText) as Context;
 
     // Act: User sends hashtag message
     await handleReviewMessage(ctx, botContext);
@@ -187,7 +123,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
 
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
 
-    // Create mock context for /review command with reply_to_message
+    // Create mock context for /review command with reply_to_message using vi.fn()
     const ctx = {
       message: {
         message_id: 1,
@@ -254,7 +190,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     );
 
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
-    const ctx1 = createMockMessage(userId, reviewText) as Context;
+    const ctx1 = createMockMessageContext(userId, reviewText) as Context;
 
     await handleReviewMessage(ctx1, botContext);
 
@@ -269,7 +205,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
       },
     ]);
 
-    const ctx2 = createMockMessage(userId, isbn, 2) as Context;
+    const ctx2 = createMockMessageContext(userId, isbn, 2) as Context;
 
     // Act: User sends ISBN
     const handled = await handleTextInput(ctx2, botContext);
@@ -300,7 +236,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     );
 
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
-    const ctx1 = createMockMessage(userId, reviewText) as Context;
+    const ctx1 = createMockMessageContext(userId, reviewText) as Context;
 
     // Initiate flow
     await handleReviewMessage(ctx1, botContext);
@@ -312,11 +248,11 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
       state.state = "awaiting_title";
     }
 
-    const ctx2 = createMockMessage(userId, title, 2) as Context;
+    const ctx2 = createMockMessageContext(userId, title, 2) as Context;
     await handleTextInput(ctx2, botContext);
 
     // User enters author
-    const ctx3 = createMockMessage(userId, author, 3) as Context;
+    const ctx3 = createMockMessageContext(userId, author, 3) as Context;
     await handleTextInput(ctx3, botContext);
 
     // Assert: Review was created (state cleared)
@@ -359,7 +295,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     );
 
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
-    const ctx1 = createMockMessage(userId, reviewText) as Context;
+    const ctx1 = createMockMessageContext(userId, reviewText) as Context;
 
     // Act: User sends review
     await handleReviewMessage(ctx1, botContext);
@@ -369,7 +305,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     expect(state).not.toBeNull();
 
     // User selects first book option
-    const ctx2 = createMockCallback(userId, "confirm_book:0") as Context;
+    const ctx2 = createMockCallbackContext(userId, "confirm_book:0") as Context;
     await handleBookSelected(ctx2, botContext);
 
     // Assert: State was cleared (review created)
