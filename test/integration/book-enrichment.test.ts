@@ -20,7 +20,8 @@ describe("Book Enrichment Integration", () => {
   let mockClient: MockBookDataClient;
 
   beforeEach(async () => {
-    prisma = await setupTestDatabase();
+    const { prisma: testPrisma } = await setupTestDatabase();
+    prisma = testPrisma;
     mockClient = new MockBookDataClient();
 
     // Seed mock Google Books results
