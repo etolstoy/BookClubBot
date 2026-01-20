@@ -23,7 +23,7 @@ describe.skip("Review Service Integration", () => {
     await teardownTestDatabase(testDb, testDbPath);
   });
 
-  it("Test 1: Create first review for user → stats updated", async () => {
+  it("Create first review for user → stats updated", async () => {
     // Create a book first
     const book = await createBook({
       title: "Test Book",
@@ -62,7 +62,7 @@ describe.skip("Review Service Integration", () => {
     expect(bookReviewCount).toBe(1);
   });
 
-  it("Test 2: Create subsequent review → leaderboard reflects it", async () => {
+  it("Create subsequent review → leaderboard reflects it", async () => {
     // Create books
     const book1 = await createBook({
       title: "Book One",
@@ -120,7 +120,7 @@ describe.skip("Review Service Integration", () => {
     expect(book2ReviewCount).toBe(1);
   });
 
-  it("Test 3: Duplicate detection (same user + messageId) → blocked", async () => {
+  it("Duplicate detection (same user + messageId) → blocked", async () => {
     const book = await createBook({
       title: "Duplicate Test Book",
       author: "Duplicate Author",
@@ -158,7 +158,7 @@ describe.skip("Review Service Integration", () => {
     expect(reviewCount).toBe(1);
   });
 
-  it("Test 4: Sentiment analysis success → review has sentiment", async () => {
+  it("Sentiment analysis success → review has sentiment", async () => {
     const book = await createBook({
       title: "Sentiment Test Book",
       author: "Sentiment Author",
@@ -187,7 +187,7 @@ describe.skip("Review Service Integration", () => {
     expect(savedReview?.sentiment).toBe("positive");
   });
 
-  it("Test 5: Sentiment analysis failure → review has null sentiment", async () => {
+  it("Sentiment analysis failure → review has null sentiment", async () => {
     const book = await createBook({
       title: "No Sentiment Book",
       author: "No Sentiment Author",
@@ -216,7 +216,7 @@ describe.skip("Review Service Integration", () => {
     expect(savedReview?.sentiment).toBeNull();
   });
 
-  it("Test 6: Empty/short review text → still creates review", async () => {
+  it("Empty/short review text → still creates review", async () => {
     const book = await createBook({
       title: "Short Review Book",
       author: "Short Review Author",

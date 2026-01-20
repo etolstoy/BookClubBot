@@ -25,7 +25,7 @@ describe("E2E: ISBN Flow", () => {
     clearConfirmationState("203");
   });
 
-  it("Test 1: Valid ISBN → book found → confirm → review saved", async () => {
+  it("Valid ISBN → book found → confirm → review saved", async () => {
     const userId = "200";
     const isbn = "978-0-7475-3269-9";
 
@@ -63,7 +63,7 @@ describe("E2E: ISBN Flow", () => {
     expect(mockBookDataClient.getCallCount("searchBookByISBN")).toBe(1);
   });
 
-  it("Test 2: Valid ISBN → book not found → error message", async () => {
+  it("Valid ISBN → book not found → error message", async () => {
     const userId = "201";
     const isbn = "978-0-0000-0000-0"; // Non-existent ISBN
 
@@ -91,7 +91,7 @@ describe("E2E: ISBN Flow", () => {
     expect(mockBookDataClient.getCallCount("searchBookByISBN")).toBe(1);
   });
 
-  it("Test 3: Invalid ISBN format → error message", async () => {
+  it("Invalid ISBN format → error message", async () => {
     const userId = "202";
     const invalidIsbn = "123-invalid"; // Invalid format
 
@@ -116,7 +116,7 @@ describe("E2E: ISBN Flow", () => {
     expect(mockBookDataClient.getCallCount("searchBookByISBN")).toBe(0);
   });
 
-  it("Test 4: Google Books API error during ISBN search", async () => {
+  it("Google Books API error during ISBN search", async () => {
     const userId = "203";
     const isbn = "978-0-7475-3269-9";
 

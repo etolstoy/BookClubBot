@@ -36,7 +36,7 @@ describe("E2E: Manual Entry Flow", () => {
     userIds.forEach((id) => clearConfirmationState(id));
   });
 
-  it("Test 1: Complete manual entry → new book created → review saved", async () => {
+  it("Complete manual entry → new book created → review saved", async () => {
     const userId = "300";
     const title = "The Great Gatsby";
     const author = "F. Scott Fitzgerald";
@@ -75,7 +75,7 @@ describe("E2E: Manual Entry Flow", () => {
     expect(editCall[3]).toContain("Поздравляю"); // "Congratulations" in Russian
   });
 
-  it("Test 2: Manual entry → existing book found (exact match) → reused", async () => {
+  it("Manual entry → existing book found (exact match) → reused", async () => {
     const userId = "301";
     const title = "1984";
     const author = "George Orwell";
@@ -104,7 +104,7 @@ describe("E2E: Manual Entry Flow", () => {
     expect(mockLLMClient.getCallCount("analyzeSentiment")).toBe(1);
   });
 
-  it("Test 3: Cancel during title entry", async () => {
+  it("Cancel during title entry", async () => {
     const userId = "302";
 
     // Setup: User is in awaiting_title state
@@ -127,7 +127,7 @@ describe("E2E: Manual Entry Flow", () => {
     expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Отменено");
   });
 
-  it("Test 4: Cancel during author entry", async () => {
+  it("Cancel during author entry", async () => {
     const userId = "303";
 
     // Setup: User is in awaiting_author state (already entered title)
@@ -152,7 +152,7 @@ describe("E2E: Manual Entry Flow", () => {
     expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Отменено");
   });
 
-  it("Test 5: Empty/invalid inputs", async () => {
+  it("Empty/invalid inputs", async () => {
     const userId = "304";
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
 

@@ -6,7 +6,7 @@ import { MockLLMClient } from "../../src/clients/llm/mock-llm-client.js";
 import { MockBookDataClient } from "../../src/clients/book-data/mock-book-data-client.js";
 import { createTestContext } from "../../src/bot/types/bot-context.js";
 import { setupTestDatabase, teardownTestDatabase } from "../helpers/test-db.js";
-import { createMockMessageContext, createMockCallbackContext } from "../helpers/mock-context.js";
+import { createMockMessageContext, createMockCallbackContext, createMockReviewCommandContext } from "../helpers/mock-context.js";
 import type { PrismaClient } from "@prisma/client";
 
 /**
@@ -31,7 +31,6 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     // Clear confirmation states
     clearConfirmationState("400");
     clearConfirmationState("401");
-    clearConfirmationState("402");
     clearConfirmationState("403");
     clearConfirmationState("404");
   });
@@ -40,7 +39,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     await teardownTestDatabase(testDb, testDbPath);
   });
 
-  it("Test 1: Hashtag message → extraction → enrichment → confirm → saved", async () => {
+  it("Hashtag message → extraction → enrichment → confirm → saved", async () => {
     const userId = 400;
     const reviewText = 'Just read "The Great Gatsby" by F. Scott Fitzgerald. Brilliant! #рецензия';
 
@@ -94,7 +93,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     expect(state?.extractedInfo?.title).toBe("The Great Gatsby");
   });
 
-  it("Test 2: /review command → extraction → confirm → saved", async () => {
+  it("/review command → extraction → confirm → saved", async () => {
     const userId = 401;
     const reviewText = 'Finished "1984" by George Orwell. Mind-blowing dystopia.';
 
@@ -122,48 +121,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     ]);
 
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
-
-    // Create mock context for /review command with reply_to_message using vi.fn()
-    const ctx = {
-      message: {
-        message_id: 1,
-        date: Date.now() / 1000,
-        chat: {
-          id: 1,
-          type: "group" as const,
-        },
-        from: {
-          id: userId,
-          is_bot: false,
-          first_name: "Test User",
-          username: "testuser",
-        },
-        text: "/review",
-        reply_to_message: {
-          message_id: 2,
-          date: Date.now() / 1000,
-          chat: {
-            id: 1,
-            type: "group" as const,
-          },
-          from: {
-            id: userId,
-            is_bot: false,
-            first_name: "Test User",
-            username: "testuser",
-          },
-          text: reviewText,
-        },
-      },
-      chat: {
-        id: 1,
-        type: "group" as const,
-      },
-      telegram: {
-        editMessageText: vi.fn().mockResolvedValue({}),
-      } as any,
-      reply: vi.fn().mockResolvedValue({}),
-    } as Partial<Context>;
+    const ctx = createMockReviewCommandContext(userId, "/review", reviewText) as Context;
 
     // Act: User sends /review command
     await handleReviewCommand(ctx as Context, botContext);
@@ -176,48 +134,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     expect(state).not.toBeNull();
   });
 
-  it("Test 3: ISBN entry → search → confirm → saved", async () => {
-    const userId = 402;
-    const isbn = "978-0-06-112008-4";
-
-    // Setup: User is in awaiting_isbn state
-    const reviewText = "Great book! #рецензия";
-
-    // Create initial state via hashtag message (simulating failed extraction)
-    mockLLMClient.mockResponse(
-      { reviewText },
-      { extractedInfo: null }
-    );
-
-    const botContext = createTestContext(mockLLMClient, mockBookDataClient);
-    const ctx1 = createMockMessageContext(userId, reviewText) as Context;
-
-    await handleReviewMessage(ctx1, botContext);
-
-    // Now user enters ISBN
-    mockBookDataClient.seedBooks([
-      {
-        googleBooksId: "mockingbird-id",
-        title: "To Kill a Mockingbird",
-        author: "Harper Lee",
-        isbn: isbn,
-        coverUrl: "https://example.com/mockingbird.jpg",
-      },
-    ]);
-
-    const ctx2 = createMockMessageContext(userId, isbn, 2) as Context;
-
-    // Act: User sends ISBN
-    const handled = await handleTextInput(ctx2, botContext);
-
-    // Assert: ISBN was handled
-    expect(handled).toBe(true);
-
-    // Assert: Book was found by ISBN
-    expect(mockBookDataClient.getCallCount("searchBookByISBN")).toBe(1);
-  });
-
-  it("Test 4: Manual entry → create book → saved", async () => {
+  it("Manual entry → create book → saved", async () => {
     const userId = 403;
     const title = "Custom Book Title";
     const author = "Custom Author";
@@ -263,7 +180,7 @@ describe.skip("E2E: Happy Path Smoke Tests", () => {
     expect(mockLLMClient.getCallCount("analyzeSentiment")).toBeGreaterThan(0);
   });
 
-  it("Test 5: Review saved → leaderboard updated", async () => {
+  it("Review saved → leaderboard updated", async () => {
     const userId = 404;
     const reviewText = 'Read "Pride and Prejudice" by Jane Austen. #рецензия';
 

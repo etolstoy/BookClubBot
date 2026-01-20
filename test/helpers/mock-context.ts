@@ -139,6 +139,7 @@ export function createMockReplyContext(
 
 import { vi } from "vitest";
 import type { BookConfirmationState } from "../../src/bot/types/confirmation-state.js";
+import type { Message } from "telegraf/types";
 
 /**
  * Create a simple mock message context for E2E tests
@@ -272,6 +273,58 @@ export function createMockInputContext(
     } as any,
     answerCbQuery: vi.fn().mockResolvedValue(true),
     editMessageText: vi.fn().mockResolvedValue({}),
+  } as Partial<Context>;
+}
+
+/**
+ * Create a mock context for /review command with reply_to_message
+ * Useful for testing the /review command handler
+ */
+export function createMockReviewCommandContext(
+  userId: number,
+  commandText: string,
+  replyToText: string,
+  replyToMessageId: number = 2
+): Partial<Context> {
+  return {
+    message: {
+      message_id: 1,
+      date: Date.now() / 1000,
+      chat: {
+        id: 1,
+        type: "group" as const,
+      },
+      from: {
+        id: userId,
+        is_bot: false,
+        first_name: "Test User",
+        username: "testuser",
+      },
+      text: commandText,
+      reply_to_message: {
+        message_id: replyToMessageId,
+        date: Date.now() / 1000,
+        chat: {
+          id: 1,
+          type: "group" as const,
+        },
+        from: {
+          id: userId,
+          is_bot: false,
+          first_name: "Test User",
+          username: "testuser",
+        },
+        text: replyToText,
+      } as Message.TextMessage,
+    },
+    chat: {
+      id: 1,
+      type: "group" as const,
+    },
+    telegram: {
+      editMessageText: vi.fn().mockResolvedValue({}),
+    } as any,
+    reply: vi.fn().mockResolvedValue({}),
   } as Partial<Context>;
 }
 
