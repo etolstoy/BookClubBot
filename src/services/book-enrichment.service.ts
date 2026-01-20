@@ -185,6 +185,9 @@ export async function enrichBookInfo(
   prismaClient?: PrismaClient,
   bookDataClient?: IBookDataClient
 ): Promise<EnrichmentResult> {
+  // Create client once if not provided to preserve rate limiting state across all API calls
+  const client = bookDataClient || createBookDataClient();
+
   // Collect all books to enrich (primary + alternatives, max 3 total)
   const booksToEnrich: Array<{ title: string; author: string | null }> = [
     { title: extractedInfo.title, author: extractedInfo.author },
@@ -227,7 +230,7 @@ export async function enrichBookInfo(
       `[Book Enrichment] Searching external book API for ${booksToSearchExternal.length} books not found locally`
     );
     for (const book of booksToSearchExternal) {
-      const matches = await searchExternalBooksWithThreshold(book.title, book.author, 0.9, bookDataClient);
+      const matches = await searchExternalBooksWithThreshold(book.title, book.author, 0.9, client);
       externalMatches.push(...matches);
     }
   }
