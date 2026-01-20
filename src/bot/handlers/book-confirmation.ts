@@ -42,22 +42,6 @@ export function clearConfirmationState(userId: string): void {
 }
 
 /**
- * Cleanup stale states (older than 15 minutes)
- */
-export function cleanupStaleStates(): void {
-  const TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
-  const now = Date.now();
-
-  for (const [userId, state] of pendingBookConfirmations.entries()) {
-    const age = now - state.createdAt.getTime();
-    if (age > TIMEOUT_MS) {
-      console.log(`[Confirmation] Cleaning up stale state for user ${userId}`);
-      pendingBookConfirmations.delete(userId);
-    }
-  }
-}
-
-/**
  * Generate options message UI (showing book matches or manual entry)
  */
 export function generateOptionsMessage(state: BookConfirmationState): {
@@ -322,7 +306,11 @@ export async function handleBookSelected(ctx: Context, botContext?: BotContext) 
   const state = getConfirmationState(userId);
 
   if (!state) {
-    await ctx.answerCbQuery("❌ Сессия истекла. Пожалуйста, отправьте рецензию заново.");
+    await ctx.answerCbQuery(); // Dismiss loading indicator
+    await ctx.editMessageText(
+      "Что-то пошло не так, попробуй запроцессить рецензию заново",
+      { reply_markup: { inline_keyboard: [] } } // Remove buttons
+    );
     return;
   }
 
@@ -411,7 +399,11 @@ export async function handleIsbnRequested(ctx: Context) {
   const state = getConfirmationState(userId);
 
   if (!state) {
-    await ctx.answerCbQuery("❌ Сессия истекла. Пожалуйста, отправьте рецензию заново.");
+    await ctx.answerCbQuery(); // Dismiss loading indicator
+    await ctx.editMessageText(
+      "Что-то пошло не так, попробуй запроцессить рецензию заново",
+      { reply_markup: { inline_keyboard: [] } } // Remove buttons
+    );
     return;
   }
 
@@ -437,7 +429,11 @@ export async function handleManualEntryRequested(ctx: Context) {
   const state = getConfirmationState(userId);
 
   if (!state) {
-    await ctx.answerCbQuery("❌ Сессия истекла. Пожалуйста, отправьте рецензию заново.");
+    await ctx.answerCbQuery(); // Dismiss loading indicator
+    await ctx.editMessageText(
+      "Что-то пошло не так, попробуй запроцессить рецензию заново",
+      { reply_markup: { inline_keyboard: [] } } // Remove buttons
+    );
     return;
   }
 
@@ -477,7 +473,11 @@ export async function handleExtractedBookConfirmed(ctx: Context, botContext?: Bo
   const state = getConfirmationState(userId);
 
   if (!state || !state.extractedInfo) {
-    await ctx.answerCbQuery("❌ Сессия истекла. Пожалуйста, отправьте рецензию заново.");
+    await ctx.answerCbQuery(); // Dismiss loading indicator
+    await ctx.editMessageText(
+      "Что-то пошло не так, попробуй запроцессить рецензию заново",
+      { reply_markup: { inline_keyboard: [] } } // Remove buttons
+    );
     return;
   }
 

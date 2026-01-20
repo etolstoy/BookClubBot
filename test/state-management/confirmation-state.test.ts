@@ -4,8 +4,10 @@ import {
   storeConfirmationState,
   getConfirmationState,
   clearConfirmationState,
-  cleanupStaleStates,
   handleBookSelected,
+  handleIsbnRequested,
+  handleManualEntryRequested,
+  handleExtractedBookConfirmed,
   handleCancel,
   handleTextInput,
 } from "../../src/bot/handlers/book-confirmation.js";
@@ -198,23 +200,100 @@ describe("State Management - Confirmation Flow", () => {
     expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Отменено");
   });
 
-  it("State timeout after 15 minutes", () => {
-    const userId = "126";
+  it("handleBookSelected with missing state edits message and removes buttons", async () => {
+    const userId = "999";
+    const ctx = createMockContext(userId) as Context;
 
-    // Setup: Create state with timestamp 16 minutes ago
-    const oldDate = new Date(Date.now() - 16 * 60 * 1000);
-    const state = createBaseState({ createdAt: oldDate });
-    storeConfirmationState(userId, state);
+    // Mock callback query data for book selection
+    if (ctx.callbackQuery && "data" in ctx.callbackQuery) {
+      ctx.callbackQuery.data = "confirm_book:0";
+    }
 
-    // Verify state exists before cleanup
-    expect(getConfirmationState(userId)).not.toBeNull();
+    // No state stored (missing state scenario)
 
-    // Act: Run cleanup (simulates scheduled cleanup task)
-    cleanupStaleStates();
+    // Act: User clicks button
+    await handleBookSelected(ctx);
 
-    // Assert: Stale state should be removed
-    const finalState = getConfirmationState(userId);
-    expect(finalState).toBeNull();
+    // Assert: Loading indicator dismissed
+    expect(ctx.answerCbQuery).toHaveBeenCalledWith();
+
+    // Assert: Message edited with error and buttons removed
+    expect(ctx.editMessageText).toHaveBeenCalledWith(
+      "Что-то пошло не так, попробуй запроцессить рецензию заново",
+      { reply_markup: { inline_keyboard: [] } }
+    );
+  });
+
+  it("handleIsbnRequested with missing state edits message and removes buttons", async () => {
+    const userId = "998";
+    const ctx = createMockContext(userId) as Context;
+
+    // Mock callback query data for ISBN entry
+    if (ctx.callbackQuery && "data" in ctx.callbackQuery) {
+      ctx.callbackQuery.data = "confirm_isbn";
+    }
+
+    // No state stored (missing state scenario)
+
+    // Act: User clicks ISBN button
+    await handleIsbnRequested(ctx);
+
+    // Assert: Loading indicator dismissed
+    expect(ctx.answerCbQuery).toHaveBeenCalledWith();
+
+    // Assert: Message edited with error and buttons removed
+    expect(ctx.editMessageText).toHaveBeenCalledWith(
+      "Что-то пошло не так, попробуй запроцессить рецензию заново",
+      { reply_markup: { inline_keyboard: [] } }
+    );
+  });
+
+  it("handleManualEntryRequested with missing state edits message and removes buttons", async () => {
+    const userId = "997";
+    const ctx = createMockContext(userId) as Context;
+
+    // Mock callback query data for manual entry
+    if (ctx.callbackQuery && "data" in ctx.callbackQuery) {
+      ctx.callbackQuery.data = "confirm_manual";
+    }
+
+    // No state stored (missing state scenario)
+
+    // Act: User clicks manual entry button
+    await handleManualEntryRequested(ctx);
+
+    // Assert: Loading indicator dismissed
+    expect(ctx.answerCbQuery).toHaveBeenCalledWith();
+
+    // Assert: Message edited with error and buttons removed
+    expect(ctx.editMessageText).toHaveBeenCalledWith(
+      "Что-то пошло не так, попробуй запроцессить рецензию заново",
+      { reply_markup: { inline_keyboard: [] } }
+    );
+  });
+
+  it("handleExtractedBookConfirmed with missing state edits message and removes buttons", async () => {
+    const userId = "996";
+    const ctx = createMockContext(userId) as Context;
+
+    // Mock callback query data for extracted book confirmation
+    if (ctx.callbackQuery && "data" in ctx.callbackQuery) {
+      ctx.callbackQuery.data = "confirm_extracted";
+    }
+
+    // No state stored (missing state scenario)
+
+    // Act: User clicks extracted book button
+    await handleExtractedBookConfirmed(ctx);
+
+    // Assert: Loading indicator dismissed
+    expect(ctx.answerCbQuery).toHaveBeenCalledWith();
+
+    // Assert: Message edited with error and buttons removed
+    expect(ctx.editMessageText).toHaveBeenCalledWith(
+      "Что-то пошло не так, попробуй запроцессить рецензию заново",
+      { reply_markup: { inline_keyboard: [] } }
+    );
   });
 
   it("Prevent overlapping confirmations (same user)", () => {
