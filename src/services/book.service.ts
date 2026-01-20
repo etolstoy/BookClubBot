@@ -499,8 +499,8 @@ export async function processReviewText(
   const { id, isNew } = await findOrCreateBook(
     bookInfo.title,
     bookInfo.author,
-    bookInfo.titleVariants,
-    bookInfo.authorVariants,
+    undefined, // titleVariants removed from ExtractedBookInfo
+    undefined, // authorVariants removed from ExtractedBookInfo
     bookDataClient
   );
 

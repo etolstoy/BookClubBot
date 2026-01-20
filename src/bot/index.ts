@@ -25,14 +25,14 @@ export function createBot() {
 
   // Commands
   bot.command("start", handleStartCommand);
-  bot.command("review", handleReviewCommand);
+  bot.command("review", (ctx) => handleReviewCommand(ctx));
 
   // Callback query handlers for confirmation flow
-  bot.action(/^confirm_book:/, handleBookSelected);
-  bot.action(/^confirm_isbn$/, handleIsbnRequested);
-  bot.action(/^confirm_manual$/, handleManualEntryRequested);
-  bot.action(/^confirm_extracted$/, handleExtractedBookConfirmed);
-  bot.action(/^confirm_cancel$/, handleCancel);
+  bot.action(/^confirm_book:/, (ctx) => handleBookSelected(ctx));
+  bot.action(/^confirm_isbn$/, (ctx) => handleIsbnRequested(ctx));
+  bot.action(/^confirm_manual$/, (ctx) => handleManualEntryRequested(ctx));
+  bot.action(/^confirm_extracted$/, (ctx) => handleExtractedBookConfirmed(ctx));
+  bot.action(/^confirm_cancel$/, (ctx) => handleCancel(ctx));
 
   // Message handlers
   // Handle text messages in priority order:
@@ -48,17 +48,17 @@ export function createBot() {
     // Continue to review message handler
     return next();
   });
-  bot.on(message("text"), handleReviewMessage);
+  bot.on(message("text"), (ctx) => handleReviewMessage(ctx));
 
   // Also handle media messages with captions (photo, video, document, etc.)
   // These can contain review hashtags in their captions
-  bot.on(message("photo"), handleReviewMessage);
-  bot.on(message("video"), handleReviewMessage);
-  bot.on(message("document"), handleReviewMessage);
-  bot.on(message("animation"), handleReviewMessage);
-  bot.on(message("audio"), handleReviewMessage);
-  bot.on(message("voice"), handleReviewMessage);
-  bot.on(message("video_note"), handleReviewMessage);
+  bot.on(message("photo"), (ctx) => handleReviewMessage(ctx));
+  bot.on(message("video"), (ctx) => handleReviewMessage(ctx));
+  bot.on(message("document"), (ctx) => handleReviewMessage(ctx));
+  bot.on(message("animation"), (ctx) => handleReviewMessage(ctx));
+  bot.on(message("audio"), (ctx) => handleReviewMessage(ctx));
+  bot.on(message("voice"), (ctx) => handleReviewMessage(ctx));
+  bot.on(message("video_note"), (ctx) => handleReviewMessage(ctx));
 
   return bot;
 }

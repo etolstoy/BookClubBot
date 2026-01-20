@@ -2,7 +2,7 @@ import prisma from "../lib/prisma.js";
 import { config } from "../lib/config.js";
 import { analyzeSentiment, type Sentiment } from "./sentiment.js";
 import { processReviewText } from "./book.service.js";
-import type { ExtractedBookInfo } from "./llm.js";
+import type { ExtractedBookInfo } from "../lib/interfaces/llm-client.interface.js";
 
 export interface CreateReviewInput {
   bookId?: number | null;
