@@ -7,6 +7,7 @@ import { enrichBookInfo } from "../../services/book-enrichment.service.js";
 import {
   storeConfirmationState,
   getConfirmationState,
+  clearConfirmationState,
   generateOptionsMessage,
 } from "./book-confirmation.js";
 import type { BookConfirmationState } from "../types/confirmation-state.js";
@@ -153,14 +154,22 @@ async function processReview(
     return;
   }
 
-  // Check if user already has a pending confirmation
+  // Check if user has pending confirmation - replace it with new one
   const existingState = getConfirmationState(userId);
   if (existingState) {
-    await ctx.reply(
-      "⚠️ У вас уже есть незавершённая рецензия. Пожалуйста, завершите её сначала или отмените.",
-      { reply_parameters: { message_id: message.message_id } }
-    );
-    return;
+    // Delete old confirmation message
+    if (existingState.statusMessageId && existingState.reviewData.chatId) {
+      try {
+        await ctx.telegram.deleteMessage(
+          Number(existingState.reviewData.chatId),
+          existingState.statusMessageId
+        );
+      } catch {
+        // Ignore if message can't be deleted (already deleted, no permissions, etc.)
+      }
+    }
+    clearConfirmationState(userId);
+    console.log(`[Review] Replaced pending review for user ${userId}`);
   }
 
   // Send processing message

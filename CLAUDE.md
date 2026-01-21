@@ -222,7 +222,7 @@ The bot implements a sophisticated state machine (`src/bot/handlers/book-confirm
 - Confirmation states stored in-memory Map (`pendingBookConfirmations`)
 - Each state includes: review data, extracted book info, enrichment results, current flow state
 - 15-minute timeout with automatic cleanup (runs every 5 minutes)
-- Prevents overlapping confirmations for the same user
+- New review automatically replaces pending confirmation for same user
 
 **User Interaction Modes:**
 1. **Matched Books Selection**: When LLM extraction succeeds and enrichment finds matches

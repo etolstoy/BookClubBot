@@ -337,8 +337,6 @@ export async function handleBookSelected(ctx: Context, botContext?: BotContext) 
     return;
   }
 
-  await ctx.answerCbQuery("✅ Создаю рецензию...");
-
   try {
     // Find or create book in database
     let bookId: number;
@@ -405,6 +403,7 @@ export async function handleBookSelected(ctx: Context, botContext?: BotContext) 
     clearConfirmationState(userId);
   } catch (error) {
     console.error("[Confirmation] Error creating review:", error);
+    await ctx.answerCbQuery(); // Dismiss loading indicator
     await ctx.editMessageText(
       "❌ Произошла ошибка при создании рецензии. Пожалуйста, попробуйте ещё раз."
     );
@@ -482,8 +481,15 @@ export async function handleCancel(ctx: Context) {
   const userId = callbackQuery.from.id.toString();
   clearConfirmationState(userId);
 
-  await ctx.answerCbQuery("❌ Отменено");
-  await ctx.editMessageText("❌ Создание рецензии отменено.");
+  // Show toast notification
+  await ctx.answerCbQuery("❌ Создание рецензии отменено");
+
+  // Delete confirmation message to keep chat clean
+  try {
+    await ctx.deleteMessage();
+  } catch {
+    // Ignore if message can't be deleted (already deleted, no permissions, etc.)
+  }
 }
 
 /**
@@ -504,8 +510,6 @@ export async function handleExtractedBookConfirmed(ctx: Context, botContext?: Bo
     );
     return;
   }
-
-  await ctx.answerCbQuery("✅ Создаю рецензию...");
 
   const title = state.extractedInfo.title;
   const author = state.extractedInfo.author || "";
@@ -581,6 +585,7 @@ export async function handleExtractedBookConfirmed(ctx: Context, botContext?: Bo
     clearConfirmationState(userId);
   } catch (error) {
     console.error("[Confirmation] Error creating book/review from extracted info:", error);
+    await ctx.answerCbQuery(); // Dismiss loading indicator
     await ctx.editMessageText(
       "❌ Произошла ошибка при создании рецензии. Пожалуйста, попробуйте ещё раз."
     );
