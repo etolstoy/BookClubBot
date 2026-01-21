@@ -65,11 +65,6 @@ export default function ReviewersLeaderboard() {
 
   return (
     <div className="p-4">
-      <button onClick={() => navigate("/")} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
-        <span>&larr;</span>
-        <span>{t("common.back")}</span>
-      </button>
-
       <h1 className="text-2xl font-bold text-tg-text mb-4">{t("reviewersLeaderboard.topReviewers")}</h1>
 
       <div className="flex gap-2 mb-6">

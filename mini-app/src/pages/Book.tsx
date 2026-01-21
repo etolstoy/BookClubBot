@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { getBook, isCurrentUserAdmin, type BookDetail, type Review } from "../api/client";
 import ReviewCard from "../components/ReviewCard";
 import SentimentBadge from "../components/SentimentBadge";
@@ -140,7 +140,12 @@ export default function Book() {
             )}
           </div>
           {book.author && (
-            <p className="text-tg-hint mt-1">{book.author}</p>
+            <Link
+              to={`/author/${encodeURIComponent(book.author)}`}
+              className="text-tg-hint mt-1 hover:text-tg-link hover:underline transition-colors inline-block"
+            >
+              {book.author}
+            </Link>
           )}
           {book.publicationYear && (
             <p className="text-sm text-tg-hint">{book.publicationYear}</p>

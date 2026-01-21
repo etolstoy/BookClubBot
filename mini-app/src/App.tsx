@@ -49,6 +49,8 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const deepLinkHandled = useRef(false);
+  const initialPath = useRef<string | null>(null);
+  const navigationDepth = useRef(0);
 
   // Initialize Telegram WebApp and handle deep links (only once)
   useEffect(() => {
@@ -57,6 +59,11 @@ function AppContent() {
 
     tg.ready();
     tg.expand();
+
+    // Store initial path
+    if (initialPath.current === null) {
+      initialPath.current = location.pathname;
+    }
 
     // Handle deep links only once
     if (!deepLinkHandled.current) {
@@ -77,6 +84,11 @@ function AppContent() {
     }
   }, []); // Run only once on mount
 
+  // Track navigation depth
+  useEffect(() => {
+    navigationDepth.current++;
+  }, [location.pathname]);
+
   // Manage Telegram BackButton based on current route
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -93,7 +105,13 @@ function AppContent() {
 
       // Handle back button click
       const handleBackClick = () => {
-        navigate("/");
+        // If we've navigated within the app (depth > 1), use history back
+        // Otherwise, go to home page
+        if (navigationDepth.current > 1 && location.pathname !== initialPath.current) {
+          navigate(-1);
+        } else {
+          navigate("/");
+        }
       };
 
       tg.BackButton.onClick(handleBackClick);
