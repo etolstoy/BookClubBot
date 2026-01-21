@@ -337,8 +337,6 @@ export async function handleBookSelected(ctx: Context, botContext?: BotContext) 
     return;
   }
 
-  await ctx.answerCbQuery("✅ Создаю рецензию...");
-
   try {
     // Find or create book in database
     let bookId: number;
@@ -405,6 +403,7 @@ export async function handleBookSelected(ctx: Context, botContext?: BotContext) 
     clearConfirmationState(userId);
   } catch (error) {
     console.error("[Confirmation] Error creating review:", error);
+    await ctx.answerCbQuery(); // Dismiss loading indicator
     await ctx.editMessageText(
       "❌ Произошла ошибка при создании рецензии. Пожалуйста, попробуйте ещё раз."
     );
@@ -512,8 +511,6 @@ export async function handleExtractedBookConfirmed(ctx: Context, botContext?: Bo
     return;
   }
 
-  await ctx.answerCbQuery("✅ Создаю рецензию...");
-
   const title = state.extractedInfo.title;
   const author = state.extractedInfo.author || "";
 
@@ -588,6 +585,7 @@ export async function handleExtractedBookConfirmed(ctx: Context, botContext?: Bo
     clearConfirmationState(userId);
   } catch (error) {
     console.error("[Confirmation] Error creating book/review from extracted info:", error);
+    await ctx.answerCbQuery(); // Dismiss loading indicator
     await ctx.editMessageText(
       "❌ Произошла ошибка при создании рецензии. Пожалуйста, попробуйте ещё раз."
     );
