@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { getRecentReviews, type Review } from "../api/client";
 import ReviewCard from "../components/ReviewCard";
 import Loading from "../components/Loading";
@@ -9,7 +9,6 @@ import { useTranslation } from "../i18n/index.js";
 const REVIEWS_PER_PAGE = 20;
 
 export default function FreshReviews() {
-  const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -73,11 +72,6 @@ export default function FreshReviews() {
 
   return (
     <div className="p-4">
-      <button onClick={() => navigate("/")} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
-        <span>&larr;</span>
-        <span>{t("common.back")}</span>
-      </button>
-
       <h1 className="text-2xl font-bold text-tg-text mb-4">{t("freshReviews.title")}</h1>
 
       {loading && <Loading />}

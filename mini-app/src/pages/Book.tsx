@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { getBook, isCurrentUserAdmin, type BookDetail, type Review } from "../api/client";
 import ReviewCard from "../components/ReviewCard";
 import SentimentBadge from "../components/SentimentBadge";
@@ -111,11 +111,6 @@ export default function Book() {
 
   return (
     <div className="p-4">
-      <button onClick={() => navigate(-1)} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
-        <span>&larr;</span>
-        <span>{t("common.back")}</span>
-      </button>
-
       <div className="flex gap-4 mb-6">
         <div className="w-24 h-36 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
           {book.coverUrl ? (
@@ -145,7 +140,12 @@ export default function Book() {
             )}
           </div>
           {book.author && (
-            <p className="text-tg-hint mt-1">{book.author}</p>
+            <Link
+              to={`/author/${encodeURIComponent(book.author)}`}
+              className="text-tg-hint mt-1 hover:text-tg-link hover:underline transition-colors inline-block"
+            >
+              {book.author}
+            </Link>
           )}
           {book.publicationYear && (
             <p className="text-sm text-tg-hint">{book.publicationYear}</p>

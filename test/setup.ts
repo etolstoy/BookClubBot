@@ -7,6 +7,7 @@ import { beforeAll, afterAll } from 'vitest';
 
 // Set test environment
 process.env.NODE_ENV = 'test';
+process.env.BOT_USERNAME = 'test_bot';
 
 beforeAll(async () => {
   console.log('🧪 Test environment initialized');

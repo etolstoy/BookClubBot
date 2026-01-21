@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { getAuthorBooks, type Book } from "../api/client.js";
 import BookCard from "../components/BookCard.js";
 import Loading from "../components/Loading.js";
@@ -10,7 +10,6 @@ const BOOKS_PER_PAGE = 20;
 
 export default function AuthorBooks() {
   const { author: encodedAuthor } = useParams<{ author: string }>();
-  const navigate = useNavigate();
   const { t, plural } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [books, setBooks] = useState<Book[]>([]);
@@ -76,14 +75,6 @@ export default function AuthorBooks() {
 
   return (
     <div className="p-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2"
-      >
-        <span>&larr;</span>
-        <span>{t("common.back")}</span>
-      </button>
-
       <h1 className="text-2xl font-bold text-tg-text mb-2">
         {authorName}
       </h1>

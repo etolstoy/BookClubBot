@@ -72,7 +72,9 @@ describe("E2E: Manual Entry Flow", () => {
     // Assert: Success message was shown
     expect(ctx2.telegram.editMessageText).toHaveBeenCalled();
     const editCall = (ctx2.telegram.editMessageText as any).mock.calls[0];
-    expect(editCall[3]).toContain("Поздравляю"); // "Congratulations" in Russian
+    // New success message format: "Теперь на книгу «Title» написано N рецензий (👍 X, ...)"
+    expect(editCall[3]).toContain("написано"); // "written" in Russian
+    expect(editCall[3]).toContain("рецензи"); // "review" in Russian (covers рецензия/рецензии/рецензий)
   });
 
   it("Manual entry → existing book found (exact match) → reused", async () => {

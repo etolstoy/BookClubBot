@@ -148,6 +148,35 @@ export async function getUserReviewStats(telegramUserId: bigint) {
   };
 }
 
+/**
+ * Get sentiment breakdown for a book's reviews
+ * Returns count of positive, negative, and neutral reviews
+ */
+export async function getBookSentimentBreakdown(
+  bookId: number,
+  prismaClient: typeof prisma = prisma
+): Promise<{
+  positive: number;
+  negative: number;
+  neutral: number;
+}> {
+  const sentimentCounts = await prismaClient.review.groupBy({
+    by: ["sentiment"],
+    where: { bookId },
+    _count: { sentiment: true },
+  });
+
+  const breakdown = { positive: 0, negative: 0, neutral: 0 };
+
+  for (const item of sentimentCounts) {
+    if (item.sentiment === "positive") breakdown.positive = item._count.sentiment;
+    else if (item.sentiment === "negative") breakdown.negative = item._count.sentiment;
+    else if (item.sentiment === "neutral") breakdown.neutral = item._count.sentiment;
+  }
+
+  return breakdown;
+}
+
 export async function checkDuplicateReview(
   telegramUserId: bigint,
   messageId: bigint

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { getPopularAuthors, type AuthorLeaderboardEntry } from "../api/client.js";
 import Loading from "../components/Loading.js";
 import ErrorMessage from "../components/ErrorMessage.js";
@@ -8,7 +8,6 @@ import { useTranslation } from "../i18n/index.js";
 const AUTHORS_PER_PAGE = 20;
 
 export default function PopularAuthors() {
-  const navigate = useNavigate();
   const { t, plural } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [authors, setAuthors] = useState<AuthorLeaderboardEntry[]>([]);
@@ -72,14 +71,6 @@ export default function PopularAuthors() {
 
   return (
     <div className="p-4">
-      <button
-        onClick={() => navigate("/")}
-        className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2"
-      >
-        <span>&larr;</span>
-        <span>{t("common.back")}</span>
-      </button>
-
       <h1 className="text-2xl font-bold text-tg-text mb-4">
         {t("popularAuthors.title")}
       </h1>

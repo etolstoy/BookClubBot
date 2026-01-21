@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { getBooks, searchBooks as searchBooksApi, type Book } from "../api/client";
 import BookCard from "../components/BookCard";
 import SearchBar from "../components/SearchBar";
@@ -10,7 +10,6 @@ import { useTranslation } from "../i18n/index.js";
 type SortOption = "recentlyReviewed" | "alphabetical";
 
 export default function BrowseBooks() {
-  const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [books, setBooks] = useState<Book[]>([]);
@@ -69,11 +68,6 @@ export default function BrowseBooks() {
 
   return (
     <div className="p-4">
-      <button onClick={() => navigate("/")} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
-        <span>&larr;</span>
-        <span>{t("common.back")}</span>
-      </button>
-
       <h1 className="text-2xl font-bold text-tg-text mb-4">{t("browseBooks.title")}</h1>
 
       <div className="mb-4">
