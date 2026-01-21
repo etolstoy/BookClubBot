@@ -6,10 +6,14 @@ import { ConfigContext } from "../App";
 import SentimentBadge from "./SentimentBadge";
 import EditReviewModal from "./EditReviewModal";
 import { useTranslation } from "../i18n/index.js";
+import { getReviewDeepLink, copyToClipboard, showHapticFeedback } from "../lib/deepLinks.js";
+import { useToast } from "../hooks/useToast.js";
+import Toast from "./Toast.js";
 
 interface ReviewCardProps {
   review: Review;
   showBook?: boolean;
+  showShareButton?: boolean;
   onReviewUpdated?: (updatedReview: Review) => void;
   onReviewDeleted?: () => void;
 }
@@ -17,11 +21,13 @@ interface ReviewCardProps {
 export default function ReviewCard({
   review,
   showBook = false,
+  showShareButton = true,
   onReviewUpdated,
   onReviewDeleted,
 }: ReviewCardProps) {
   const { t } = useTranslation();
   const config = useContext(ConfigContext);
+  const { message, showToast } = useToast();
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentReview, setCurrentReview] = useState(review);
 
@@ -46,6 +52,20 @@ export default function ReviewCard({
     }
   };
 
+  const handleCopyLink = async () => {
+    if (!config?.botUsername) return;
+
+    try {
+      const url = getReviewDeepLink(config.botUsername, currentReview.id);
+      await copyToClipboard(url);
+      showHapticFeedback();
+      showToast(t("common.linkCopied"));
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+      showToast("Ошибка копирования");
+    }
+  };
+
   return (
     <>
       <div className="p-4 rounded-lg bg-tg-secondary">
@@ -60,7 +80,12 @@ export default function ReviewCard({
             {currentReview.sentiment && (
               <SentimentBadge sentiment={currentReview.sentiment} />
             )}
-            <span className="text-xs text-tg-hint">{formattedDate}</span>
+            <Link
+              to={`/review/${currentReview.id}`}
+              className="text-xs text-tg-hint no-underline hover:opacity-70"
+            >
+              {formattedDate}
+            </Link>
             {canEdit && (
               <button
                 onClick={() => setShowEditModal(true)}
@@ -101,7 +126,18 @@ export default function ReviewCard({
         <p className="text-sm text-tg-text whitespace-pre-wrap">
           {currentReview.reviewText}
         </p>
+
+        {showShareButton && config?.botUsername && (
+          <button
+            onClick={handleCopyLink}
+            className="mt-3 text-xs text-tg-hint hover:text-tg-text transition-colors"
+          >
+            🔗 {t("common.copyLink")}
+          </button>
+        )}
       </div>
+
+      {message && <Toast message={message} />}
 
       {showEditModal && (
         <EditReviewModal

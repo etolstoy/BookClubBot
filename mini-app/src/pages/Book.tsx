@@ -6,8 +6,10 @@ import SentimentBadge from "../components/SentimentBadge";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
 import EditBookModal from "../components/EditBookModal";
+import Layout from "../components/Layout";
 import { useTranslation } from "../i18n/index.js";
 import { ConfigContext } from "../App";
+import { getBookDeepLink } from "../lib/deepLinks.js";
 
 export default function Book() {
   const { id } = useParams<{ id: string }>();
@@ -109,8 +111,13 @@ export default function Book() {
 
   const { positive, negative, neutral } = book.sentiments;
 
+  const shareUrl = config?.botUsername && book
+    ? getBookDeepLink(config.botUsername, book.id)
+    : undefined;
+
   return (
-    <div className="p-4">
+    <Layout shareUrl={shareUrl}>
+      <div className="p-4">
       <div className="flex gap-4 mb-6">
         <div className="w-24 h-36 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
           {book.coverUrl ? (
@@ -264,6 +271,7 @@ export default function Book() {
           onDelete={handleBookDeleted}
         />
       )}
-    </div>
+      </div>
+    </Layout>
   );
 }

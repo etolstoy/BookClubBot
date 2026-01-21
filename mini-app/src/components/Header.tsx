@@ -1,6 +1,11 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import ShareButton from "./ShareButton.js";
 
-export default function Header() {
+interface HeaderProps {
+  shareUrl?: string;
+}
+
+export default function Header({ shareUrl }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -19,23 +24,30 @@ export default function Header() {
   };
 
   return (
-    <div className="flex items-center gap-2 px-4 py-3 bg-tg-bg sticky top-0 z-50 border-b border-tg-secondary">
-      {showBackButton && (
+    <div className="flex items-center justify-between gap-2 px-4 py-3 bg-tg-bg sticky top-0 z-50 border-b border-tg-secondary">
+      <div className="flex items-center gap-2">
+        {showBackButton && (
+          <button
+            onClick={handleBack}
+            className="text-tg-text hover:opacity-80 transition-opacity mr-2"
+            aria-label="Back"
+          >
+            <span className="text-xl">←</span>
+          </button>
+        )}
         <button
-          onClick={handleBack}
-          className="text-tg-text hover:opacity-80 transition-opacity mr-2"
-          aria-label="Back"
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <span className="text-xl">←</span>
+          <img src="/logo.png" alt="Вастрик.Книги" className="h-6 w-6" />
+          <span className="text-lg font-bold text-tg-text">Вастрик.Книги</span>
         </button>
+      </div>
+      {shareUrl && (
+        <div className="flex items-center">
+          <ShareButton url={shareUrl} />
+        </div>
       )}
-      <button
-        onClick={() => navigate("/")}
-        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-      >
-        <img src="/logo.png" alt="Вастрик.Книги" className="h-6 w-6" />
-        <span className="text-lg font-bold text-tg-text">Вастрик.Книги</span>
-      </button>
     </div>
   );
 }

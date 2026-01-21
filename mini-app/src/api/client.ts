@@ -365,6 +365,10 @@ export async function getRecentReviews(options?: {
   return fetchApi(`/reviews/recent${query ? `?${query}` : ""}`);
 }
 
+export async function getReviewById(id: number): Promise<{ review: Review }> {
+  return fetchApi(`/reviews/${id}`);
+}
+
 export interface UpdateReviewInput {
   reviewText?: string;
   sentiment?: "positive" | "negative" | "neutral";
@@ -451,6 +455,7 @@ export async function getAuthorBooks(
 
 export interface Config {
   adminUserIds: string[];
+  botUsername: string;
 }
 
 export async function getConfig(): Promise<Config> {
