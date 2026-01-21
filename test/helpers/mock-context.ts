@@ -174,7 +174,12 @@ export function createMockMessageContext(
       editMessageText: vi.fn().mockResolvedValue({}),
       deleteMessage: vi.fn().mockResolvedValue(true),
     } as any,
-    reply: vi.fn().mockResolvedValue({}),
+    reply: vi.fn().mockResolvedValue({
+      message_id: Math.floor(Math.random() * 10000),
+      date: Date.now() / 1000,
+      chat: { id: 1, type: "group" as const },
+      text: "",
+    }),
   } as Partial<Context>;
 }
 

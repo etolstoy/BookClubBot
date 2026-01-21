@@ -296,7 +296,7 @@ describe("State Management - Confirmation Flow", () => {
     );
   });
 
-  it("Prevent overlapping confirmations (same user)", () => {
+  it("Multiple reviews from same user → second replaces first (Map behavior)", () => {
     const userId = "127";
 
     // Setup: Store initial state
