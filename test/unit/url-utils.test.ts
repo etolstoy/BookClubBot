@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getGoogleBooksUrl, generateGoodreadsUrl } from '../../src/lib/url-utils.js';
+import { getGoogleBooksUrl, generateGoodreadsUrl, getTelegramDeepLink, getBookDeepLink } from '../../src/lib/url-utils.js';
 
 describe('URL Utils', () => {
   describe('getGoogleBooksUrl', () => {
@@ -124,6 +124,65 @@ describe('URL Utils', () => {
         const result = generateGoodreadsUrl(null, '   ', null);
         expect(result).toBe('https://www.goodreads.com/search?q=%20%20%20');
       });
+    });
+  });
+
+  describe('getTelegramDeepLink', () => {
+    it('should generate valid Telegram deep link format', () => {
+      const link = getTelegramDeepLink('my_bot', 'book_123');
+      expect(link).toBe('https://t.me/my_bot?startapp=book_123');
+    });
+
+    it('should handle bot username without @ prefix', () => {
+      const link = getTelegramDeepLink('bot_name', 'reviewer_456');
+      expect(link).toBe('https://t.me/bot_name?startapp=reviewer_456');
+    });
+
+    it('should handle special parameters', () => {
+      const link = getTelegramDeepLink('bot', 'leaderboard');
+      expect(link).toBe('https://t.me/bot?startapp=leaderboard');
+    });
+
+    it('should handle numeric parameters in startParam', () => {
+      const link = getTelegramDeepLink('test_bot', 'book_999');
+      expect(link).toBe('https://t.me/test_bot?startapp=book_999');
+    });
+
+    it('should handle underscores in bot username', () => {
+      const link = getTelegramDeepLink('my_cool_bot', 'book_1');
+      expect(link).toBe('https://t.me/my_cool_bot?startapp=book_1');
+    });
+
+    it('should handle simple bot names', () => {
+      const link = getTelegramDeepLink('bot', 'param');
+      expect(link).toBe('https://t.me/bot?startapp=param');
+    });
+  });
+
+  describe('getBookDeepLink', () => {
+    it('should generate book deep link with correct format', () => {
+      const link = getBookDeepLink('my_bot', 42);
+      expect(link).toBe('https://t.me/my_bot?startapp=book_42');
+    });
+
+    it('should handle single-digit book IDs', () => {
+      const link = getBookDeepLink('bot', 1);
+      expect(link).toBe('https://t.me/bot?startapp=book_1');
+    });
+
+    it('should handle large book IDs', () => {
+      const link = getBookDeepLink('bot', 999999);
+      expect(link).toBe('https://t.me/bot?startapp=book_999999');
+    });
+
+    it('should handle zero book ID', () => {
+      const link = getBookDeepLink('test_bot', 0);
+      expect(link).toBe('https://t.me/test_bot?startapp=book_0');
+    });
+
+    it('should prefix book ID with "book_"', () => {
+      const link = getBookDeepLink('my_bot', 5);
+      expect(link).toContain('startapp=book_5');
     });
   });
 });

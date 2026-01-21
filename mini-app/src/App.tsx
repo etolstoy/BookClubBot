@@ -1,5 +1,5 @@
-import { useEffect, useState, createContext } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { useEffect, useState, createContext, useRef } from "react";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { getConfig, type Config } from "./api/client";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
@@ -47,17 +47,23 @@ declare global {
 
 function AppContent() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const deepLinkHandled = useRef(false);
 
+  // Initialize Telegram WebApp and handle deep links (only once)
   useEffect(() => {
-    // Initialize Telegram WebApp
     const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
+    if (!tg) return;
 
-      // Handle deep links
+    tg.ready();
+    tg.expand();
+
+    // Handle deep links only once
+    if (!deepLinkHandled.current) {
       const startParam = tg.initDataUnsafe?.start_param;
       if (startParam) {
+        deepLinkHandled.current = true;
+
         if (startParam.startsWith("book_")) {
           const bookId = startParam.replace("book_", "");
           navigate(`/book/${bookId}`);
@@ -69,7 +75,35 @@ function AppContent() {
         }
       }
     }
-  }, [navigate]);
+  }, []); // Run only once on mount
+
+  // Manage Telegram BackButton based on current route
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (!tg?.BackButton) return;
+
+    const isHomePage = location.pathname === "/";
+
+    if (isHomePage) {
+      // Hide back button on home page
+      tg.BackButton.hide();
+    } else {
+      // Show back button on all other pages
+      tg.BackButton.show();
+
+      // Handle back button click
+      const handleBackClick = () => {
+        navigate("/");
+      };
+
+      tg.BackButton.onClick(handleBackClick);
+
+      // Cleanup
+      return () => {
+        tg.BackButton.offClick(handleBackClick);
+      };
+    }
+  }, [location.pathname, navigate]);
 
   return (
     <Layout>

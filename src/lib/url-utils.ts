@@ -36,3 +36,29 @@ export function generateGoodreadsUrl(
   const encodedQuery = encodeURIComponent(query);
   return `https://www.goodreads.com/search?q=${encodedQuery}`;
 }
+
+/**
+ * Generate Telegram deep link with startapp parameter
+ * @param botUsername - Bot username from @BotFather (without @ prefix)
+ * @param startParam - Parameter passed to Mini App (e.g., "book_123")
+ * @returns Telegram deep link (https://t.me/botusername?startapp=book_123)
+ */
+export function getTelegramDeepLink(
+  botUsername: string,
+  startParam: string
+): string {
+  return `https://t.me/${botUsername}?startapp=${startParam}`;
+}
+
+/**
+ * Generate deep link to Mini App book page
+ * @param botUsername - Bot username
+ * @param bookId - Database book ID
+ * @returns Deep link to book page
+ */
+export function getBookDeepLink(
+  botUsername: string,
+  bookId: number
+): string {
+  return getTelegramDeepLink(botUsername, `book_${bookId}`);
+}

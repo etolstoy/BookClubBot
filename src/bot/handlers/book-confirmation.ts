@@ -1,11 +1,12 @@
 import { Context, Markup } from "telegraf";
-import { Message } from "telegraf/types";
+import { Message, InlineKeyboardMarkup } from "telegraf/types";
 import prisma from "../../lib/prisma.js";
 import { config } from "../../lib/config.js";
 import { isValidISBN } from "../../lib/isbn-utils.js";
+import { getBookDeepLink } from "../../lib/url-utils.js";
 import { createBookDataClient } from "../../clients/book-data/factory.js";
 import { findOrCreateBook, createBook } from "../../services/book.service.js";
-import { createReview } from "../../services/review.service.js";
+import { createReview, getBookSentimentBreakdown } from "../../services/review.service.js";
 import { analyzeSentiment } from "../../services/sentiment.js";
 import { enrichBookInfo, searchLocalBooks } from "../../services/book-enrichment.service.js";
 import type {
@@ -241,56 +242,69 @@ function getOrdinalNumber(n: number): string {
 /**
  * Get Russian plural form for "рецензия"
  */
-function getReviewPlural(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
+/**
+ * Get correct Russian word form for review count
+ * Examples: 1 рецензия, 2 рецензии, 5 рецензий
+ */
+function getReviewWord(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
 
-  if (mod100 >= 11 && mod100 <= 19) {
-    return "рецензий";
-  }
-
-  if (mod10 === 1) {
-    return "рецензия";
-  }
-
-  if (mod10 >= 2 && mod10 <= 4) {
-    return "рецензии";
-  }
-
+  if (mod100 >= 11 && mod100 <= 14) return "рецензий";
+  if (mod10 === 1) return "рецензия";
+  if (mod10 >= 2 && mod10 <= 4) return "рецензии";
   return "рецензий";
 }
 
 /**
- * Generate success message
+ * Generate success response with conditional behavior
+ * - 1st review: Toast only, no chat message
+ * - 2+ reviews: Toast + chat message with sentiment breakdown + deep link button
  */
-function generateSuccessMessage(
+async function generateSuccessResponse(
+  bookId: number,
   bookTitle: string,
-  userReviewCount: number,
-  bookReviewCount: number,
-  bookId: number
-): {
-  text: string;
-  keyboard: ReturnType<typeof Markup.inlineKeyboard>;
-} {
-  let text: string;
+  bookAuthor: string,
+  bookReviewCount: number
+): Promise<{
+  toastMessage: string;
+  chatMessage?: {
+    text: string;
+    keyboard: Markup.Markup<InlineKeyboardMarkup>;
+  };
+}> {
+  // Always show toast notification
+  const toastMessage = "✅ Рецензия сохранена!";
 
-  // Primary message: congratulate user on their review count
-  if (userReviewCount === 1) {
-    text = `🎉 Поздравляю с ${getOrdinalNumber(userReviewCount)} рецензией!\n\n`;
-  } else {
-    text = `🎉 Поздравляю с твоей ${getOrdinalNumber(userReviewCount)} рецензией!\n\n`;
-  }
-
-  // Secondary message: mention book review count
+  // If this is the first review, only show toast (no chat spam)
   if (bookReviewCount === 1) {
-    text += `Это первая рецензия на «${bookTitle}».`;
-  } else {
-    text += `На «${bookTitle}» написано уже ${bookReviewCount} ${getReviewPlural(bookReviewCount)}.`;
+    return { toastMessage };
   }
+
+  // For 2+ reviews, generate chat message with sentiment breakdown
+  const sentiments = await getBookSentimentBreakdown(bookId);
+
+  // Format sentiment breakdown: "👍 5, 😐 2, 👎 1"
+  // Order: positive → neutral → negative (skip if zero)
+  const sentimentParts: string[] = [];
+  if (sentiments.positive > 0) sentimentParts.push(`👍 ${sentiments.positive}`);
+  if (sentiments.neutral > 0) sentimentParts.push(`😐 ${sentiments.neutral}`);
+  if (sentiments.negative > 0) sentimentParts.push(`👎 ${sentiments.negative}`);
+  const sentimentText = sentimentParts.join(", ");
+
+  const text = `Теперь на книгу «${bookTitle}» написано ${bookReviewCount} ${getReviewWord(bookReviewCount)} (${sentimentText}).`;
+
+  // Generate deep link button
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.url(
+      "📖 Посмотреть рецензии",
+      getBookDeepLink(config.botUsername, bookId)
+    )]
+  ]);
 
   return {
-    text,
-    keyboard: Markup.inlineKeyboard([]), // No buttons
+    toastMessage,
+    chatMessage: { text, keyboard }
   };
 }
 
@@ -360,25 +374,35 @@ export async function handleBookSelected(ctx: Context, botContext?: BotContext) 
       sentiment,
     });
 
-    // Get review counts
-    const userReviewCount = await prisma.review.count({
-      where: { telegramUserId: state.reviewData.telegramUserId },
-    });
+    // Get review count for this book
     const bookReviewCount = await prisma.review.count({
       where: { bookId },
     });
 
+    // Generate success response (toast + optional message)
+    const success = await generateSuccessResponse(
+      bookId,
+      selectedBook.title,
+      selectedBook.author || "Unknown Author",
+      bookReviewCount
+    );
+
+    // Show toast notification
+    await ctx.answerCbQuery(success.toastMessage);
+
+    // If there are multiple reviews, post summary message
+    if (success.chatMessage) {
+      await ctx.editMessageText(
+        success.chatMessage.text,
+        success.chatMessage.keyboard
+      );
+    } else {
+      // First review - delete confirmation message to avoid spam
+      await ctx.deleteMessage();
+    }
+
     // Clear state
     clearConfirmationState(userId);
-
-    // Send success message
-    const success = generateSuccessMessage(
-      selectedBook.title,
-      userReviewCount,
-      bookReviewCount,
-      bookId
-    );
-    await ctx.editMessageText(success.text, success.keyboard);
   } catch (error) {
     console.error("[Confirmation] Error creating review:", error);
     await ctx.editMessageText(
@@ -526,20 +550,35 @@ export async function handleExtractedBookConfirmed(ctx: Context, botContext?: Bo
       sentiment,
     });
 
-    // Get review counts
-    const userReviewCount = await prisma.review.count({
-      where: { telegramUserId: state.reviewData.telegramUserId },
-    });
+    // Get review count for this book
     const bookReviewCount = await prisma.review.count({
       where: { bookId },
     });
 
+    // Generate success response (toast + optional message)
+    const success = await generateSuccessResponse(
+      bookId,
+      title,
+      author || "Unknown Author",
+      bookReviewCount
+    );
+
+    // Show toast notification
+    await ctx.answerCbQuery(success.toastMessage);
+
+    // If there are multiple reviews, post summary message
+    if (success.chatMessage) {
+      await ctx.editMessageText(
+        success.chatMessage.text,
+        success.chatMessage.keyboard
+      );
+    } else {
+      // First review - delete confirmation message to avoid spam
+      await ctx.deleteMessage();
+    }
+
     // Clear state
     clearConfirmationState(userId);
-
-    // Send success message
-    const success = generateSuccessMessage(title, userReviewCount, bookReviewCount, bookId);
-    await ctx.editMessageText(success.text, success.keyboard);
   } catch (error) {
     console.error("[Confirmation] Error creating book/review from extracted info:", error);
     await ctx.editMessageText(
@@ -733,26 +772,46 @@ export async function handleTextInput(ctx: Context, botContext?: BotContext): Pr
           sentiment,
         });
 
-        // Get review counts
-        const userReviewCount = await prisma.review.count({
-          where: { telegramUserId: state.reviewData.telegramUserId },
-        });
+        // Get review count for this book
         const bookReviewCount = await prisma.review.count({
           where: { bookId },
         });
 
+        // Generate success response (toast + optional message)
+        const success = await generateSuccessResponse(
+          bookId,
+          title,
+          author || "Unknown Author",
+          bookReviewCount
+        );
+
+        // For text input flow, we can't use answerCbQuery
+        if (success.chatMessage) {
+          // Multiple reviews - edit message with sentiment breakdown
+          await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            state.statusMessageId,
+            undefined,
+            success.chatMessage.text,
+            success.chatMessage.keyboard
+          );
+        } else {
+          // First review - delete confirmation message to avoid spam
+          await ctx.telegram.deleteMessage(ctx.chat!.id, state.statusMessageId);
+
+          // Send temporary success message that auto-deletes
+          const msg = await ctx.reply(success.toastMessage);
+          setTimeout(async () => {
+            try {
+              await ctx.telegram.deleteMessage(ctx.chat!.id, msg.message_id);
+            } catch (err) {
+              // Message might already be deleted by user
+            }
+          }, 3000);
+        }
+
         // Clear state
         clearConfirmationState(userId);
-
-        // Send success message
-        const success = generateSuccessMessage(title, userReviewCount, bookReviewCount, bookId);
-        await ctx.telegram.editMessageText(
-          ctx.chat!.id,
-          state.statusMessageId,
-          undefined,
-          success.text,
-          success.keyboard
-        );
       } catch (error) {
         console.error("[Confirmation] Error creating book/review:", error);
         await ctx.telegram.editMessageText(

@@ -111,11 +111,6 @@ export default function Book() {
 
   return (
     <div className="p-4">
-      <button onClick={() => navigate(-1)} className="px-4 py-2 rounded-full bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors mb-4 inline-flex items-center gap-2">
-        <span>&larr;</span>
-        <span>{t("common.back")}</span>
-      </button>
-
       <div className="flex gap-4 mb-6">
         <div className="w-24 h-36 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
           {book.coverUrl ? (

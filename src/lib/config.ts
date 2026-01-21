@@ -3,6 +3,7 @@ import { z } from "zod";
 
 const configSchema = z.object({
   BOT_TOKEN: z.string().min(1, "BOT_TOKEN is required"),
+  BOT_USERNAME: z.string().min(1, "BOT_USERNAME is required"),
   MINI_APP_URL: z.string().url().optional().default("http://localhost:3000"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   OPENAI_API_KEY: z.string().min(1, "OPENAI_API_KEY is required"),
@@ -33,6 +34,7 @@ function parseBigIntList(value: string | undefined): bigint[] {
 
 export const config = {
   botToken: parsed.data.BOT_TOKEN,
+  botUsername: parsed.data.BOT_USERNAME,
   miniAppUrl: parsed.data.MINI_APP_URL,
   databaseUrl: parsed.data.DATABASE_URL,
   openaiApiKey: parsed.data.OPENAI_API_KEY,
