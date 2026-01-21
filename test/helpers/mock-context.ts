@@ -278,6 +278,7 @@ export function createMockInputContext(
     } as any,
     answerCbQuery: vi.fn().mockResolvedValue(true),
     editMessageText: vi.fn().mockResolvedValue({}),
+    deleteMessage: vi.fn().mockResolvedValue(true),
   } as Partial<Context>;
 }
 

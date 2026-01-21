@@ -482,8 +482,15 @@ export async function handleCancel(ctx: Context) {
   const userId = callbackQuery.from.id.toString();
   clearConfirmationState(userId);
 
-  await ctx.answerCbQuery("❌ Отменено");
-  await ctx.editMessageText("❌ Создание рецензии отменено.");
+  // Show toast notification
+  await ctx.answerCbQuery("❌ Создание рецензии отменено");
+
+  // Delete confirmation message to keep chat clean
+  try {
+    await ctx.deleteMessage();
+  } catch {
+    // Ignore if message can't be deleted (already deleted, no permissions, etc.)
+  }
 }
 
 /**

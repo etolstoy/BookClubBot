@@ -125,8 +125,11 @@ describe("E2E: Manual Entry Flow", () => {
     const finalState = getConfirmationState(userId);
     expect(finalState).toBeNull();
 
-    // Assert: Cancellation message was shown
-    expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Отменено");
+    // Assert: Cancellation toast was shown
+    expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Создание рецензии отменено");
+
+    // Assert: Confirmation message was deleted
+    expect(ctx.deleteMessage).toHaveBeenCalled();
   });
 
   it("Cancel during author entry", async () => {
@@ -150,8 +153,11 @@ describe("E2E: Manual Entry Flow", () => {
     const finalState = getConfirmationState(userId);
     expect(finalState).toBeNull();
 
-    // Assert: Cancellation message was shown
-    expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Отменено");
+    // Assert: Cancellation toast was shown
+    expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Создание рецензии отменено");
+
+    // Assert: Confirmation message was deleted
+    expect(ctx.deleteMessage).toHaveBeenCalled();
   });
 
   it("Empty/invalid inputs", async () => {

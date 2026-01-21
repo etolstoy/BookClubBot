@@ -60,6 +60,8 @@ function createMockContext(userId: string, messageId: number = 1, chatId: number
     } as any,
     answerCbQuery: vi.fn().mockResolvedValue(true),
     editMessageText: vi.fn().mockResolvedValue({}),
+    deleteMessage: vi.fn().mockResolvedValue(true),
+    reply: vi.fn().mockResolvedValue({}),
   } as Partial<Context>;
 }
 
@@ -196,8 +198,37 @@ describe("State Management - Confirmation Flow", () => {
     const finalState = getConfirmationState(userId);
     expect(finalState).toBeNull();
 
-    // Assert: User received cancellation message
-    expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Отменено");
+    // Assert: User received cancellation toast
+    expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Создание рецензии отменено");
+
+    // Assert: Confirmation message was deleted (keeps chat clean)
+    expect(ctx.deleteMessage).toHaveBeenCalled();
+
+    // Assert: Message was NOT edited (we delete it instead)
+    expect(ctx.editMessageText).not.toHaveBeenCalled();
+  });
+
+  it("Cancel shows toast and deletes message (clean chat)", async () => {
+    const userId = "126";
+    const ctx = createMockContext(userId) as Context;
+
+    // Setup: Store state
+    const state = createBaseState();
+    storeConfirmationState(userId, state);
+
+    // Act: User cancels
+    await handleCancel(ctx);
+
+    // Assert: Toast notification shown (not a message in chat)
+    expect(ctx.answerCbQuery).toHaveBeenCalledOnce();
+    expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Создание рецензии отменено");
+
+    // Assert: Original confirmation message deleted (not edited)
+    expect(ctx.deleteMessage).toHaveBeenCalledOnce();
+    expect(ctx.editMessageText).not.toHaveBeenCalled();
+
+    // Assert: Chat stays clean - no new message posted
+    expect(ctx.reply).not.toHaveBeenCalled();
   });
 
   it("handleBookSelected with missing state edits message and removes buttons", async () => {
