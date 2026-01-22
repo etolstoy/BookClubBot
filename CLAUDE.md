@@ -229,6 +229,24 @@ When in doubt about database operations, always ask the user first. For testing 
 - Bot needs to be added to groups to read messages
 - Deep links format: `https://t.me/botusername?startapp=book_{bookId}`
 
+### Deep Links and Mini App Navigation
+
+**Important Limitation:** Telegram Mini Apps only support deep link navigation when the app is **closed** or being **launched**. This is a platform limitation, not a bug.
+
+**How it works:**
+- ✅ **App is closed** → Click deep link → App opens to the correct page (book/review)
+- ❌ **App is already open** → Click deep link → App stays on current page (Telegram limitation)
+
+**Technical details:**
+- The `start_param` from `Telegram.WebApp.initDataUnsafe` is only set during app initialization
+- Telegram does NOT update `start_param` when clicking deep links while the app is running
+- This is standard behavior for Telegram Mini Apps across the platform
+
+**User experience:** Users can:
+1. Share links that work perfectly when opening a closed app
+2. Use in-app navigation (tap dates, "Читать далее", etc.) when app is already open
+3. Close and reopen the app if they need to follow a deep link while app is open
+
 ### Book Confirmation Flow
 
 The bot implements a sophisticated state machine (`src/bot/handlers/book-confirmation.ts`) for interactive book confirmation:

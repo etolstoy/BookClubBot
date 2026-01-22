@@ -54,27 +54,10 @@ declare global {
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
-  const lastHandledParam = useRef<string | null>(null);
   const initialPath = useRef<string | null>(null);
   const navigationDepth = useRef(0);
 
-  // Handle deep link navigation
-  const handleDeepLink = (startParam: string) => {
-    if (startParam.startsWith("book_")) {
-      const bookId = startParam.replace("book_", "");
-      navigate(`/book/${bookId}`);
-    } else if (startParam.startsWith("review_")) {
-      const reviewId = startParam.replace("review_", "");
-      navigate(`/review/${reviewId}`);
-    } else if (startParam.startsWith("reviewer_")) {
-      const userId = startParam.replace("reviewer_", "");
-      navigate(`/reviewer/${userId}`);
-    } else if (startParam === "leaderboard") {
-      navigate("/leaderboard");
-    }
-  };
-
-  // Initialize Telegram WebApp and handle deep links
+  // Initialize Telegram WebApp and handle initial deep link
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (!tg) return;
@@ -87,60 +70,23 @@ function AppContent() {
       initialPath.current = location.pathname;
     }
 
-    // Handle initial deep link
+    // Handle deep link on app launch only (Telegram doesn't update start_param while app is open)
     const startParam = tg.initDataUnsafe?.start_param;
-    if (startParam && startParam !== lastHandledParam.current) {
-      lastHandledParam.current = startParam;
-      handleDeepLink(startParam);
+    if (startParam) {
+      if (startParam.startsWith("book_")) {
+        const bookId = startParam.replace("book_", "");
+        navigate(`/book/${bookId}`);
+      } else if (startParam.startsWith("review_")) {
+        const reviewId = startParam.replace("review_", "");
+        navigate(`/review/${reviewId}`);
+      } else if (startParam.startsWith("reviewer_")) {
+        const userId = startParam.replace("reviewer_", "");
+        navigate(`/reviewer/${userId}`);
+      } else if (startParam === "leaderboard") {
+        navigate("/leaderboard");
+      }
     }
-
-    // Listen for viewport changes (when app regains focus after clicking link)
-    const handleViewportChanged = () => {
-      const currentParam = tg.initDataUnsafe?.start_param;
-      if (currentParam && currentParam !== lastHandledParam.current) {
-        lastHandledParam.current = currentParam;
-        handleDeepLink(currentParam);
-      }
-    };
-
-    // Listen for app becoming visible (iOS/Android)
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        const currentParam = tg.initDataUnsafe?.start_param;
-        if (currentParam && currentParam !== lastHandledParam.current) {
-          lastHandledParam.current = currentParam;
-          handleDeepLink(currentParam);
-        }
-      }
-    };
-
-    // Periodic check for deep link changes (workaround for platforms where start_param updates)
-    const checkInterval = setInterval(() => {
-      if (!document.hidden) {
-        const currentParam = tg.initDataUnsafe?.start_param;
-        if (currentParam && currentParam !== lastHandledParam.current) {
-          lastHandledParam.current = currentParam;
-          handleDeepLink(currentParam);
-        }
-      }
-    }, 500); // Check every 500ms
-
-    // Telegram WebApp viewport event
-    if (tg.onEvent) {
-      tg.onEvent('viewportChanged', handleViewportChanged);
-    }
-
-    // Browser visibility API
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      clearInterval(checkInterval);
-      if (tg.offEvent) {
-        tg.offEvent('viewportChanged', handleViewportChanged);
-      }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [navigate]); // Re-run if navigate changes
+  }, [navigate]); // Run once on mount
 
   // Track navigation depth
   useEffect(() => {
