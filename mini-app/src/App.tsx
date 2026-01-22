@@ -54,8 +54,8 @@ declare global {
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
-  const initialPath = useRef<string | null>(null);
-  const navigationDepth = useRef(0);
+  const deepLinkHandled = useRef(false);
+  const deepLinkPage = useRef<string | null>(null);
 
   // Initialize Telegram WebApp and handle initial deep link
   useEffect(() => {
@@ -65,33 +65,33 @@ function AppContent() {
     tg.ready();
     tg.expand();
 
-    // Store initial path
-    if (initialPath.current === null) {
-      initialPath.current = location.pathname;
-    }
-
     // Handle deep link on app launch only (Telegram doesn't update start_param while app is open)
     const startParam = tg.initDataUnsafe?.start_param;
-    if (startParam) {
+
+    // Only handle deep link once on initial mount
+    if (startParam && !deepLinkHandled.current) {
+      deepLinkHandled.current = true;
+
+      let targetPath = "";
       if (startParam.startsWith("book_")) {
         const bookId = startParam.replace("book_", "");
-        navigate(`/book/${bookId}`);
+        targetPath = `/book/${bookId}`;
       } else if (startParam.startsWith("review_")) {
         const reviewId = startParam.replace("review_", "");
-        navigate(`/review/${reviewId}`);
+        targetPath = `/review/${reviewId}`;
       } else if (startParam.startsWith("reviewer_")) {
         const userId = startParam.replace("reviewer_", "");
-        navigate(`/reviewer/${userId}`);
+        targetPath = `/reviewer/${userId}`;
       } else if (startParam === "leaderboard") {
-        navigate("/leaderboard");
+        targetPath = "/leaderboard";
+      }
+
+      if (targetPath) {
+        deepLinkPage.current = targetPath;
+        navigate(targetPath);
       }
     }
-  }, [navigate]); // Run once on mount
-
-  // Track navigation depth
-  useEffect(() => {
-    navigationDepth.current++;
-  }, [location.pathname]);
+  }, []); // Run only once on mount
 
   // Manage Telegram BackButton based on current route
   useEffect(() => {
@@ -109,12 +109,12 @@ function AppContent() {
 
       // Handle back button click
       const handleBackClick = () => {
-        // If we've navigated within the app (depth > 1), use history back
-        // Otherwise, go to home page
-        if (navigationDepth.current > 1 && location.pathname !== initialPath.current) {
-          navigate(-1);
-        } else {
+        // If we're still on the initial deep link page, always go to home
+        if (deepLinkPage.current && location.pathname === deepLinkPage.current) {
           navigate("/");
+        } else {
+          // Have navigated away from initial page, use browser back
+          navigate(-1);
         }
       };
 
