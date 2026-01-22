@@ -8,6 +8,7 @@ router.get("/", async (req, res) => {
   try {
     res.json({
       adminUserIds: config.adminUserIds.map(id => id.toString()),
+      botUsername: config.botUsername,
     });
   } catch (error) {
     console.error("Error fetching config:", error);

@@ -4,6 +4,7 @@ import { getConfig, type Config } from "./api/client";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Book from "./pages/Book";
+import Review from "./pages/Review";
 import Reviewer from "./pages/Reviewer";
 import Leaderboard from "./pages/Leaderboard";
 import ReviewersLeaderboard from "./pages/ReviewersLeaderboard";
@@ -40,6 +41,11 @@ declare global {
           onClick: (callback: () => void) => void;
           offClick: (callback: () => void) => void;
         };
+        HapticFeedback?: {
+          impactOccurred?: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
+        };
+        onEvent?: (eventType: string, eventHandler: () => void) => void;
+        offEvent?: (eventType: string, eventHandler: () => void) => void;
       };
     };
   }
@@ -49,10 +55,9 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const deepLinkHandled = useRef(false);
-  const initialPath = useRef<string | null>(null);
-  const navigationDepth = useRef(0);
+  const deepLinkPage = useRef<string | null>(null);
 
-  // Initialize Telegram WebApp and handle deep links (only once)
+  // Initialize Telegram WebApp and handle initial deep link
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (!tg) return;
@@ -60,34 +65,33 @@ function AppContent() {
     tg.ready();
     tg.expand();
 
-    // Store initial path
-    if (initialPath.current === null) {
-      initialPath.current = location.pathname;
-    }
+    // Handle deep link on app launch only (Telegram doesn't update start_param while app is open)
+    const startParam = tg.initDataUnsafe?.start_param;
 
-    // Handle deep links only once
-    if (!deepLinkHandled.current) {
-      const startParam = tg.initDataUnsafe?.start_param;
-      if (startParam) {
-        deepLinkHandled.current = true;
+    // Only handle deep link once on initial mount
+    if (startParam && !deepLinkHandled.current) {
+      deepLinkHandled.current = true;
 
-        if (startParam.startsWith("book_")) {
-          const bookId = startParam.replace("book_", "");
-          navigate(`/book/${bookId}`);
-        } else if (startParam.startsWith("reviewer_")) {
-          const userId = startParam.replace("reviewer_", "");
-          navigate(`/reviewer/${userId}`);
-        } else if (startParam === "leaderboard") {
-          navigate("/leaderboard");
-        }
+      let targetPath = "";
+      if (startParam.startsWith("book_")) {
+        const bookId = startParam.replace("book_", "");
+        targetPath = `/book/${bookId}`;
+      } else if (startParam.startsWith("review_")) {
+        const reviewId = startParam.replace("review_", "");
+        targetPath = `/review/${reviewId}`;
+      } else if (startParam.startsWith("reviewer_")) {
+        const userId = startParam.replace("reviewer_", "");
+        targetPath = `/reviewer/${userId}`;
+      } else if (startParam === "leaderboard") {
+        targetPath = "/leaderboard";
+      }
+
+      if (targetPath) {
+        deepLinkPage.current = targetPath;
+        navigate(targetPath);
       }
     }
   }, []); // Run only once on mount
-
-  // Track navigation depth
-  useEffect(() => {
-    navigationDepth.current++;
-  }, [location.pathname]);
 
   // Manage Telegram BackButton based on current route
   useEffect(() => {
@@ -105,12 +109,12 @@ function AppContent() {
 
       // Handle back button click
       const handleBackClick = () => {
-        // If we've navigated within the app (depth > 1), use history back
-        // Otherwise, go to home page
-        if (navigationDepth.current > 1 && location.pathname !== initialPath.current) {
-          navigate(-1);
-        } else {
+        // If we're still on the initial deep link page, always go to home
+        if (deepLinkPage.current && location.pathname === deepLinkPage.current) {
           navigate("/");
+        } else {
+          // Have navigated away from initial page, use browser back
+          navigate(-1);
         }
       };
 
@@ -124,21 +128,20 @@ function AppContent() {
   }, [location.pathname, navigate]);
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/browse" element={<BrowseBooks />} />
-        <Route path="/book/:id" element={<Book />} />
-        <Route path="/reviewer/:userId" element={<Reviewer />} />
-        <Route path="/top-books" element={<Leaderboard />} />
-        <Route path="/top-reviewers" element={<ReviewersLeaderboard />} />
-        <Route path="/top-authors" element={<PopularAuthors />} />
-        <Route path="/author/:author" element={<AuthorBooks />} />
-        <Route path="/fresh-reviews" element={<FreshReviews />} />
-        {/* Legacy route for backward compatibility */}
-        <Route path="/leaderboard" element={<Leaderboard />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      <Route path="/" element={<Layout><Home /></Layout>} />
+      <Route path="/browse" element={<Layout><BrowseBooks /></Layout>} />
+      <Route path="/book/:id" element={<Book />} />
+      <Route path="/review/:id" element={<Review />} />
+      <Route path="/reviewer/:userId" element={<Layout><Reviewer /></Layout>} />
+      <Route path="/top-books" element={<Layout><Leaderboard /></Layout>} />
+      <Route path="/top-reviewers" element={<Layout><ReviewersLeaderboard /></Layout>} />
+      <Route path="/top-authors" element={<Layout><PopularAuthors /></Layout>} />
+      <Route path="/author/:author" element={<Layout><AuthorBooks /></Layout>} />
+      <Route path="/fresh-reviews" element={<Layout><FreshReviews /></Layout>} />
+      {/* Legacy route for backward compatibility */}
+      <Route path="/leaderboard" element={<Layout><Leaderboard /></Layout>} />
+    </Routes>
   );
 }
 

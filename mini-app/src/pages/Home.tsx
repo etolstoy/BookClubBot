@@ -128,14 +128,12 @@ export default function Home() {
                           {review.reviewText}
                         </p>
 
-                        {review.book && (
-                          <Link
-                            to={`/book/${review.book.id}`}
-                            className="text-sm text-tg-hint mt-auto no-underline"
-                          >
-                            {t("common.readMore")}
-                          </Link>
-                        )}
+                        <Link
+                          to={`/review/${review.id}`}
+                          className="text-sm text-tg-hint mt-auto no-underline"
+                        >
+                          {t("common.readMore")}
+                        </Link>
                       </div>
                     </div>
                   );

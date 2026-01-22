@@ -125,6 +125,54 @@ router.get("/recent", async (req, res) => {
   }
 });
 
+// GET /api/reviews/:id - Get a single review by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const reviewId = parseInt(req.params.id, 10);
+
+    if (isNaN(reviewId)) {
+      res.status(400).json({ error: "Invalid review ID" });
+      return;
+    }
+
+    const review = await getReviewById(reviewId);
+
+    if (!review) {
+      res.status(404).json({ error: "Review not found" });
+      return;
+    }
+
+    // Format response
+    const formattedReview = {
+      id: review.id,
+      reviewerName:
+        review.telegramDisplayName ||
+        review.telegramUsername ||
+        "Anonymous",
+      reviewerUsername: review.telegramUsername,
+      telegramUserId: review.telegramUserId.toString(),
+      reviewText: review.reviewText,
+      sentiment: review.sentiment,
+      reviewedAt: review.reviewedAt.toISOString(),
+      messageId: review.messageId?.toString(),
+      chatId: review.chatId?.toString(),
+      book: review.book
+        ? {
+            id: review.book.id,
+            title: review.book.title,
+            author: review.book.author,
+            coverUrl: review.book.coverUrl,
+          }
+        : null,
+    };
+
+    res.json({ review: formattedReview });
+  } catch (error) {
+    console.error("Error fetching review:", error);
+    res.status(500).json({ error: "Failed to fetch review" });
+  }
+});
+
 // PATCH /api/reviews/:id - Update a review
 router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
   try {

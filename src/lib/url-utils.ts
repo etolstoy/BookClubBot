@@ -62,3 +62,16 @@ export function getBookDeepLink(
 ): string {
   return getTelegramDeepLink(botUsername, `book_${bookId}`);
 }
+
+/**
+ * Generate deep link to Mini App review page
+ * @param botUsername - Bot username
+ * @param reviewId - Database review ID
+ * @returns Deep link to review page
+ */
+export function getReviewDeepLink(
+  botUsername: string,
+  reviewId: number
+): string {
+  return getTelegramDeepLink(botUsername, `review_${reviewId}`);
+}

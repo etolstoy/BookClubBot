@@ -16,6 +16,8 @@ export const translations = {
     cancel: "Отмена",
     reviews: "рецензий",
     books: "книг",
+    linkCopied: "Ссылка скопирована",
+    copyLink: "Скопировать ссылку",
   },
 
   home: {
@@ -48,6 +50,11 @@ export const translations = {
     },
     notFound: "Книга не найдена",
     noReviews: "Рецензий не найдено",
+  },
+
+  review: {
+    edit: "Редактировать",
+    notFound: "Рецензия не найдена",
   },
 
   reviewer: {
@@ -129,10 +136,6 @@ export const translations = {
       few: "{{count}} клубня",
       many: "{{count}} клубней",
     },
-  },
-
-  review: {
-    edit: "Редактировать",
   },
 
   editReview: {

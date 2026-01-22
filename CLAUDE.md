@@ -207,12 +207,45 @@ Set `DOMAIN` environment variable for production domain (used by Caddy for SSL).
 
 ## Important Development Notes
 
+### Database Safety
+
+**CRITICAL: NEVER wipe the production database or delete review data unless the user explicitly requests it.**
+
+- Do NOT run `npx prisma migrate reset` in production
+- Do NOT run `npx prisma db push --force-reset` in production
+- Do NOT suggest clearing review data as part of troubleshooting
+- Do NOT modify test helpers to clear production data
+- Reviews contain valuable user-generated content and must be preserved
+
+The ONLY exception:
+- ✅ User explicitly says: "reset the database", "delete all reviews", "wipe the database", or similar destructive command
+
+When in doubt about database operations, always ask the user first. For testing purposes, use the seed script (`scripts/seed-dev.ts`) or create test-specific databases.
+
 ### Telegram Bot Behavior
 
 - Bot only processes messages in `TARGET_CHAT_ID` when using hashtag detection
 - `/review` command works in any chat where bot is present
 - Bot needs to be added to groups to read messages
 - Deep links format: `https://t.me/botusername?startapp=book_{bookId}`
+
+### Deep Links and Mini App Navigation
+
+**Important Limitation:** Telegram Mini Apps only support deep link navigation when the app is **closed** or being **launched**. This is a platform limitation, not a bug.
+
+**How it works:**
+- ✅ **App is closed** → Click deep link → App opens to the correct page (book/review)
+- ❌ **App is already open** → Click deep link → App stays on current page (Telegram limitation)
+
+**Technical details:**
+- The `start_param` from `Telegram.WebApp.initDataUnsafe` is only set during app initialization
+- Telegram does NOT update `start_param` when clicking deep links while the app is running
+- This is standard behavior for Telegram Mini Apps across the platform
+
+**User experience:** Users can:
+1. Share links that work perfectly when opening a closed app
+2. Use in-app navigation (tap dates, "Читать далее", etc.) when app is already open
+3. Close and reopen the app if they need to follow a deep link while app is open
 
 ### Book Confirmation Flow
 
