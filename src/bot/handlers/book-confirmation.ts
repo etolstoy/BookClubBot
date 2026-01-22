@@ -26,13 +26,18 @@ export function storeConfirmationState(
   state: BookConfirmationState
 ): void {
   pendingBookConfirmations.set(userId, state);
+  console.log(`[Confirmation] Stored state for user ${userId}, state: ${state.state}, extractedInfo: ${state.extractedInfo?.title || 'none'}`);
 }
 
 /**
  * Get confirmation state for a user
  */
 export function getConfirmationState(userId: string): BookConfirmationState | null {
-  return pendingBookConfirmations.get(userId) || null;
+  const state = pendingBookConfirmations.get(userId) || null;
+  if (!state) {
+    console.log(`[Confirmation] State not found for user ${userId}, total states: ${pendingBookConfirmations.size}`);
+  }
+  return state;
 }
 
 /**
@@ -500,9 +505,11 @@ export async function handleExtractedBookConfirmed(ctx: Context, botContext?: Bo
   if (!callbackQuery || !("from" in callbackQuery)) return;
 
   const userId = callbackQuery.from.id.toString();
+  console.log(`[Confirmation] handleExtractedBookConfirmed called for user ${userId}`);
   const state = getConfirmationState(userId);
 
   if (!state || !state.extractedInfo) {
+    console.log(`[Confirmation] State missing or no extractedInfo for user ${userId}`);
     await ctx.answerCbQuery(); // Dismiss loading indicator
     await ctx.editMessageText(
       "Что-то пошло не так, попробуй запроцессить рецензию заново",

@@ -8,17 +8,41 @@ export const chatFilter: MiddlewareFn<Context> = async (ctx, next) => {
     return next();
   }
 
+  // Determine the chat - for callback queries, use the message's chat
+  let chat = ctx.chat;
+
+  // For callback queries, get chat from the associated message
+  if (!chat && "callback_query" in ctx.update && ctx.update.callback_query) {
+    const cbQuery = ctx.update.callback_query;
+    if ("message" in cbQuery && cbQuery.message) {
+      chat = cbQuery.message.chat;
+    }
+  }
+
+  if (!chat) {
+    console.log("[ChatFilter] No chat found, blocking update", {
+      updateType: ctx.updateType,
+      updateId: ctx.update.update_id,
+    });
+    return;
+  }
+
   // Allow messages from the target chat
-  if (ctx.chat && BigInt(ctx.chat.id) === config.targetChatId) {
+  if (BigInt(chat.id) === config.targetChatId) {
     return next();
   }
 
   // Allow private messages (for commands like /start, /help)
-  if (ctx.chat?.type === "private") {
+  if (chat.type === "private") {
     return next();
   }
 
   // Ignore messages from other chats
+  console.log("[ChatFilter] Blocking update from non-target chat", {
+    chatId: chat.id,
+    targetChatId: config.targetChatId.toString(),
+    updateType: ctx.updateType,
+  });
   return;
 };
 

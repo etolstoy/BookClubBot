@@ -256,6 +256,7 @@ async function processReview(
       options.text,
       options.keyboard
     );
+    console.log(`[Review] Options message sent for user ${userId}, messageId: ${processingMsg.message_id}`);
   } catch (error) {
     console.error("[Review] Error processing review:", error);
 
