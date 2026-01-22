@@ -5,7 +5,8 @@ import {
   handleCancel,
   storeConfirmationState,
   clearConfirmationState,
-  getConfirmationState,
+  getConfirmationStateByMessage,
+  getConfirmationStateByUser,
 } from "../../src/bot/handlers/book-confirmation.js";
 import { MockBookDataClient } from "../../src/clients/book-data/mock-book-data-client.js";
 import { MockLLMClient } from "../../src/clients/llm/mock-llm-client.js";
@@ -31,13 +32,13 @@ describe("E2E: Manual Entry Flow", () => {
       { sentiment: "positive" }
     );
 
-    // Clear states
-    const userIds = ["300", "301", "302", "303", "304"];
-    userIds.forEach((id) => clearConfirmationState(id));
+    // Note: States are now keyed by chatId:messageId, cleanup handled per-test
   });
 
   it("Complete manual entry → new book created → review saved", async () => {
     const userId = "300";
+    const chatId = "1";
+    const statusMessageId = 100;
     const title = "The Great Gatsby";
     const author = "F. Scott Fitzgerald";
 
@@ -45,28 +46,28 @@ describe("E2E: Manual Entry Flow", () => {
 
     // Step 1: User enters title
     const state1 = createBaseConfirmationState(userId, "awaiting_title");
-    storeConfirmationState(userId, state1);
+    storeConfirmationState(chatId, statusMessageId, userId, state1);
 
-    const ctx1 = createMockInputContext(userId, title, 100) as Context;
+    const ctx1 = createMockInputContext(userId, title, statusMessageId) as Context;
     const handled1 = await handleTextInput(ctx1, botContext);
 
     // Assert: Title input was handled
     expect(handled1).toBe(true);
 
     // Assert: State transitioned to awaiting_author
-    const state2 = getConfirmationState(userId);
+    const state2 = getConfirmationStateByUser(chatId, userId);
     expect(state2?.state).toBe("awaiting_author");
     expect(state2?.tempData.enteredTitle).toBe(title);
 
     // Step 2: User enters author
-    const ctx2 = createMockInputContext(userId, author, 100) as Context;
+    const ctx2 = createMockInputContext(userId, author, statusMessageId) as Context;
     const handled2 = await handleTextInput(ctx2, botContext);
 
     // Assert: Author input was handled
     expect(handled2).toBe(true);
 
     // Assert: State was cleared (review created successfully)
-    const finalState = getConfirmationState(userId);
+    const finalState = getConfirmationStateByUser(chatId, userId);
     expect(finalState).toBeNull();
 
     // Assert: Success message was shown
@@ -79,6 +80,8 @@ describe("E2E: Manual Entry Flow", () => {
 
   it("Manual entry → existing book found (exact match) → reused", async () => {
     const userId = "301";
+    const chatId = "1";
+    const statusMessageId = 101;
     const title = "1984";
     const author = "George Orwell";
 
@@ -86,20 +89,20 @@ describe("E2E: Manual Entry Flow", () => {
 
     // Step 1: User enters title
     const state1 = createBaseConfirmationState(userId, "awaiting_title");
-    storeConfirmationState(userId, state1);
+    storeConfirmationState(chatId, statusMessageId, userId, state1);
 
-    const ctx1 = createMockInputContext(userId, title, 100) as Context;
+    const ctx1 = createMockInputContext(userId, title, statusMessageId) as Context;
     await handleTextInput(ctx1, botContext);
 
     // Step 2: User enters author (book should be found/created)
-    const ctx2 = createMockInputContext(userId, author, 100) as Context;
+    const ctx2 = createMockInputContext(userId, author, statusMessageId) as Context;
     const handled2 = await handleTextInput(ctx2, botContext);
 
     // Assert: Author input was handled
     expect(handled2).toBe(true);
 
     // Assert: Review was created
-    const finalState = getConfirmationState(userId);
+    const finalState = getConfirmationStateByUser(chatId, userId);
     expect(finalState).toBeNull();
 
     // Assert: Sentiment was analyzed
@@ -108,21 +111,35 @@ describe("E2E: Manual Entry Flow", () => {
 
   it("Cancel during title entry", async () => {
     const userId = "302";
+    const chatId = "1";
+    const statusMessageId = 102;
 
     // Setup: User is in awaiting_title state
     const state = createBaseConfirmationState(userId, "awaiting_title");
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId, statusMessageId, userId, state);
 
     // Verify state exists
-    expect(getConfirmationState(userId)).not.toBeNull();
+    expect(getConfirmationStateByMessage(chatId, statusMessageId)).not.toBeNull();
 
-    const ctx = createMockInputContext(userId, "", 100) as Context;
+    const ctx = createMockInputContext(userId, "", statusMessageId) as Context;
+    // Add callback query for handleCancel
+    (ctx as any).callbackQuery = {
+      id: "callback-1",
+      from: { id: parseInt(userId), is_bot: false, first_name: "Test User" },
+      chat_instance: "test",
+      message: {
+        message_id: statusMessageId,
+        date: Date.now() / 1000,
+        chat: { id: parseInt(chatId), type: "group" as const },
+      },
+      data: "confirm_cancel",
+    };
 
     // Act: User cancels
     await handleCancel(ctx);
 
     // Assert: State was cleared
-    const finalState = getConfirmationState(userId);
+    const finalState = getConfirmationStateByMessage(chatId, statusMessageId);
     expect(finalState).toBeNull();
 
     // Assert: Cancellation toast was shown
@@ -134,23 +151,37 @@ describe("E2E: Manual Entry Flow", () => {
 
   it("Cancel during author entry", async () => {
     const userId = "303";
+    const chatId = "1";
+    const statusMessageId = 103;
 
     // Setup: User is in awaiting_author state (already entered title)
     const state = createBaseConfirmationState(userId, "awaiting_author", {
       tempData: { enteredTitle: "Some Book" },
     });
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId, statusMessageId, userId, state);
 
     // Verify state exists
-    expect(getConfirmationState(userId)).not.toBeNull();
+    expect(getConfirmationStateByMessage(chatId, statusMessageId)).not.toBeNull();
 
-    const ctx = createMockInputContext(userId, "", 100) as Context;
+    const ctx = createMockInputContext(userId, "", statusMessageId) as Context;
+    // Add callback query for handleCancel
+    (ctx as any).callbackQuery = {
+      id: "callback-1",
+      from: { id: parseInt(userId), is_bot: false, first_name: "Test User" },
+      chat_instance: "test",
+      message: {
+        message_id: statusMessageId,
+        date: Date.now() / 1000,
+        chat: { id: parseInt(chatId), type: "group" as const },
+      },
+      data: "confirm_cancel",
+    };
 
     // Act: User cancels
     await handleCancel(ctx);
 
     // Assert: State was cleared
-    const finalState = getConfirmationState(userId);
+    const finalState = getConfirmationStateByMessage(chatId, statusMessageId);
     expect(finalState).toBeNull();
 
     // Assert: Cancellation toast was shown
@@ -162,20 +193,22 @@ describe("E2E: Manual Entry Flow", () => {
 
   it("Empty/invalid inputs", async () => {
     const userId = "304";
+    const chatId = "1";
+    const statusMessageId = 104;
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
 
     // Step 1: User enters empty title
     const state1 = createBaseConfirmationState(userId, "awaiting_title");
-    storeConfirmationState(userId, state1);
+    storeConfirmationState(chatId, statusMessageId, userId, state1);
 
-    const ctx1 = createMockInputContext(userId, "", 100) as Context;
+    const ctx1 = createMockInputContext(userId, "", statusMessageId) as Context;
     const handled1 = await handleTextInput(ctx1, botContext);
 
     // Assert: Empty input was handled (state transitioned anyway - empty is valid)
     expect(handled1).toBe(true);
 
     // Step 2: User enters empty author
-    const ctx2 = createMockInputContext(userId, "", 100) as Context;
+    const ctx2 = createMockInputContext(userId, "", statusMessageId) as Context;
     const handled2 = await handleTextInput(ctx2, botContext);
 
     // Assert: Empty author was handled (book created with empty title and author)

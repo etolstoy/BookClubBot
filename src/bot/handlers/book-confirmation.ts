@@ -17,34 +17,88 @@ import type { BotContext } from "../types/bot-context.js";
 
 // State storage (in production, consider using Redis)
 const pendingBookConfirmations = new Map<string, BookConfirmationState>();
+// Secondary index: chatId:userId -> messageKey (for text input handling)
+const userToMessageIndex = new Map<string, string>();
 
 /**
- * Store confirmation state for a user
+ * Generate storage key from chat ID and message ID
  */
-export function storeConfirmationState(
-  userId: string,
-  state: BookConfirmationState
-): void {
-  pendingBookConfirmations.set(userId, state);
-  console.log(`[Confirmation] Stored state for user ${userId}, state: ${state.state}, extractedInfo: ${state.extractedInfo?.title || 'none'}`);
+function generateMessageKey(chatId: string | bigint, messageId: number): string {
+  return `${chatId}:${messageId}`;
 }
 
 /**
- * Get confirmation state for a user
+ * Generate user index key from chat ID and user ID
  */
-export function getConfirmationState(userId: string): BookConfirmationState | null {
-  const state = pendingBookConfirmations.get(userId) || null;
+function generateUserKey(chatId: string | bigint, userId: string): string {
+  return `${chatId}:${userId}`;
+}
+
+/**
+ * Store confirmation state for a message
+ */
+export function storeConfirmationState(
+  chatId: string | bigint,
+  statusMessageId: number,
+  userId: string,
+  state: BookConfirmationState
+): void {
+  const messageKey = generateMessageKey(chatId, statusMessageId);
+  const userKey = generateUserKey(chatId, userId);
+
+  pendingBookConfirmations.set(messageKey, state);
+  userToMessageIndex.set(userKey, messageKey);
+
+  console.log(`[Confirmation] Stored state for message ${messageKey} (user ${userId}), state: ${state.state}, extractedInfo: ${state.extractedInfo?.title || 'none'}`);
+}
+
+/**
+ * Get confirmation state by chat ID and message ID
+ */
+export function getConfirmationStateByMessage(chatId: string | bigint, messageId: number): BookConfirmationState | null {
+  const messageKey = generateMessageKey(chatId, messageId);
+  const state = pendingBookConfirmations.get(messageKey) || null;
   if (!state) {
-    console.log(`[Confirmation] State not found for user ${userId}, total states: ${pendingBookConfirmations.size}`);
+    console.log(`[Confirmation] State not found for message ${messageKey}, total states: ${pendingBookConfirmations.size}`);
   }
   return state;
 }
 
 /**
- * Clear confirmation state for a user
+ * Get confirmation state by chat ID and user ID (for text input)
  */
-export function clearConfirmationState(userId: string): void {
-  pendingBookConfirmations.delete(userId);
+export function getConfirmationStateByUser(chatId: string | bigint, userId: string): BookConfirmationState | null {
+  const userKey = generateUserKey(chatId, userId);
+  const messageKey = userToMessageIndex.get(userKey);
+
+  if (!messageKey) {
+    return null;
+  }
+
+  const state = pendingBookConfirmations.get(messageKey) || null;
+  if (!state) {
+    console.log(`[Confirmation] State not found via user key ${userKey}, messageKey was ${messageKey}, total states: ${pendingBookConfirmations.size}`);
+  }
+  return state;
+}
+
+/**
+ * Clear confirmation state for a message
+ */
+export function clearConfirmationState(chatId: string | bigint, statusMessageId: number, userId: string): void {
+  const messageKey = generateMessageKey(chatId, statusMessageId);
+  const userKey = generateUserKey(chatId, userId);
+
+  pendingBookConfirmations.delete(messageKey);
+
+  // Only delete user index if it still points to this message
+  // This preserves the index if the user has a newer pending confirmation
+  const currentMessageKey = userToMessageIndex.get(userKey);
+  if (currentMessageKey === messageKey) {
+    userToMessageIndex.delete(userKey);
+  }
+
+  console.log(`[Confirmation] Cleared state for message ${messageKey} (user ${userId})`);
 }
 
 /**
@@ -318,11 +372,17 @@ async function generateSuccessResponse(
  */
 export async function handleBookSelected(ctx: Context, botContext?: BotContext) {
   const callbackQuery = ctx.callbackQuery;
-  if (!callbackQuery || !("data" in callbackQuery) || !("from" in callbackQuery))
+  if (!callbackQuery || !("data" in callbackQuery) || !("from" in callbackQuery) || !("message" in callbackQuery))
     return;
 
+  const message = callbackQuery.message;
+  if (!message || !("message_id" in message) || !("chat" in message)) return;
+
+  const chatId = message.chat.id.toString();
+  const messageId = message.message_id;
   const userId = callbackQuery.from.id.toString();
-  const state = getConfirmationState(userId);
+
+  const state = getConfirmationStateByMessage(chatId, messageId);
 
   if (!state) {
     await ctx.answerCbQuery(); // Dismiss loading indicator
@@ -405,14 +465,14 @@ export async function handleBookSelected(ctx: Context, botContext?: BotContext) 
     }
 
     // Clear state
-    clearConfirmationState(userId);
+    clearConfirmationState(chatId, messageId, state.reviewData.telegramUserId.toString());
   } catch (error) {
     console.error("[Confirmation] Error creating review:", error);
     await ctx.answerCbQuery(); // Dismiss loading indicator
     await ctx.editMessageText(
       "❌ Произошла ошибка при создании рецензии. Пожалуйста, попробуйте ещё раз."
     );
-    clearConfirmationState(userId);
+    clearConfirmationState(chatId, messageId, state.reviewData.telegramUserId.toString());
   }
 }
 
@@ -421,10 +481,16 @@ export async function handleBookSelected(ctx: Context, botContext?: BotContext) 
  */
 export async function handleIsbnRequested(ctx: Context) {
   const callbackQuery = ctx.callbackQuery;
-  if (!callbackQuery || !("from" in callbackQuery)) return;
+  if (!callbackQuery || !("from" in callbackQuery) || !("message" in callbackQuery)) return;
 
+  const message = callbackQuery.message;
+  if (!message || !("message_id" in message) || !("chat" in message)) return;
+
+  const chatId = message.chat.id.toString();
+  const messageId = message.message_id;
   const userId = callbackQuery.from.id.toString();
-  const state = getConfirmationState(userId);
+
+  const state = getConfirmationStateByMessage(chatId, messageId);
 
   if (!state) {
     await ctx.answerCbQuery(); // Dismiss loading indicator
@@ -435,9 +501,9 @@ export async function handleIsbnRequested(ctx: Context) {
     return;
   }
 
-  // Update state
+  // Update state to await ISBN input
   state.state = "awaiting_isbn";
-  storeConfirmationState(userId, state);
+  storeConfirmationState(chatId, messageId, userId, state);
 
   await ctx.answerCbQuery();
 
@@ -451,10 +517,16 @@ export async function handleIsbnRequested(ctx: Context) {
  */
 export async function handleManualEntryRequested(ctx: Context) {
   const callbackQuery = ctx.callbackQuery;
-  if (!callbackQuery || !("from" in callbackQuery)) return;
+  if (!callbackQuery || !("from" in callbackQuery) || !("message" in callbackQuery)) return;
 
+  const message = callbackQuery.message;
+  if (!message || !("message_id" in message) || !("chat" in message)) return;
+
+  const chatId = message.chat.id.toString();
+  const messageId = message.message_id;
   const userId = callbackQuery.from.id.toString();
-  const state = getConfirmationState(userId);
+
+  const state = getConfirmationStateByMessage(chatId, messageId);
 
   if (!state) {
     await ctx.answerCbQuery(); // Dismiss loading indicator
@@ -465,9 +537,9 @@ export async function handleManualEntryRequested(ctx: Context) {
     return;
   }
 
-  // Update state
+  // Update state to await title input
   state.state = "awaiting_title";
-  storeConfirmationState(userId, state);
+  storeConfirmationState(chatId, messageId, userId, state);
 
   await ctx.answerCbQuery();
 
@@ -481,10 +553,19 @@ export async function handleManualEntryRequested(ctx: Context) {
  */
 export async function handleCancel(ctx: Context) {
   const callbackQuery = ctx.callbackQuery;
-  if (!callbackQuery || !("from" in callbackQuery)) return;
+  if (!callbackQuery || !("from" in callbackQuery) || !("message" in callbackQuery)) return;
 
-  const userId = callbackQuery.from.id.toString();
-  clearConfirmationState(userId);
+  const message = callbackQuery.message;
+  if (!message || !("message_id" in message) || !("chat" in message)) return;
+
+  const chatId = message.chat.id.toString();
+  const messageId = message.message_id;
+
+  // Get state to retrieve original user ID
+  const state = getConfirmationStateByMessage(chatId, messageId);
+  if (state) {
+    clearConfirmationState(chatId, messageId, state.reviewData.telegramUserId.toString());
+  }
 
   // Show toast notification
   await ctx.answerCbQuery("❌ Создание рецензии отменено");
@@ -502,14 +583,20 @@ export async function handleCancel(ctx: Context) {
  */
 export async function handleExtractedBookConfirmed(ctx: Context, botContext?: BotContext) {
   const callbackQuery = ctx.callbackQuery;
-  if (!callbackQuery || !("from" in callbackQuery)) return;
+  if (!callbackQuery || !("from" in callbackQuery) || !("message" in callbackQuery)) return;
 
+  const message = callbackQuery.message;
+  if (!message || !("message_id" in message) || !("chat" in message)) return;
+
+  const chatId = message.chat.id.toString();
+  const messageId = message.message_id;
   const userId = callbackQuery.from.id.toString();
-  console.log(`[Confirmation] handleExtractedBookConfirmed called for user ${userId}`);
-  const state = getConfirmationState(userId);
+
+  console.log(`[Confirmation] handleExtractedBookConfirmed called by user ${userId} for message ${messageId}`);
+  const state = getConfirmationStateByMessage(chatId, messageId);
 
   if (!state || !state.extractedInfo) {
-    console.log(`[Confirmation] State missing or no extractedInfo for user ${userId}`);
+    console.log(`[Confirmation] State missing or no extractedInfo for message ${messageId}`);
     await ctx.answerCbQuery(); // Dismiss loading indicator
     await ctx.editMessageText(
       "Что-то пошло не так, попробуй запроцессить рецензию заново",
@@ -589,14 +676,14 @@ export async function handleExtractedBookConfirmed(ctx: Context, botContext?: Bo
     }
 
     // Clear state
-    clearConfirmationState(userId);
+    clearConfirmationState(chatId, messageId, state.reviewData.telegramUserId.toString());
   } catch (error) {
     console.error("[Confirmation] Error creating book/review from extracted info:", error);
     await ctx.answerCbQuery(); // Dismiss loading indicator
     await ctx.editMessageText(
       "❌ Произошла ошибка при создании рецензии. Пожалуйста, попробуйте ещё раз."
     );
-    clearConfirmationState(userId);
+    clearConfirmationState(chatId, messageId, state.reviewData.telegramUserId.toString());
   }
 }
 
@@ -606,10 +693,13 @@ export async function handleExtractedBookConfirmed(ctx: Context, botContext?: Bo
  */
 export async function handleTextInput(ctx: Context, botContext?: BotContext): Promise<boolean> {
   const message = ctx.message;
-  if (!message || !("text" in message) || !("from" in message)) return false;
+  if (!message || !("text" in message) || !("from" in message) || !("chat" in message)) return false;
 
   const userId = message.from.id.toString();
-  const state = getConfirmationState(userId);
+  const chatId = message.chat.id.toString();
+
+  // Try to get state by user (anyone can provide text input)
+  const state = getConfirmationStateByUser(chatId, userId);
 
   if (!state) {
     return false; // Not in confirmation flow
@@ -674,7 +764,7 @@ export async function handleTextInput(ctx: Context, botContext?: BotContext): Pr
         // Update state with new enrichment results
         state.enrichmentResults = enrichmentResults;
         state.state = "showing_options";
-        storeConfirmationState(userId, state);
+        storeConfirmationState(chatId, state.statusMessageId, userId, state);
 
         // Update status message with new options
         const options = generateOptionsMessage(state);
@@ -714,7 +804,7 @@ export async function handleTextInput(ctx: Context, botContext?: BotContext): Pr
       // Save title and move to author input
       state.tempData.enteredTitle = text;
       state.state = "awaiting_author";
-      storeConfirmationState(userId, state);
+      storeConfirmationState(chatId, state.statusMessageId, userId, state);
 
       // Update message to ask for author
       const prompt = generateAuthorPromptMessage(text);
@@ -816,7 +906,7 @@ export async function handleTextInput(ctx: Context, botContext?: BotContext): Pr
         }
 
         // Clear state
-        clearConfirmationState(userId);
+        clearConfirmationState(chatId, state.statusMessageId, state.reviewData.telegramUserId.toString());
       } catch (error) {
         console.error("[Confirmation] Error creating book/review:", error);
         await ctx.telegram.editMessageText(
@@ -825,7 +915,7 @@ export async function handleTextInput(ctx: Context, botContext?: BotContext): Pr
           undefined,
           "❌ Произошла ошибка при создании рецензии. Пожалуйста, попробуйте ещё раз."
         );
-        clearConfirmationState(userId);
+        clearConfirmationState(chatId, state.statusMessageId, state.reviewData.telegramUserId.toString());
       }
 
       return true;

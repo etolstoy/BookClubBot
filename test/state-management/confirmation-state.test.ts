@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import type { Context } from "telegraf";
 import {
   storeConfirmationState,
-  getConfirmationState,
+  getConfirmationStateByMessage,
+  getConfirmationStateByUser,
   clearConfirmationState,
   handleBookSelected,
   handleIsbnRequested,
@@ -123,9 +124,8 @@ function createBaseState(overrides?: Partial<BookConfirmationState>): BookConfir
 
 describe("State Management - Confirmation Flow", () => {
   beforeEach(() => {
-    // Clear all states before each test
-    const userIds = ["123", "456", "789"];
-    userIds.forEach((id) => clearConfirmationState(id));
+    // Note: States are now keyed by chatId:messageId, so cleanup happens per-test
+    // No need for global cleanup here since each test uses different message IDs
   });
 
   afterEach(() => {
@@ -134,11 +134,13 @@ describe("State Management - Confirmation Flow", () => {
 
   it("User selects first option", async () => {
     const userId = "123";
-    const ctx = createMockContext(userId) as Context;
+    const chatId = 1;
+    const messageId = 100;
+    const ctx = createMockContext(userId, messageId, chatId) as Context;
 
     // Setup: Store state with 2 book options
     const state = createBaseState();
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId.toString(), messageId, userId, state);
 
     // Mock callback query data for first book selection
     if (ctx.callbackQuery && "data" in ctx.callbackQuery) {
@@ -149,7 +151,7 @@ describe("State Management - Confirmation Flow", () => {
     await handleBookSelected(ctx);
 
     // Assert: State should be cleared after successful selection
-    const finalState = getConfirmationState(userId);
+    const finalState = getConfirmationStateByMessage(chatId.toString(), messageId);
     expect(finalState).toBeNull();
 
     // Assert: answerCbQuery was called (success toast or error dismissal)
@@ -159,11 +161,13 @@ describe("State Management - Confirmation Flow", () => {
 
   it("User selects second option", async () => {
     const userId = "124";
-    const ctx = createMockContext(userId) as Context;
+    const chatId = 1;
+    const messageId = 101;
+    const ctx = createMockContext(userId, messageId, chatId) as Context;
 
     // Setup: Store state with 2 book options
     const state = createBaseState();
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId.toString(), messageId, userId, state);
 
     // Mock callback query data for second book selection
     if (ctx.callbackQuery && "data" in ctx.callbackQuery) {
@@ -174,7 +178,7 @@ describe("State Management - Confirmation Flow", () => {
     await handleBookSelected(ctx);
 
     // Assert: State should be cleared after successful selection
-    const finalState = getConfirmationState(userId);
+    const finalState = getConfirmationStateByMessage(chatId.toString(), messageId);
     expect(finalState).toBeNull();
 
     // Assert: answerCbQuery was called (success toast or error dismissal)
@@ -184,20 +188,22 @@ describe("State Management - Confirmation Flow", () => {
 
   it("User cancels confirmation", async () => {
     const userId = "125";
-    const ctx = createMockContext(userId) as Context;
+    const chatId = 1;
+    const messageId = 102;
+    const ctx = createMockContext(userId, messageId, chatId) as Context;
 
     // Setup: Store state
     const state = createBaseState();
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId.toString(), messageId, userId, state);
 
     // Verify state exists
-    expect(getConfirmationState(userId)).not.toBeNull();
+    expect(getConfirmationStateByMessage(chatId.toString(), messageId)).not.toBeNull();
 
     // Act: User cancels
     await handleCancel(ctx);
 
     // Assert: State should be cleared
-    const finalState = getConfirmationState(userId);
+    const finalState = getConfirmationStateByMessage(chatId.toString(), messageId);
     expect(finalState).toBeNull();
 
     // Assert: User received cancellation toast
@@ -212,11 +218,13 @@ describe("State Management - Confirmation Flow", () => {
 
   it("Cancel shows toast and deletes message (clean chat)", async () => {
     const userId = "126";
-    const ctx = createMockContext(userId) as Context;
+    const chatId = 1;
+    const messageId = 103;
+    const ctx = createMockContext(userId, messageId, chatId) as Context;
 
     // Setup: Store state
     const state = createBaseState();
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId.toString(), messageId, userId, state);
 
     // Act: User cancels
     await handleCancel(ctx);
@@ -329,14 +337,17 @@ describe("State Management - Confirmation Flow", () => {
     );
   });
 
-  it("Multiple reviews from same user → second replaces first (Map behavior)", () => {
+  it("Multiple reviews from same user → second replaces first (stored per messageId)", () => {
     const userId = "127";
+    const chatId = 1;
+    const messageId1 = 200;
+    const messageId2 = 201;
 
-    // Setup: Store initial state
+    // Setup: Store initial state for first message
     const state1 = createBaseState();
-    storeConfirmationState(userId, state1);
+    storeConfirmationState(chatId.toString(), messageId1, userId, state1);
 
-    // Attempt to store another state for the same user
+    // Store another state for a different message (same user, different confirmation)
     const state2 = createBaseState({
       extractedInfo: {
         title: "Different Book",
@@ -344,19 +355,30 @@ describe("State Management - Confirmation Flow", () => {
         confidence: "high",
       },
     });
-    storeConfirmationState(userId, state2);
+    storeConfirmationState(chatId.toString(), messageId2, userId, state2);
 
-    // Assert: Second state should overwrite the first (Map behavior)
-    const finalState = getConfirmationState(userId);
-    expect(finalState).not.toBeNull();
-    expect(finalState?.extractedInfo?.title).toBe("Different Book");
+    // Assert: Both states exist independently (keyed by messageId)
+    const finalState1 = getConfirmationStateByMessage(chatId.toString(), messageId1);
+    const finalState2 = getConfirmationStateByMessage(chatId.toString(), messageId2);
+
+    expect(finalState1).not.toBeNull();
+    expect(finalState2).not.toBeNull();
+    expect(finalState1?.extractedInfo?.title).toBe("Test Book");
+    expect(finalState2?.extractedInfo?.title).toBe("Different Book");
+
+    // Assert: User secondary index points to most recent message
+    const userState = getConfirmationStateByUser(chatId.toString(), userId);
+    expect(userState?.extractedInfo?.title).toBe("Different Book");
   });
 
   it("Multiple users concurrent confirmations (allowed)", () => {
     const user1 = "128";
     const user2 = "129";
+    const chatId = 1;
+    const messageId1 = 300;
+    const messageId2 = 301;
 
-    // Setup: Store states for two different users
+    // Setup: Store states for two different users with different confirmation messages
     const state1 = createBaseState({
       reviewData: {
         telegramUserId: BigInt(128),
@@ -367,6 +389,7 @@ describe("State Management - Confirmation Flow", () => {
         chatId: BigInt(1),
         reviewedAt: new Date(),
       },
+      statusMessageId: messageId1,
     });
     const state2 = createBaseState({
       reviewData: {
@@ -378,14 +401,15 @@ describe("State Management - Confirmation Flow", () => {
         chatId: BigInt(1),
         reviewedAt: new Date(),
       },
+      statusMessageId: messageId2,
     });
 
-    storeConfirmationState(user1, state1);
-    storeConfirmationState(user2, state2);
+    storeConfirmationState(chatId.toString(), messageId1, user1, state1);
+    storeConfirmationState(chatId.toString(), messageId2, user2, state2);
 
     // Assert: Both states should exist independently
-    const finalState1 = getConfirmationState(user1);
-    const finalState2 = getConfirmationState(user2);
+    const finalState1 = getConfirmationStateByMessage(chatId.toString(), messageId1);
+    const finalState2 = getConfirmationStateByMessage(chatId.toString(), messageId2);
 
     expect(finalState1).not.toBeNull();
     expect(finalState2).not.toBeNull();
@@ -395,11 +419,13 @@ describe("State Management - Confirmation Flow", () => {
 
   it("State cleanup on completion", async () => {
     const userId = "130";
-    const ctx = createMockContext(userId) as Context;
+    const chatId = 1;
+    const messageId = 104;
+    const ctx = createMockContext(userId, messageId, chatId) as Context;
 
     // Setup: Store state
     const state = createBaseState();
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId.toString(), messageId, userId, state);
 
     // Mock callback query data for book selection
     if (ctx.callbackQuery && "data" in ctx.callbackQuery) {
@@ -407,42 +433,46 @@ describe("State Management - Confirmation Flow", () => {
     }
 
     // Verify state exists before completion
-    expect(getConfirmationState(userId)).not.toBeNull();
+    expect(getConfirmationStateByMessage(chatId.toString(), messageId)).not.toBeNull();
 
     // Act: Complete the confirmation flow
     await handleBookSelected(ctx);
 
     // Assert: State should be cleared
-    const finalState = getConfirmationState(userId);
+    const finalState = getConfirmationStateByMessage(chatId.toString(), messageId);
     expect(finalState).toBeNull();
   });
 
   it("State cleanup on cancellation", async () => {
     const userId = "131";
-    const ctx = createMockContext(userId) as Context;
+    const chatId = 1;
+    const messageId = 105;
+    const ctx = createMockContext(userId, messageId, chatId) as Context;
 
     // Setup: Store state
     const state = createBaseState();
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId.toString(), messageId, userId, state);
 
     // Verify state exists before cancellation
-    expect(getConfirmationState(userId)).not.toBeNull();
+    expect(getConfirmationStateByMessage(chatId.toString(), messageId)).not.toBeNull();
 
     // Act: Cancel the confirmation
     await handleCancel(ctx);
 
     // Assert: State should be cleared
-    const finalState = getConfirmationState(userId);
+    const finalState = getConfirmationStateByMessage(chatId.toString(), messageId);
     expect(finalState).toBeNull();
   });
 
   it("Invalid option selection", async () => {
     const userId = "132";
-    const ctx = createMockContext(userId) as Context;
+    const chatId = 1;
+    const messageId = 106;
+    const ctx = createMockContext(userId, messageId, chatId) as Context;
 
     // Setup: Store state with 2 book options
     const state = createBaseState();
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId.toString(), messageId, userId, state);
 
     // Mock callback query data for invalid book index (only 0 and 1 exist)
     if (ctx.callbackQuery && "data" in ctx.callbackQuery) {
@@ -456,21 +486,24 @@ describe("State Management - Confirmation Flow", () => {
     expect(ctx.answerCbQuery).toHaveBeenCalledWith("❌ Книга не найдена");
 
     // Assert: State should still exist (not cleared on error)
-    const finalState = getConfirmationState(userId);
+    const finalState = getConfirmationStateByMessage(chatId.toString(), messageId);
     expect(finalState).not.toBeNull();
   });
 
   it("State persistence across messages", async () => {
     const userId = "133";
+    const chatId = 1;
+    const messageId = 107;
 
     // Setup: Store initial state for ISBN entry flow
     const initialState = createBaseState({
       state: "awaiting_isbn",
+      statusMessageId: messageId,
     });
-    storeConfirmationState(userId, initialState);
+    storeConfirmationState(chatId.toString(), messageId, userId, initialState);
 
     // Simulate user sending ISBN as a text message
-    const ctx1 = createMockContext(userId, 1) as Context;
+    const ctx1 = createMockContext(userId, 1, chatId) as Context;
     if (ctx1.message && "text" in ctx1.message) {
       ctx1.message.text = "978-0-7475-3269-9"; // Valid ISBN format
     }
@@ -482,7 +515,8 @@ describe("State Management - Confirmation Flow", () => {
     expect(handled).toBe(true);
 
     // Assert: State should persist (or be updated, not cleared)
-    const midState = getConfirmationState(userId);
+    // Using getConfirmationStateByUser since handleTextInput uses that method
+    const midState = getConfirmationStateByUser(chatId.toString(), userId);
     expect(midState).not.toBeNull();
 
     // Note: State will either persist with updated enrichment results

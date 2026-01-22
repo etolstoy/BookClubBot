@@ -19,19 +19,18 @@ describe("E2E: ISBN Flow", () => {
   beforeEach(() => {
     mockBookDataClient = new MockBookDataClient();
     mockLLMClient = new MockLLMClient();
-    clearConfirmationState("200");
-    clearConfirmationState("201");
-    clearConfirmationState("202");
-    clearConfirmationState("203");
+    // Note: States are now keyed by chatId:messageId, cleanup handled per-test
   });
 
   it("Valid ISBN → book found → confirm → review saved", async () => {
     const userId = "200";
+    const chatId = "1";
+    const statusMessageId = 100;
     const isbn = "978-0-7475-3269-9";
 
     // Setup: Store state in awaiting_isbn mode
     const state = createBaseConfirmationState(userId, "awaiting_isbn");
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId, statusMessageId, userId, state);
 
     // Mock: Book data client returns book for ISBN
     mockBookDataClient.seedBooks([
@@ -65,11 +64,13 @@ describe("E2E: ISBN Flow", () => {
 
   it("Valid ISBN → book not found → error message", async () => {
     const userId = "201";
+    const chatId = "1";
+    const statusMessageId = 100;
     const isbn = "978-0-0000-0000-0"; // Non-existent ISBN
 
     // Setup: Store state in awaiting_isbn mode
     const state = createBaseConfirmationState(userId, "awaiting_isbn");
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId, statusMessageId, userId, state);
 
     // Mock: Book data client returns null (not found)
     mockBookDataClient.setBehavior("not_found");
@@ -93,11 +94,13 @@ describe("E2E: ISBN Flow", () => {
 
   it("Invalid ISBN format → error message", async () => {
     const userId = "202";
+    const chatId = "1";
+    const statusMessageId = 100;
     const invalidIsbn = "123-invalid"; // Invalid format
 
     // Setup: Store state in awaiting_isbn mode
     const state = createBaseConfirmationState(userId, "awaiting_isbn");
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId, statusMessageId, userId, state);
 
     const botContext = createTestContext(mockLLMClient, mockBookDataClient);
     const ctx = createMockInputContext(userId, invalidIsbn, 100) as Context;
@@ -118,11 +121,13 @@ describe("E2E: ISBN Flow", () => {
 
   it("Google Books API error during ISBN search", async () => {
     const userId = "203";
+    const chatId = "1";
+    const statusMessageId = 100;
     const isbn = "978-0-7475-3269-9";
 
     // Setup: Store state in awaiting_isbn mode
     const state = createBaseConfirmationState(userId, "awaiting_isbn");
-    storeConfirmationState(userId, state);
+    storeConfirmationState(chatId, statusMessageId, userId, state);
 
     // Mock: Book data client throws error
     mockBookDataClient.setBehavior("api_error");

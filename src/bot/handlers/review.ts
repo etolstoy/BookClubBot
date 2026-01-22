@@ -6,7 +6,7 @@ import { extractBookInfo } from "../../services/book-extraction.service.js";
 import { enrichBookInfo } from "../../services/book-enrichment.service.js";
 import {
   storeConfirmationState,
-  getConfirmationState,
+  getConfirmationStateByUser,
   clearConfirmationState,
   generateOptionsMessage,
 } from "./book-confirmation.js";
@@ -155,21 +155,24 @@ async function processReview(
   }
 
   // Check if user has pending confirmation - replace it with new one
-  const existingState = getConfirmationState(userId);
-  if (existingState) {
-    // Delete old confirmation message
-    if (existingState.statusMessageId && existingState.reviewData.chatId) {
-      try {
-        await ctx.telegram.deleteMessage(
-          Number(existingState.reviewData.chatId),
-          existingState.statusMessageId
-        );
-      } catch {
-        // Ignore if message can't be deleted (already deleted, no permissions, etc.)
+  const chatId = message.chat ? message.chat.id.toString() : null;
+  if (chatId) {
+    const existingState = getConfirmationStateByUser(chatId, userId);
+    if (existingState) {
+      // Delete old confirmation message
+      if (existingState.statusMessageId && existingState.reviewData.chatId) {
+        try {
+          await ctx.telegram.deleteMessage(
+            Number(existingState.reviewData.chatId),
+            existingState.statusMessageId
+          );
+        } catch {
+          // Ignore if message can't be deleted (already deleted, no permissions, etc.)
+        }
       }
+      clearConfirmationState(chatId, existingState.statusMessageId, userId);
+      console.log(`[Review] Replaced pending review for user ${userId}`);
     }
-    clearConfirmationState(userId);
-    console.log(`[Review] Replaced pending review for user ${userId}`);
   }
 
   // Send processing message
@@ -203,7 +206,9 @@ async function processReview(
         createdAt: new Date(),
       };
 
-      storeConfirmationState(userId, state);
+      if (chatId) {
+        storeConfirmationState(chatId, processingMsg.message_id, userId, state);
+      }
 
       const options = generateOptionsMessage(state);
       await ctx.telegram.editMessageText(
@@ -246,7 +251,9 @@ async function processReview(
       createdAt: new Date(),
     };
 
-    storeConfirmationState(userId, state);
+    if (chatId) {
+      storeConfirmationState(chatId, processingMsg.message_id, userId, state);
+    }
 
     const options = generateOptionsMessage(state);
     await ctx.telegram.editMessageText(
