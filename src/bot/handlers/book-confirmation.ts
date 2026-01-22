@@ -804,15 +804,8 @@ export async function handleTextInput(ctx: Context, botContext?: BotContext): Pr
           // First review - delete confirmation message to avoid spam
           await ctx.telegram.deleteMessage(ctx.chat!.id, state.statusMessageId);
 
-          // Send temporary success message that auto-deletes
-          const msg = await ctx.reply(success.toastMessage);
-          setTimeout(async () => {
-            try {
-              await ctx.telegram.deleteMessage(ctx.chat!.id, msg.message_id);
-            } catch (err) {
-              // Message might already be deleted by user
-            }
-          }, 3000);
+          // Send success message
+          await ctx.reply(success.toastMessage);
         }
 
         // Clear state
