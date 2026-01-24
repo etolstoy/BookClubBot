@@ -22,8 +22,8 @@ export class OpenAIClient implements ILLMClient {
 
   constructor(config: LLMClientConfig) {
     this.config = {
-      defaultModel: "gpt-4o",
-      defaultTemperature: 0.1,
+      defaultModel: "gpt-5-nano",
+      defaultTemperature: 0,
       ...config,
     };
     this.client = new OpenAI({ apiKey: this.config.apiKey });
@@ -87,19 +87,19 @@ export class OpenAIClient implements ILLMClient {
         : `Extract book information from this review:\n\n${reviewText}`;
 
       const response = await this.client.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4.1",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userContent },
         ],
-        temperature: 0,
-        max_tokens: 500,
+        max_completion_tokens: 2000,
         response_format: { type: "json_object" },
       });
 
       const content = response.choices[0]?.message?.content;
+
       if (!content) {
-        console.log("[OpenAI Client] No content in response");
+        console.log("[OpenAI Client] No content in response. Full choice:", JSON.stringify(choice));
         if (this.config.onError) {
           await this.config.onError(
             new Error("No content in response"),

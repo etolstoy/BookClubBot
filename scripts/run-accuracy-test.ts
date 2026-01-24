@@ -2,9 +2,16 @@
 /**
  * Runner script for book extraction accuracy tests
  * Suppresses vitest framework output, shows only the accuracy report
+ *
+ * Usage:
+ *   npm run test:accuracy              # Run all tests
+ *   npm run test:accuracy review-37    # Run specific test case
  */
 
 import { spawn } from "child_process";
+
+// Get optional test case filter from command line
+const testCaseFilter = process.argv[2];
 
 const child = spawn(
   "npx",
@@ -12,6 +19,10 @@ const child = spawn(
   {
     stdio: ["inherit", "pipe", "pipe"],
     cwd: process.cwd(),
+    env: {
+      ...process.env,
+      ...(testCaseFilter && { ACCURACY_TEST_FILTER: testCaseFilter }),
+    },
   }
 );
 

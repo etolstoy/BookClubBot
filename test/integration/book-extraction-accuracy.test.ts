@@ -223,7 +223,21 @@ function printReport(results: TestResult[]) {
 
 describe("Book Extraction Accuracy", () => {
   let client: OpenAIClient;
-  const typedDataset = dataset as DatasetEntry[];
+
+  // Filter dataset if ACCURACY_TEST_FILTER env var is set
+  const filter = process.env.ACCURACY_TEST_FILTER;
+  const fullDataset = dataset as DatasetEntry[];
+  const typedDataset = filter
+    ? fullDataset.filter((entry) => entry.id === filter || entry.id.includes(filter))
+    : fullDataset;
+
+  if (filter && typedDataset.length === 0) {
+    throw new Error(`No test cases found matching filter: ${filter}`);
+  }
+
+  if (filter) {
+    console.log(`\nRunning ${typedDataset.length} test(s) matching: ${filter}\n`);
+  }
 
   beforeAll(() => {
     const apiKey = process.env.OPENAI_API_KEY;
