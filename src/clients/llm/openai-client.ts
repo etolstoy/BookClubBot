@@ -63,6 +63,7 @@ export class OpenAIClient implements ILLMClient {
       -	title = canonical ENGLISH publication title (even if the review mentions a Russian/Italian/Spanish/etc title)
       -	author = canonical Latin-script author name (diacritics allowed), in “GivenName Surname” order
       -	Do NOT output transliteration of Cyrillic titles; do NOT output Russian translated titles for non-Russian originals.
+    - Use full author first name, not just initials.
 
   Hard validation before final JSON (must apply):
     -	If Russian-original = no, title and author MUST NOT contain Cyrillic characters. If they do, correct to English/Latin canonical forms; if you cannot confidently resolve, keep best English guess and set confidence=“low” (do not switch to Cyrillic).
