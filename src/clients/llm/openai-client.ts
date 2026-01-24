@@ -37,50 +37,43 @@ export class OpenAIClient implements ILLMClient {
     reviewText: string,
     commandParams?: string
   ): Promise<ExtractedBookInfo | null> {
-    const systemPrompt = `You are a helpful assistant that extracts book information from review texts or command parameters.
+    const systemPrompt = `You extract canonical book info from a review text and/or command parameters.
 
-Extract the PRIMARY book being reviewed, along with any alternative spellings/transliterations and other mentioned books.
+  Return JSON ONLY matching exactly this schema (no extra keys, no markdown):
+  {
+    "title": string|null,
+    "author": string|null,
+    "confidence": "high"|"medium"|"low",
+    "alternativeBooks": [{"title": string, "author": string|null}]
+  }
 
-Respond with JSON only. Response format:
-{
-  "title": "Primary Book Title",
-  "author": "Author Name or null if not found",
-  "confidence": "high" | "medium" | "low",
-  "alternativeBooks": [
-    {"title": "Other Mentioned Book", "author": "Author or null"},
-    ...
-  ]
-}
+  Decision order:
+	1.	If command parameters exist in format “Title – Author”, use them as PRIMARY.
+	2.	Otherwise identify the PRIMARY book being reviewed (main subject). If unclear, pick the FIRST mentioned.
+	3.	Put up to 3 other mentioned books (comparison/reference) into alternativeBooks.
+    
+  Canonicalization (critical):
+  - Do not infer original language from the language/script used in the review. First identify the work (entity). Then output canonical original-edition title/author in the original language.
+  - Output the canonical ORIGINAL-EDITION title and the canonical author name (entity resolution).
+  - Output must be in the language/script of the original edition (first publication).
+    - If the work was originally published in Russian, output title in Cyrillic Russian and author in Cyrillic Russian (no Latin transliteration).
+    - If originally published in English, output both in English Latin (no Cyrillic localized titles).
+	- If the author is an English-language author, the title MUST be in English (Latin script). If your draft title is Cyrillic for a non-Russian author, re-resolve to the original title.
+	- Author name should be the canonical form (not translated). If missing, you MAY infer it from the identified book.
 
-Steps:
-1. Analyze the review text and extract the author name. Determine the full author name in the language the book was written in first.
-2. Extract the book title. It must be in the same language as in the book original edition. If the author name is in English, most probably the title must be also in English.
+  Confidence:
+	- high: explicit title/author or unambiguous canonical match.
+	- medium: inferred author or title but strong evidence.
+	- low: weak evidence or multiple plausible primary books.
 
-Guidelines:
-- "title" is the PRIMARY book being reviewed (the main subject)
-- Author name must be full, even if the review doesn't mention it. Use your knowledge of the book to determine the author.
-- Author name must not be translated, even if in the review text it is translated.
-- If the review mentions a localized/translated title, resolve it to the canonical title of the original edition (entity resolution), and output that canonical title.
-- Title can be in Russian, only if this is a book by a russian author.
-- If the author name is in English, most probably the title must be also in English.
-- Title and author name must be as in the book original, e.g. if the book is in English, the title and author name must be in English.
-- If multiple books are mentioned with no clear primary, pick the FIRST mentioned book as primary and put the rest in alternativeBooks
-- Include books mentioned for comparison/reference in alternativeBooks
-- Limit alternativeBooks to maximum 3 entries
-- "confidence" indicates how certain you are about the primary book identification
-- Set confidence to "low" if multiple books seem equally important (but still pick one as primary)
-- If command parameters are provided (format: "Title – Author"), extract from those first
-
-IMPORTANT: Always extract at least one book as primary if ANY books are mentioned. Only return null if absolutely no books can be identified.
-
-If you cannot identify any book at all, respond with:
-{
-  "title": null,
-  "author": null,
-  "confidence": "low",
-  "alternativeBooks": []
-}`;
-
+  Always return at least one primary book if any book is mentioned. If no book can be identified at all:
+  {
+    "title": null,
+    "author": null,
+    "confidence": "low",
+    "alternativeBooks": []
+  }
+  `
     try {
       const userContent = commandParams
         ? `Extract book information from these command parameters: "${commandParams}"\n\nContext (original review text for reference):\n${reviewText}`
