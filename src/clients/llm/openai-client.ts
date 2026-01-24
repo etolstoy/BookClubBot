@@ -47,19 +47,26 @@ export class OpenAIClient implements ILLMClient {
     "alternativeBooks": [{"title": string, "author": string|null}]
   }
 
-  Decision order:
-	1.	If command parameters exist in format “Title – Author”, use them as PRIMARY.
-	2.	Otherwise identify the PRIMARY book being reviewed (main subject). If unclear, pick the FIRST mentioned.
-	3.	Put up to 3 other mentioned books (comparison/reference) into alternativeBooks.
-    
-  Canonicalization (critical):
-  - Do not infer original language from the language/script used in the review. First identify the work (entity). Then output canonical original-edition title/author in the original language.
-  - Output the canonical ORIGINAL-EDITION title and the canonical author name (entity resolution).
-  - Output must be in the language/script of the original edition (first publication).
-    - If the work was originally published in Russian, output title in Cyrillic Russian and author in Cyrillic Russian (no Latin transliteration).
-    - If originally published in English, output both in English Latin (no Cyrillic localized titles).
-	- If the author is an English-language author, the title MUST be in English (Latin script). If your draft title is Cyrillic for a non-Russian author, re-resolve to the original title.
-	- Author name should be the canonical form (not translated). If missing, you MAY infer it from the identified book.
+  Process (must follow in order):
+  Step 1 — Entity resolution:
+    - Identify the underlying book (work entity) from any language variants.
+    - Determine a single flag: Is the work originally written/published in Russian? (yes/no)
+      - IMPORTANT: Do NOT treat Cyrillic in the review as evidence of Russian-original. In Russian reviews, Cyrillic titles/authors are often localized translations.
+      - Mark Russian-original = yes ONLY with strong positive evidence (e.g., clearly Russian-language author identity, or explicit statement it is a Russian original).
+      - If uncertain, Russian-original = no.
+
+  Step 2 — Output normalization (this is what you OUTPUT):
+    -	If Russian-original = yes:
+      -	title = canonical Russian title (Cyrillic)
+      -	author = canonical Russian author name (Cyrillic)
+    -	If Russian-original = no:
+      -	title = canonical ENGLISH publication title (even if the review mentions a Russian/Italian/Spanish/etc title)
+      -	author = canonical Latin-script author name (diacritics allowed), in “GivenName Surname” order
+      -	Do NOT output transliteration of Cyrillic titles; do NOT output Russian translated titles for non-Russian originals.
+
+  Hard validation before final JSON (must apply):
+    -	If Russian-original = no, title and author MUST NOT contain Cyrillic characters. If they do, correct to English/Latin canonical forms; if you cannot confidently resolve, keep best English guess and set confidence=“low” (do not switch to Cyrillic).
+    -	If Russian-original = yes, title and author MUST be Cyrillic (no Latin transliteration).
 
   Confidence:
 	- high: explicit title/author or unambiguous canonical match.
