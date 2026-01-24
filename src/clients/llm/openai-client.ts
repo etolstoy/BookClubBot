@@ -52,15 +52,19 @@ Respond with JSON only. Response format:
   ]
 }
 
+Steps:
+1. Analyze the review text and extract the author name. Determine the full author name in the language the book was written in first.
+2. Extract the book title. It must be in the same language as in the book original edition. If the author name is in English, most probably the title must be also in English.
+
 Guidelines:
 - "title" is the PRIMARY book being reviewed (the main subject)
 - Author name must be full, even if the review doesn't mention it. Use your knowledge of the book to determine the author.
 - Author name must not be translated, even if in the review text it is translated.
-- Title must not be translated, even if in the review text it is translated.
+- If the review mentions a localized/translated title, resolve it to the canonical title of the original edition (entity resolution), and output that canonical title.
 - Title can be in Russian, only if this is a book by a russian author.
+- If the author name is in English, most probably the title must be also in English.
 - Title and author name must be as in the book original, e.g. if the book is in English, the title and author name must be in English.
 - If multiple books are mentioned with no clear primary, pick the FIRST mentioned book as primary and put the rest in alternativeBooks
-- Include transliterations (e.g., Russian ↔ English) as separate entries in alternativeBooks
 - Include books mentioned for comparison/reference in alternativeBooks
 - Limit alternativeBooks to maximum 3 entries
 - "confidence" indicates how certain you are about the primary book identification
@@ -88,7 +92,7 @@ If you cannot identify any book at all, respond with:
           { role: "system", content: systemPrompt },
           { role: "user", content: userContent },
         ],
-        temperature: 0.1,
+        temperature: 0,
         max_tokens: 500,
         response_format: { type: "json_object" },
       });

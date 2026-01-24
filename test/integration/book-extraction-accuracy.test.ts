@@ -10,7 +10,7 @@
  * Note: Requires OPENAI_API_KEY environment variable
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, beforeAll } from "vitest";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -223,7 +223,7 @@ function printReport(results: TestResult[]) {
 
 describe("Book Extraction Accuracy", () => {
   let client: OpenAIClient;
-  const testResults: TestResult[] = [];
+  const typedDataset = dataset as DatasetEntry[];
 
   beforeAll(() => {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -236,25 +236,20 @@ describe("Book Extraction Accuracy", () => {
     client = new OpenAIClient({ apiKey });
   });
 
-  // Print report after all tests complete
-  afterAll(() => {
+  it("evaluates all entries in parallel", async () => {
+    // Fire all API requests concurrently
+    const extractionPromises = typedDataset.map((entry) =>
+      client.extractBookInfo(entry.review_text, entry.command_params)
+    );
+
+    const results = await Promise.all(extractionPromises);
+
+    // Evaluate all results
+    const testResults = typedDataset.map((entry, index) =>
+      evaluateResult(entry, results[index])
+    );
+
+    // Print the report
     printReport(testResults);
-  });
-
-  // Run individual test for each dataset entry
-  const typedDataset = dataset as DatasetEntry[];
-
-  typedDataset.forEach((entry) => {
-    it(`[${entry.id}] ${entry.description}`, async () => {
-      const result = await client.extractBookInfo(
-        entry.review_text,
-        entry.command_params
-      );
-
-      const evaluation = evaluateResult(entry, result);
-      testResults.push(evaluation);
-      // No assertion - this is a measurement suite, not pass/fail tests
-      // Results are reported in afterAll
-    });
   });
 });
