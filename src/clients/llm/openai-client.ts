@@ -54,6 +54,11 @@ Respond with JSON only. Response format:
 
 Guidelines:
 - "title" is the PRIMARY book being reviewed (the main subject)
+- Author name must be full, even if the review doesn't mention it. Use your knowledge of the book to determine the author.
+- Author name must not be translated, even if in the review text it is translated.
+- Title must not be translated, even if in the review text it is translated.
+- Title can be in Russian, only if this is a book by a russian author.
+- Title and author name must be as in the book original, e.g. if the book is in English, the title and author name must be in English.
 - If multiple books are mentioned with no clear primary, pick the FIRST mentioned book as primary and put the rest in alternativeBooks
 - Include transliterations (e.g., Russian ↔ English) as separate entries in alternativeBooks
 - Include books mentioned for comparison/reference in alternativeBooks
