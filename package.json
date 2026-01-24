@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "test:accuracy": "tsx scripts/run-accuracy-test.ts"
   },
   "keywords": [
     "telegram",
