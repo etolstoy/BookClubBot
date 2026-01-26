@@ -1,6 +1,6 @@
 /**
  * Cascading OpenAI Client Implementation
- * Multi-step pipeline: nano model first, escalating to GPT-4.1 when needed
+ * Uses nano model for title/author extraction, escalates to web search for author when needed
  * Uses Responses API with Structured Outputs
  */
 
@@ -14,49 +14,70 @@ import type {
   LLMConfidence,
 } from "../../lib/interfaces/index.js";
 
-/**
- * Pipeline modes for book extraction:
- * - "nano-only": Only use nano model for title and author (fastest, cheapest)
- * - "nano-with-fallback": Nano first, fall back to full model if needed (no web search)
- * - "full": Complete pipeline with web search fallback for author (most accurate)
- */
-export type PipelineMode = "nano-only" | "nano-with-fallback" | "full";
+// ============================================================================
+// PROMPTS - Edit these to tune extraction behavior
+// ============================================================================
 
-/**
- * Extended config for CascadingOpenAIClient
- */
-export interface CascadingClientConfig extends LLMClientConfig {
-  pipelineMode?: PipelineMode;
-}
+const TITLE_EXTRACTION_PROMPT = `Extract the primary book title from this review.
 
-/**
- * Metrics tracked during extraction pipeline
- */
-export interface PipelineMetrics {
-  fullModelFallbacks: number;
-  webSearchFallbacks: number;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-}
+Rules:
+- Identify the main book being reviewed
+- Use canonical ENGLISH title for non-Russian works
+- Use the original published title in its original script for Russian-original works
+- "high": title explicitly mentioned with quotes or clear attribution
+- "medium": title clearly identifiable from context
+- "low": title uncertain or multiple candidates`;
 
-// Internal types for pipeline steps
-interface TitleExtractionResult {
-  title: string | null;
-  confidence: LLMConfidence;
-}
+const getAuthorExtractionPrompt = (title: string) => `Given the book title "${title}", extract the author from this review.
 
-interface AuthorExtractionResult {
-  author: string | null;
-  confidence: LLMConfidence;
-}
+Hard rules:
+- Never invent or guess a given name from a surname-only mention.
+- You may output a full "GivenName Surname" ONLY if:
+  (A) the review text contains both given name and surname, OR
+  (B) the title uniquely identifies the author (a single widely accepted author), and nothing in the review contradicts it.
+- If neither (A) nor (B) holds, author=null.
+- If there are multiple authors, separate them by comma (e.g., "GivenName Surname, GivenName Surname").
 
-interface FullExtractionResult {
-  title: string | null;
-  author: string | null;
-  confidence: LLMConfidence;
-}
+Normalization:
+- Determine whether each author is Russian or non-Russian.
+- If the author is Russian: output the author name in Cyrillic.
+- If the author is non-Russian: output the author name in Latin script (diacritics allowed).
+- DO NOT transliterate non-Russian author names into Cyrillic, even if the title/review snippet is in Russian.
+- Use "GivenName Surname" format only: no patronymics, no initials, full first name.
 
-// JSON Schemas for Structured Outputs
+Confidence:
+- "high": full given name + surname are explicitly present in the review text.
+- "medium": author is not fully explicit in the review (e.g., surname-only), but you can resolve the full name via an unambiguous title→author mapping.
+- "low": author uncertain / ambiguous / conflicting signals / not found.`;
+
+const getWebSearchAuthorPrompt = (title: string, reviewContext: string) => `Find the author(s) of the book "${title}".
+
+You are allowed to use web search in this fallback step.
+
+Context from review (may be partial / truncated): ${reviewContext}
+
+Hard rules:
+- Never invent or guess a given name from a surname-only mention found in the review snippet.
+- Output a full "GivenName Surname" ONLY if:
+  (A) the review snippet contains both given name and surname for that author, OR
+  (B) web search confirms the title uniquely identifies the author(s) (single widely accepted work/edition), and nothing in the review snippet contradicts it.
+- If the title is ambiguous (multiple different books share the same title) and the review snippet does not disambiguate, return null.
+- If there are multiple authors, separate by comma (e.g., "GivenName Surname, GivenName Surname").
+
+Normalization:
+- Determine whether each author is Russian or non-Russian.
+- If the author is Russian: output the author name in Cyrillic.
+- If the author is non-Russian: output the author name in Latin script (diacritics allowed).
+- DO NOT transliterate non-Russian author names into Cyrillic, even if the title/review snippet is in Russian.
+- Use "GivenName Surname" format only: no patronymics, no initials, full first name.
+
+Output:
+- Return ONLY the author string (one or more names separated by comma), or null. No extra text.`;
+
+// ============================================================================
+// SCHEMAS - JSON Schema definitions for structured outputs
+// ============================================================================
+
 const titleExtractionSchema = {
   type: "json_schema" as const,
   name: "title_extraction",
@@ -87,77 +108,64 @@ const authorExtractionSchema = {
   },
 };
 
-const fullExtractionSchema = {
-  type: "json_schema" as const,
-  name: "full_extraction",
-  strict: true,
-  schema: {
-    type: "object",
-    properties: {
-      title: { type: ["string", "null"], description: "The canonical book title" },
-      author: { type: ["string", "null"], description: "The author name" },
-      confidence: { type: "string", enum: ["high", "medium", "low"] },
-    },
-    required: ["title", "author", "confidence"],
-    additionalProperties: false,
-  },
-};
+// ============================================================================
+// TYPES
+// ============================================================================
 
-/**
- * Cascading OpenAI implementation of ILLMClient
- * Uses cheap nano model first, escalates to GPT-4.1 (with web search) when needed
- * All calls use Responses API with Structured Outputs
- */
+export interface PipelineMetrics {
+  webSearchFallbacks: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+}
+
+interface TitleExtractionResult {
+  title: string | null;
+  confidence: LLMConfidence;
+}
+
+interface AuthorExtractionResult {
+  author: string | null;
+  confidence: LLMConfidence;
+}
+
+// ============================================================================
+// CLIENT IMPLEMENTATION
+// ============================================================================
+
 export class CascadingOpenAIClient implements ILLMClient {
   private client: OpenAI;
   private config: LLMClientConfig;
-  private readonly pipelineMode: PipelineMode;
 
-  // Model constants
   private readonly NANO_MODEL = "gpt-5-nano";
-  private readonly FULL_MODEL = "gpt-5.2";
+  private readonly WEB_SEARCH_MODEL = "gpt-5.2";
 
-  // Metrics tracking
   private metrics: PipelineMetrics = {
-    fullModelFallbacks: 0,
     webSearchFallbacks: 0,
     totalInputTokens: 0,
     totalOutputTokens: 0,
   };
 
-  constructor(config: CascadingClientConfig) {
+  constructor(config: LLMClientConfig) {
     this.config = {
       defaultModel: "gpt-5-nano",
       defaultTemperature: 1,
       ...config,
     };
-    this.pipelineMode = config.pipelineMode ?? "full";
     this.client = new OpenAI({ apiKey: this.config.apiKey });
-    console.log(`[Cascading Client] Initialized with pipeline mode: ${this.pipelineMode}`);
   }
 
-  /**
-   * Get current pipeline metrics
-   */
   getMetrics(): PipelineMetrics {
     return { ...this.metrics };
   }
 
-  /**
-   * Reset pipeline metrics
-   */
   resetMetrics(): void {
     this.metrics = {
-      fullModelFallbacks: 0,
       webSearchFallbacks: 0,
       totalInputTokens: 0,
       totalOutputTokens: 0,
     };
   }
 
-  /**
-   * Track token usage from API response
-   */
   private trackUsage(response: OpenAI.Responses.Response): void {
     if (response.usage) {
       this.metrics.totalInputTokens += response.usage.input_tokens || 0;
@@ -166,11 +174,10 @@ export class CascadingOpenAIClient implements ILLMClient {
   }
 
   /**
-   * Extract book information using cascading pipeline.
-   * Pipeline behavior depends on pipelineMode:
-   * - "nano-only": Only nano model for title and author (no fallbacks)
-   * - "nano-with-fallback": Nano first, full model fallback (no web search)
-   * - "full": Complete pipeline with web search fallback for author
+   * Extract book information using cascading pipeline:
+   * 1. Extract title with nano model
+   * 2. Extract author with nano model
+   * 3. If author weak, escalate to web search
    */
   async extractBookInfo(
     reviewText: string,
@@ -180,74 +187,25 @@ export class CascadingOpenAIClient implements ILLMClient {
       ? `Extract book information from these command parameters: "${commandParams}"\n\nContext (original review text for reference):\n${reviewText}`
       : reviewText;
 
-    console.log(`[Cascading Client] Starting extraction pipeline (mode: ${this.pipelineMode})`);
+    console.log("[Cascading Client] Starting extraction pipeline");
 
-    // Step 1: Always extract title with nano model
+    // Step 1: Extract title with nano model
     const titleResult = await this.extractTitleWithNano(userContent);
     console.log("[Cascading Client] Step 1 (nano title):", JSON.stringify(titleResult));
 
-    // Mode: nano-only - no fallback for title, just use nano for author
-    if (this.pipelineMode === "nano-only") {
-      if (!titleResult.title) {
-        console.log("[Cascading Client] No title from nano, returning null (nano-only mode)");
-        return null;
-      }
-
-      const authorResult = await this.extractAuthorWithNano(userContent, titleResult.title);
-      console.log("[Cascading Client] Nano author result:", JSON.stringify(authorResult));
-
-      return {
-        title: titleResult.title,
-        author: authorResult.author,
-        confidence: this.combineConfidence(titleResult.confidence, authorResult.confidence),
-        alternativeBooks: [],
-      };
-    }
-
-    // Modes: nano-with-fallback or full - fallback to full model if nano title fails
     if (!titleResult.title || titleResult.confidence === "low") {
-      console.log("[Cascading Client] Escalating to full model extraction");
-      this.metrics.fullModelFallbacks++;
-      const fullResult = await this.extractWithFullModel(userContent);
-      console.log("[Cascading Client] Full model result:", JSON.stringify(fullResult));
-
-      if (!fullResult.title) {
-        console.log("[Cascading Client] No title found, returning null");
-        return null;
-      }
-
-      if (fullResult.confidence === "low") {
-        console.log("[Cascading Client] Low confidence from full model, returning null");
-        return null;
-      }
-
-      // Full model gives both title and author, no further fallback needed
-      return {
-        title: fullResult.title,
-        author: fullResult.author,
-        confidence: fullResult.confidence,
-        alternativeBooks: [],
-      };
+      console.log("[Cascading Client] No title or low confidence, returning null");
+      return null;
     }
 
-    // Step 3: High confidence title → extract author with nano
-    console.log("[Cascading Client] Step 3 (nano author)");
+    // Step 2: Extract author with nano model
+    console.log("[Cascading Client] Step 2 (nano author)");
     const authorResult = await this.extractAuthorWithNano(userContent, titleResult.title);
     console.log("[Cascading Client] Nano author result:", JSON.stringify(authorResult));
 
-    // Mode: nano-with-fallback - no web search, return what we have
-    if (this.pipelineMode === "nano-with-fallback") {
-      return {
-        title: titleResult.title,
-        author: authorResult.author,
-        confidence: this.combineConfidence(titleResult.confidence, authorResult.confidence),
-        alternativeBooks: [],
-      };
-    }
-
-    // Mode: full - web search fallback for weak author
+    // Step 3: If author weak, escalate to web search
     if (!authorResult.author || authorResult.confidence === "low") {
-      console.log("[Cascading Client] Escalating to web search for author");
+      console.log("[Cascading Client] Step 3 (web search for author)");
       this.metrics.webSearchFallbacks++;
       const webSearchAuthor = await this.extractAuthorWithWebSearch(titleResult.title, userContent);
       console.log("[Cascading Client] Web search result:", JSON.stringify(webSearchAuthor));
@@ -260,7 +218,6 @@ export class CascadingOpenAIClient implements ILLMClient {
       };
     }
 
-    // Success path: both title and author from nano
     return {
       title: titleResult.title,
       author: authorResult.author,
@@ -269,9 +226,6 @@ export class CascadingOpenAIClient implements ILLMClient {
     };
   }
 
-  /**
-   * Extract text output from Responses API response
-   */
   private extractTextFromResponse(response: OpenAI.Responses.Response): string | null {
     const messageItem = response.output.find((item) => item.type === "message");
     if (!messageItem || messageItem.type !== "message") {
@@ -286,24 +240,11 @@ export class CascadingOpenAIClient implements ILLMClient {
     return textPart.text;
   }
 
-  /**
-   * Step 1: Extract title using nano model (Responses API)
-   */
   private async extractTitleWithNano(userContent: string): Promise<TitleExtractionResult> {
-    const instructions = `Extract the primary book title from this review.
-
-Rules:
-- Identify the main book being reviewed
-- Use canonical ENGLISH title for non-Russian works
-- Use Cyrillic title for Russian-original works
-- "high": title explicitly mentioned with quotes or clear attribution
-- "medium": title clearly identifiable from context
-- "low": title uncertain or multiple candidates`;
-
     try {
       const response = await this.client.responses.create({
         model: this.NANO_MODEL,
-        instructions,
+        instructions: TITLE_EXTRACTION_PROMPT,
         input: userContent,
         text: { format: titleExtractionSchema },
       });
@@ -326,28 +267,14 @@ Rules:
     }
   }
 
-  /**
-   * Step 3: Extract author using nano model (given known title)
-   */
   private async extractAuthorWithNano(
     userContent: string,
     title: string
   ): Promise<AuthorExtractionResult> {
-    const instructions = `Given the book title "${title}", extract the author from this review.
-
-Rules:
-- Use Latin script for non-Russian authors (diacritics allowed)
-- Use Cyrillic for Russian authors
-- Use "GivenName Surname" format, no patronymics
-- Use full first name, not initials
-- "high": author explicitly mentioned
-- "medium": author inferable from context
-- "low": author uncertain or not found`;
-
     try {
       const response = await this.client.responses.create({
         model: this.NANO_MODEL,
-        instructions,
+        instructions: getAuthorExtractionPrompt(title),
         input: userContent,
         text: { format: authorExtractionSchema },
       });
@@ -370,86 +297,14 @@ Rules:
     }
   }
 
-  /**
-   * Step 2: Full extraction using GPT-4.1 (fallback when nano fails)
-   */
-  private async extractWithFullModel(userContent: string): Promise<FullExtractionResult> {
-    const instructions = `You extract canonical book info from a review text and/or command parameters.
-
-Process (must follow in order):
-Step 1 — Entity resolution:
-  - Identify the underlying book (work entity) from any language variants.
-  - Determine a single flag: Is the work originally written/published in Russian? (yes/no)
-    - IMPORTANT: Do NOT treat Cyrillic in the review as evidence of Russian-original. In Russian reviews, Cyrillic titles/authors are often localized translations.
-    - Mark Russian-original = yes ONLY with strong positive evidence (e.g., clearly Russian-language author identity, or explicit statement it is a Russian original).
-    - If uncertain, Russian-original = no.
-
-Step 2 — Output normalization (this is what you OUTPUT):
-  - If Russian-original = yes:
-    - title = canonical Russian title (Cyrillic)
-    - author = canonical Russian author name (Cyrillic)
-  - If Russian-original = no:
-    - title = canonical ENGLISH publication title (even if the review mentions a Russian/Italian/Spanish/etc title)
-    - author = canonical Latin-script author name (diacritics allowed), in "GivenName Surname" order
-    - Do NOT output transliteration of Cyrillic titles; do NOT output Russian translated titles for non-Russian originals.
-  - Use full author first name, not just initials.
-  - Remove the patronymic from Russian names.
-
-Hard validation before final output (must apply):
-  - If Russian-original = no, title and author MUST NOT contain Cyrillic characters. If they do, correct to English/Latin canonical forms; if you cannot confidently resolve, keep best English guess and set confidence="low" (do not switch to Cyrillic).
-  - If Russian-original = yes, title and author MUST be Cyrillic (no Latin transliteration).
-
-Confidence:
-  - high: explicit title/author or unambiguous canonical match.
-  - medium: inferred author or title but strong evidence.
-  - low: weak evidence or multiple plausible primary books.`;
-
-    try {
-      const response = await this.client.responses.create({
-        model: this.FULL_MODEL,
-        instructions,
-        input: `Extract book information from this review:\n\n${userContent}`,
-        text: { format: fullExtractionSchema },
-      });
-
-      this.trackUsage(response);
-      const content = this.extractTextFromResponse(response);
-      if (!content) {
-        return { title: null, author: null, confidence: "low" };
-      }
-
-      const parsed = JSON.parse(content);
-      return {
-        title: parsed.title || null,
-        author: parsed.author || null,
-        confidence: parsed.confidence || "low",
-      };
-    } catch (error) {
-      console.error("[Cascading Client] Error in full model extraction:", error);
-      await this.handleError(error as Error, "Full Model Extraction");
-      return { title: null, author: null, confidence: "low" };
-    }
-  }
-
-  /**
-   * Step 4: Extract author using GPT-4.1 with web search (Responses API)
-   */
   private async extractAuthorWithWebSearch(
     title: string,
     userContent: string
   ): Promise<AuthorExtractionResult> {
     try {
       const response = await this.client.responses.create({
-        model: this.FULL_MODEL,
-        input: `Find the author of the book "${title}". 
-        
-Context from review: ${userContent.substring(0, 500)}
-
-Return the author name in the correct format:
-- Latin script for non-Russian authors (diacritics allowed)
-- Cyrillic for Russian authors
-- "GivenName Surname" format, no patronymics
-- Full first name, not initials`,
+        model: this.WEB_SEARCH_MODEL,
+        input: getWebSearchAuthorPrompt(title, userContent.substring(0, 500)),
         tools: [{ type: "web_search_preview" }],
         text: { format: authorExtractionSchema },
       });
@@ -473,36 +328,24 @@ Return the author name in the correct format:
     }
   }
 
-  /**
-   * Combine confidence levels from multiple steps
-   */
   private combineConfidence(
     titleConfidence: LLMConfidence,
     authorConfidence: LLMConfidence
   ): LLMConfidence {
-    // If either is low, result is low
     if (titleConfidence === "low" || authorConfidence === "low") {
       return "low";
     }
-    // If either is medium, result is medium
     if (titleConfidence === "medium" || authorConfidence === "medium") {
       return "medium";
     }
-    // Both high
     return "high";
   }
 
-  /**
-   * Stub implementation - returns "positive" without API call
-   */
   async analyzeSentiment(_reviewText: string): Promise<Sentiment | null> {
     console.log("[Cascading Client] analyzeSentiment called (stub returning 'positive')");
     return "positive";
   }
 
-  /**
-   * Generic completion method for custom prompts (uses Responses API)
-   */
   async complete(options: LLMCompletionOptions): Promise<string | null> {
     try {
       const response = await this.client.responses.create({
@@ -519,9 +362,6 @@ Return the author name in the correct format:
     }
   }
 
-  /**
-   * Centralized error handling with callbacks
-   */
   private async handleError(error: Error, operation: string): Promise<void> {
     const isRateLimit =
       error.message.includes("429") || error.message.includes("rate limit");

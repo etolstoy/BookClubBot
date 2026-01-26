@@ -10,14 +10,12 @@
  * Environment variables:
  *   OPENAI_API_KEY - Required for API access
  *   LLM_CLIENT - Optional: "openai" (default) or "cascading"
- *   PIPELINE_MODE - Optional (cascading only): "nano-only" | "nano-with-fallback" | "full" (default)
  *   ACCURACY_TEST_FILTER - Optional: filter tests by ID (exact match)
  *
  * Examples:
  *   npm test -- test/integration/book-extraction-accuracy.test.ts
  *   LLM_CLIENT=cascading npm test -- test/integration/book-extraction-accuracy.test.ts
- *   LLM_CLIENT=cascading PIPELINE_MODE=nano-only npm run test:accuracy
- *   LLM_CLIENT=cascading PIPELINE_MODE=nano-with-fallback npm run test:accuracy review-2
+ *   LLM_CLIENT=cascading npm run test:accuracy review-2
  */
 
 import { describe, it, beforeAll } from "vitest";
@@ -25,7 +23,7 @@ import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { OpenAIClient } from "../../src/clients/llm/openai-client.js";
-import { CascadingOpenAIClient, type PipelineMode, type PipelineMetrics } from "../../src/clients/llm/cascading-openai-client.js";
+import { CascadingOpenAIClient, type PipelineMetrics } from "../../src/clients/llm/cascading-openai-client.js";
 import type { ILLMClient, ExtractedBookInfo } from "../../src/lib/interfaces/index.js";
 
 // Get current directory in ESM
@@ -222,7 +220,6 @@ function printReport(results: TestResult[], pipelineMetrics?: PipelineMetrics) {
 
   if (pipelineMetrics) {
     console.log(`\nPipeline Metrics:`);
-    console.log(`  Full model fallbacks: ${pipelineMetrics.fullModelFallbacks}`);
     console.log(`  Web search fallbacks: ${pipelineMetrics.webSearchFallbacks}`);
     console.log(`  Total input tokens:   ${pipelineMetrics.totalInputTokens.toLocaleString()}`);
     console.log(`  Total output tokens:  ${pipelineMetrics.totalOutputTokens.toLocaleString()}`);
@@ -243,10 +240,7 @@ function printReport(results: TestResult[], pipelineMetrics?: PipelineMetrics) {
 
 // Determine which client to use
 const clientType = process.env.LLM_CLIENT || "openai";
-const pipelineMode = (process.env.PIPELINE_MODE as PipelineMode) || "full";
-const clientName = clientType === "cascading" 
-  ? `CascadingOpenAIClient (${pipelineMode})` 
-  : "OpenAIClient";
+const clientName = clientType === "cascading" ? "CascadingOpenAIClient" : "OpenAIClient";
 
 describe(`Book Extraction Accuracy (${clientName})`, () => {
   let client: ILLMClient;
@@ -278,7 +272,7 @@ describe(`Book Extraction Accuracy (${clientName})`, () => {
 
     // Create the appropriate client based on LLM_CLIENT env var
     if (clientType === "cascading") {
-      client = new CascadingOpenAIClient({ apiKey, pipelineMode });
+      client = new CascadingOpenAIClient({ apiKey });
     } else {
       client = new OpenAIClient({ apiKey });
     }
