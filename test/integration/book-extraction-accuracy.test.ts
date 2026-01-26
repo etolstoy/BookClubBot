@@ -1,13 +1,23 @@
 /**
  * Book Extraction Accuracy Tests
  *
- * This test suite runs the OpenAI client against a dataset of reviews
+ * This test suite runs an LLM client against a dataset of reviews
  * and measures extraction accuracy. Use this to refine prompts and
  * evaluate model performance.
  *
  * Run with: npm test -- test/integration/book-extraction-accuracy.test.ts
  *
- * Note: Requires OPENAI_API_KEY environment variable
+ * Environment variables:
+ *   OPENAI_API_KEY - Required for API access
+ *   LLM_CLIENT - Optional: "openai" (default) or "cascading"
+ *   PIPELINE_MODE - Optional (cascading only): "nano-only" | "nano-with-fallback" | "full" (default)
+ *   ACCURACY_TEST_FILTER - Optional: filter tests by ID (exact match)
+ *
+ * Examples:
+ *   npm test -- test/integration/book-extraction-accuracy.test.ts
+ *   LLM_CLIENT=cascading npm test -- test/integration/book-extraction-accuracy.test.ts
+ *   LLM_CLIENT=cascading PIPELINE_MODE=nano-only npm run test:accuracy
+ *   LLM_CLIENT=cascading PIPELINE_MODE=nano-with-fallback npm run test:accuracy review-2
  */
 
 import { describe, it, beforeAll } from "vitest";
@@ -15,7 +25,8 @@ import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { OpenAIClient } from "../../src/clients/llm/openai-client.js";
-import type { ExtractedBookInfo } from "../../src/lib/interfaces/index.js";
+import { CascadingOpenAIClient, type PipelineMode, type PipelineMetrics } from "../../src/clients/llm/cascading-openai-client.js";
+import type { ILLMClient, ExtractedBookInfo } from "../../src/lib/interfaces/index.js";
 
 // Get current directory in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -189,7 +200,7 @@ function calculateMetrics(results: TestResult[]) {
 /**
  * Print a detailed report of test results
  */
-function printReport(results: TestResult[]) {
+function printReport(results: TestResult[], pipelineMetrics?: PipelineMetrics) {
   const metrics = calculateMetrics(results);
 
   console.log("\n" + "=".repeat(60));
@@ -209,6 +220,15 @@ function printReport(results: TestResult[]) {
     `  Alt books accuracy: ${(metrics.alternativeBooksAccuracy * 100).toFixed(1)}%`
   );
 
+  if (pipelineMetrics) {
+    console.log(`\nPipeline Metrics:`);
+    console.log(`  Full model fallbacks: ${pipelineMetrics.fullModelFallbacks}`);
+    console.log(`  Web search fallbacks: ${pipelineMetrics.webSearchFallbacks}`);
+    console.log(`  Total input tokens:   ${pipelineMetrics.totalInputTokens.toLocaleString()}`);
+    console.log(`  Total output tokens:  ${pipelineMetrics.totalOutputTokens.toLocaleString()}`);
+    console.log(`  Total tokens:         ${(pipelineMetrics.totalInputTokens + pipelineMetrics.totalOutputTokens).toLocaleString()}`);
+  }
+
   const failedTests = results.filter((r) => !r.passed);
   if (failedTests.length > 0) {
     console.log(`\nFailed Tests:`);
@@ -221,14 +241,21 @@ function printReport(results: TestResult[]) {
   console.log("\n" + "=".repeat(60) + "\n");
 }
 
-describe("Book Extraction Accuracy", () => {
-  let client: OpenAIClient;
+// Determine which client to use
+const clientType = process.env.LLM_CLIENT || "openai";
+const pipelineMode = (process.env.PIPELINE_MODE as PipelineMode) || "full";
+const clientName = clientType === "cascading" 
+  ? `CascadingOpenAIClient (${pipelineMode})` 
+  : "OpenAIClient";
+
+describe(`Book Extraction Accuracy (${clientName})`, () => {
+  let client: ILLMClient;
 
   // Filter dataset if ACCURACY_TEST_FILTER env var is set
   const filter = process.env.ACCURACY_TEST_FILTER;
   const fullDataset = dataset as DatasetEntry[];
   const typedDataset = filter
-    ? fullDataset.filter((entry) => entry.id === filter || entry.id.includes(filter))
+    ? fullDataset.filter((entry) => entry.id === filter)
     : fullDataset;
 
   if (filter && typedDataset.length === 0) {
@@ -239,6 +266,8 @@ describe("Book Extraction Accuracy", () => {
     console.log(`\nRunning ${typedDataset.length} test(s) matching: ${filter}\n`);
   }
 
+  console.log(`\nUsing client: ${clientName}\n`);
+
   beforeAll(() => {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -247,7 +276,12 @@ describe("Book Extraction Accuracy", () => {
       );
     }
 
-    client = new OpenAIClient({ apiKey });
+    // Create the appropriate client based on LLM_CLIENT env var
+    if (clientType === "cascading") {
+      client = new CascadingOpenAIClient({ apiKey, pipelineMode });
+    } else {
+      client = new OpenAIClient({ apiKey });
+    }
   });
 
   it("evaluates all entries in parallel", async () => {
@@ -263,7 +297,12 @@ describe("Book Extraction Accuracy", () => {
       evaluateResult(entry, results[index])
     );
 
+    // Get pipeline metrics if using cascading client
+    const pipelineMetrics = client instanceof CascadingOpenAIClient 
+      ? client.getMetrics() 
+      : undefined;
+
     // Print the report
-    printReport(testResults);
-  });
+    printReport(testResults, pipelineMetrics);
+  }, 600_000); // 10 minute timeout for long-running evals
 });
