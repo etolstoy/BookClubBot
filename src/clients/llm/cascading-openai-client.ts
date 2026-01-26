@@ -23,7 +23,7 @@ const TITLE_EXTRACTION_PROMPT = `Extract the primary book title from this review
 Rules:
 - Identify the main book being reviewed
 - Use canonical ENGLISH title for non-Russian works
-- Use the original published title in its original script for Russian-original works
+- Use the original published title in its original script for Russian-original works, even if it's English
 - "high": title explicitly mentioned with quotes or clear attribution
 - "medium": title clearly identifiable from context
 - "low": title uncertain or multiple candidates`;
@@ -39,16 +39,26 @@ Hard rules:
 - If there are multiple authors, separate them by comma (e.g., "GivenName Surname, GivenName Surname").
 
 Normalization:
+- Detect both "GivenName Surname" and "Surname GivenName" patterns; normalize to "GivenName Surname".
 - Determine whether each author is Russian or non-Russian.
 - If the author is Russian: output the author name in Cyrillic.
 - If the author is non-Russian: output the author name in Latin script (diacritics allowed).
 - DO NOT transliterate non-Russian author names into Cyrillic, even if the title/review snippet is in Russian.
-- Use "GivenName Surname" format only: no patronymics, no initials, full first name.
+- Use "GivenName Surname" format only: no patronymics, no initials – full first name.
+- If (B) holds (unique title→author mapping), use the canonical author spelling from that mapping for the Latin-script output.
+  - Treat Cyrillic spellings/transliterations as evidence of identity, not authoritative for exact Latin given-name spelling.
+  - If the review contains a Cyrillic transliteration/variant consistent with the title-mapped author (same surname, plausible phonetic match),
+    output the canonical Latin name from the title mapping.
+
+isspellings:
+- Fix misspellings only when you can still confidently identify the same author:
+  - OK to fix when (B) holds, or when (A) holds and the fix is a minor orthographic correction.
+  - Do NOT “correct” into a different person or a different plausible name variant unless (B) resolves it unambiguously.
 
 Confidence:
-- "high": full given name + surname are explicitly present in the review text.
-- "medium": author is not fully explicit in the review (e.g., surname-only), but you can resolve the full name via an unambiguous title→author mapping.
-- "low": author uncertain / ambiguous / conflicting signals / not found.`;
+- "high": full given name + surname are explicitly present in the review text in Latin script (or already in the exact canonical form you will output).
+- "medium": author is not fully explicit in the review (e.g., surname-only), or the review uses transliteration/variant spellings, but you can resolve the full canonical name via an unambiguous title→author mapping; or if there are potential misspellings and you correct them safely.
+- "low": author uncertain / ambiguous / conflicting signals / not found.`
 
 const getWebSearchAuthorPrompt = (title: string, reviewContext: string) => `Find the author(s) of the book "${title}".
 
@@ -69,7 +79,7 @@ Normalization:
 - If the author is Russian: output the author name in Cyrillic.
 - If the author is non-Russian: output the author name in Latin script (diacritics allowed).
 - DO NOT transliterate non-Russian author names into Cyrillic, even if the title/review snippet is in Russian.
-- Use "GivenName Surname" format only: no patronymics, no initials, full first name.
+- Use "GivenName Surname" format only: no patronymics, no initials – full first name.
 
 Output:
 - Return ONLY the author string (one or more names separated by comma), or null. No extra text.`;
@@ -204,7 +214,7 @@ export class CascadingOpenAIClient implements ILLMClient {
     console.log("[Cascading Client] Nano author result:", JSON.stringify(authorResult));
 
     // Step 3: If author weak, escalate to web search
-    if (!authorResult.author || authorResult.confidence === "low") {
+    if (!authorResult.author || authorResult.confidence === "low" || authorResult.confidence === "medium") {
       console.log("[Cascading Client] Step 3 (web search for author)");
       this.metrics.webSearchFallbacks++;
       const webSearchAuthor = await this.extractAuthorWithWebSearch(titleResult.title, userContent);

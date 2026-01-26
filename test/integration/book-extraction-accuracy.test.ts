@@ -40,8 +40,8 @@ interface AlternativeBook {
 }
 
 interface IdealAnswer {
-  title: string;
-  author: string | null;
+  titles: string[];
+  authors: (string | null)[];
   alternative_books: AlternativeBook[];
 }
 
@@ -74,8 +74,7 @@ function normalizeString(str: string | null | undefined): string {
 }
 
 /**
- * Check if two strings are similar enough (case-insensitive, trimmed)
- * Returns true if strings match or one contains the other
+ * Check if two strings match (case-insensitive, trimmed)
  */
 function stringsMatch(
   expected: string | null,
@@ -88,6 +87,16 @@ function stringsMatch(
   if (!normExpected || !normActual) return normExpected === normActual;
 
   return false;
+}
+
+/**
+ * Check if actual value matches any of the accepted options
+ */
+function matchesAnyOption(
+  acceptedOptions: (string | null)[],
+  actual: string | null
+): boolean {
+  return acceptedOptions.some((option) => stringsMatch(option, actual));
 }
 
 /**
@@ -135,22 +144,20 @@ function evaluateResult(
     };
   }
 
-  const titleMatch = stringsMatch(entry.ideal_answer.title, result.title);
-  const authorMatch = stringsMatch(entry.ideal_answer.author, result.author);
+  const titleMatch = matchesAnyOption(entry.ideal_answer.titles, result.title);
+  const authorMatch = matchesAnyOption(entry.ideal_answer.authors, result.author);
   const altBooksMatch = alternativeBooksMatch(
     entry.ideal_answer.alternative_books,
     result.alternativeBooks
   );
 
   if (!titleMatch) {
-    errors.push(
-      `Title mismatch: expected "${entry.ideal_answer.title}", got "${result.title}"`
-    );
+    const accepted = entry.ideal_answer.titles.map((t) => `"${t}"`).join(" | ");
+    errors.push(`Title mismatch: expected ${accepted}, got "${result.title}"`);
   }
   if (!authorMatch) {
-    errors.push(
-      `Author mismatch: expected "${entry.ideal_answer.author}", got "${result.author}"`
-    );
+    const accepted = entry.ideal_answer.authors.map((a) => `"${a}"`).join(" | ");
+    errors.push(`Author mismatch: expected ${accepted}, got "${result.author}"`);
   }
   if (!altBooksMatch) {
     errors.push(
