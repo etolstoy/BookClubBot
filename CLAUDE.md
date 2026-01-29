@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Telegram bot that tracks book reviews with sentiment analysis and leaderboards. Reviews are submitted via hashtags or commands, processed by OpenAI to extract book information, and enriched with Google Books API data. The system includes a Mini App (Telegram Web App) frontend for viewing reviews, leaderboards, and book catalogs.
+A Telegram bot that tracks book reviews with sentiment analysis and leaderboards. Reviews are submitted via hashtags or commands, processed by LLM to extract book information, and enriched with Google Books API data. The system includes a Mini App (Telegram Web App) frontend for viewing reviews, leaderboards, and book catalogs.
 
 ## Architecture
 
@@ -21,7 +21,7 @@ All three components start together via `src/index.ts`:
 
 ### Key Services
 
-- **Book Extraction Service** (`src/services/book-extraction.service.ts`): LLM-based extraction of primary book and alternative books from review text. Returns confidence scores (high/medium/low) and handles command parameters like `/review Title — Author`. Uses OpenAI client implementation.
+- **Book Extraction Service** (`src/services/book-extraction.service.ts`): LLM-based extraction of primary book from review text using cascading approach (nano model for title/author, web search fallback for ambiguous authors). Returns confidence scores (high/medium/low) and handles command parameters like `/review Title — Author`. Uses CascadingOpenAIClient implementation.
 - **Book Enrichment Service** (`src/services/book-enrichment.service.ts`): Searches for book matches using 90% similarity threshold for both title AND author independently. Searches local database first, then queries external book API only for unmatched books. Returns top 3 deduplicated results sorted by similarity score.
 - **Book Service** (`src/services/book.service.ts`): Manages book CRUD operations, book creation with external API enrichment, similarity-based matching, and dynamic URL generation for Google Books and Goodreads (URLs computed on-the-fly, not stored).
 - **Review Service** (`src/services/review.service.ts`): Handles review creation, duplicate detection, sentiment assignment, statistics aggregation, and leaderboards (monthly/yearly/overall/last30/last365 days).
@@ -34,8 +34,8 @@ All three components start together via `src/index.ts`:
 2. **Validation**: `handleReviewMessage`/`handleReviewCommand` in `src/bot/handlers/review.ts` checks for:
    - Duplicate reviews (same telegramUserId + messageId)
    - Existing pending confirmation state (prevents overlapping confirmations)
-3. **Book Extraction**: LLM extracts primary book and alternative books from review text via `book-extraction.service.ts`
-   - Returns confidence scores (high/medium/low) for each book
+3. **Book Extraction**: LLM extracts primary book from review text via `book-extraction.service.ts`
+   - Returns confidence scores (high/medium/low) for the book
    - If extraction fails → shows manual entry options (enter book info or cancel)
 4. **Book Enrichment**: `book-enrichment.service.ts` finds matching books:
    - Searches local database with 90% similarity threshold (title AND author)
@@ -297,12 +297,15 @@ CONFIRMING_MANUAL_BOOK → [confirmed] → CREATE_REVIEW
 
 ### LLM Integration
 
-- Book extraction service uses LLM for extracting book information from review text
-- Sentiment analysis service uses LLM for classifying review sentiment
-- JSON response format enforced for structured outputs
+- Book extraction service uses cascading LLM pipeline for extracting book information from review text
+  - Step 1: Extract title with nano model (gpt-5-nano)
+  - Step 2: Extract author with nano model
+  - Step 3: If author confidence is low/medium, escalate to web search (gpt-5.2 with web search tool)
+- Sentiment analysis service uses nano model (gpt-5-nano) for classifying review sentiment
+- JSON response format enforced with structured outputs (OpenAI Responses API)
 - Rate limit/quota errors trigger admin notifications via notification service
 - Handles command parameters like `/review Title — Author` for direct book specification
-- Current implementation uses OpenAI (gpt-4o for extraction, gpt-4o-mini for sentiment)
+- Current implementation uses CascadingOpenAIClient (gpt-5-nano for extraction/sentiment, gpt-5.2 with web search for fallback)
 - Implementation is abstracted via ILLMClient interface for easy swapping
 
 ### BigInt Handling

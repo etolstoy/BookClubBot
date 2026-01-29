@@ -3,8 +3,7 @@
   "expectedExtraction": {
     "title": "Война и мир",
     "author": "Лев Толстой",
-    "confidence": "high",
-    "alternativeBooks": []
+    "confidence": "high"
   },
   "expectedSentiment": "positive",
   "expectedBookMatch": {

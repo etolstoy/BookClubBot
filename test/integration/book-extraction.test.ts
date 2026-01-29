@@ -31,7 +31,6 @@ describe("Book Extraction Integration", () => {
 
       assertBookInfoMatches(result, fixture.expectedExtraction);
       expect(result!.confidence).toBe("high");
-      expect(result!.alternativeBooks || []).toHaveLength(0);
     });
 
     it("should extract single book with low confidence", async () => {
@@ -42,7 +41,6 @@ describe("Book Extraction Integration", () => {
         title: "Uncertain Book",
         author: null,
         confidence: "low",
-        alternativeBooks: [],
       };
 
       mockClient.setBehavior("low_confidence");
@@ -50,33 +48,6 @@ describe("Book Extraction Integration", () => {
 
       expect(result).not.toBeNull();
       expect(result!.confidence).toBe("low");
-    });
-  });
-
-  describe("Multiple books extraction", () => {
-    it("should extract primary + alternative books", async () => {
-      const fixture = loadReviewFixture("multiple-books");
-
-      mockClient.mockResponse(fixture.reviewText, {
-        extractedInfo: fixture.expectedExtraction,
-      });
-
-      const result = await mockClient.extractBookInfo(fixture.reviewText);
-
-      assertBookInfoMatches(result, fixture.expectedExtraction);
-      expect(result!.alternativeBooks).toBeDefined();
-      expect(result!.alternativeBooks!.length).toBeGreaterThan(0);
-    });
-
-    it("should handle multiple books with medium confidence", async () => {
-      mockClient.setBehavior("multiple_books");
-      const result = await mockClient.extractBookInfo(
-        "Comparing The Great Gatsby and 1984"
-      );
-
-      expect(result).not.toBeNull();
-      expect(result!.alternativeBooks).toBeDefined();
-      expect(result!.alternativeBooks!.length).toBe(2);
     });
   });
 
@@ -89,7 +60,6 @@ describe("Book Extraction Integration", () => {
         title: "The Great Gatsby",
         author: "F. Scott Fitzgerald",
         confidence: "high",
-        alternativeBooks: [],
       };
 
       mockClient.mockResponse(reviewText, {
@@ -163,7 +133,6 @@ describe("Book Extraction Integration", () => {
         title: "The Great Gatsby",
         author: null,
         confidence: "high",
-        alternativeBooks: [],
       };
 
       mockClient.mockResponse(reviewText, {

@@ -118,6 +118,20 @@ const authorExtractionSchema = {
   },
 };
 
+const sentimentAnalysisSchema = {
+  type: "json_schema" as const,
+  name: "sentiment_analysis",
+  strict: true,
+  schema: {
+    type: "object",
+    properties: {
+      sentiment: { type: "string", enum: ["positive", "negative", "neutral"] },
+    },
+    required: ["sentiment"],
+    additionalProperties: false,
+  },
+};
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -224,7 +238,6 @@ export class CascadingOpenAIClient implements ILLMClient {
         title: titleResult.title,
         author: webSearchAuthor.author,
         confidence: this.combineConfidence(titleResult.confidence, webSearchAuthor.confidence),
-        alternativeBooks: [],
       };
     }
 
@@ -232,7 +245,6 @@ export class CascadingOpenAIClient implements ILLMClient {
       title: titleResult.title,
       author: authorResult.author,
       confidence: this.combineConfidence(titleResult.confidence, authorResult.confidence),
-      alternativeBooks: [],
     };
   }
 
@@ -351,9 +363,44 @@ export class CascadingOpenAIClient implements ILLMClient {
     return "high";
   }
 
-  async analyzeSentiment(_reviewText: string): Promise<Sentiment | null> {
-    console.log("[Cascading Client] analyzeSentiment called (stub returning 'positive')");
-    return "positive";
+  async analyzeSentiment(reviewText: string): Promise<Sentiment | null> {
+    const instructions = `Analyze the following book review and classify the reviewer's sentiment.
+Return ONLY one of: "positive", "negative", or "neutral"
+
+Guidelines:
+- "positive": The reviewer recommends the book, enjoyed it, or speaks highly of it
+- "negative": The reviewer does not recommend the book, disliked it, or criticizes it
+- "neutral": Mixed feelings, informational review without clear recommendation, or balanced pros/cons`;
+
+    try {
+      const response = await this.client.responses.create({
+        model: this.NANO_MODEL,
+        instructions: instructions,
+        input: `Review text:\n\n${reviewText}`,
+        text: { format: sentimentAnalysisSchema },
+      });
+
+      this.trackUsage(response);
+      const content = this.extractTextFromResponse(response);
+      if (!content) {
+        console.warn("[Cascading Client] No content in sentiment response");
+        return null;
+      }
+
+      const parsed = JSON.parse(content);
+      const sentiment = parsed.sentiment;
+
+      if (sentiment === "positive" || sentiment === "negative" || sentiment === "neutral") {
+        return sentiment;
+      }
+
+      console.warn(`[Cascading Client] Unexpected sentiment value: ${sentiment}`);
+      return null;
+    } catch (error) {
+      console.error("[Cascading Client] Error analyzing sentiment:", error);
+      // Sentiment failures are not critical, return null without notification
+      return null;
+    }
   }
 
   async complete(options: LLMCompletionOptions): Promise<string | null> {

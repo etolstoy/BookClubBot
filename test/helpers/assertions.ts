@@ -24,24 +24,6 @@ export function assertBookInfoMatches(
   expect(actual!.confidence, "Confidence level should match").toBe(
     expected.confidence
   );
-
-  const expectedAltCount = expected.alternativeBooks?.length || 0;
-  const actualAltCount = actual!.alternativeBooks?.length || 0;
-  expect(actualAltCount, "Alternative books count should match").toBe(
-    expectedAltCount
-  );
-
-  if (expected.alternativeBooks && actual!.alternativeBooks) {
-    expected.alternativeBooks.forEach((expectedAlt, index) => {
-      const actualAlt = actual!.alternativeBooks![index];
-      expect(actualAlt.title, `Alternative book ${index} title should match`).toBe(
-        expectedAlt.title
-      );
-      expect(actualAlt.author, `Alternative book ${index} author should match`).toBe(
-        expectedAlt.author
-      );
-    });
-  }
 }
 
 /**

@@ -3,13 +3,7 @@
   "expectedExtraction": {
     "title": "The Great Gatsby",
     "author": "F. Scott Fitzgerald",
-    "confidence": "medium",
-    "alternativeBooks": [
-      {
-        "title": "1984",
-        "author": "George Orwell"
-      }
-    ]
+    "confidence": "medium"
   },
   "expectedSentiment": "neutral",
   "expectedBookMatch": {

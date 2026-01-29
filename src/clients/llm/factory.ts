@@ -3,7 +3,7 @@
  * Creates configured LLM client instances with notification callbacks
  */
 
-import { OpenAIClient } from "./openai-client.js";
+import { CascadingOpenAIClient } from "./cascading-openai-client.js";
 import { config } from "../../lib/config.js";
 import {
   sendErrorNotification,
@@ -17,10 +17,10 @@ import type { ILLMClient } from "../../lib/interfaces/index.js";
  * @returns Configured ILLMClient instance
  */
 export function createLLMClient(): ILLMClient {
-  return new OpenAIClient({
+  return new CascadingOpenAIClient({
     apiKey: config.openaiApiKey,
-    defaultModel: "gpt-4o",
-    defaultTemperature: 0.1,
+    defaultModel: "gpt-5-nano",
+    defaultTemperature: 1,
     onRateLimit: async (error: Error) => {
       await sendErrorNotification(error, {
         operation: "OpenAI API",

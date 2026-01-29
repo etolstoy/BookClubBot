@@ -22,7 +22,6 @@ import { describe, it, beforeAll } from "vitest";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { OpenAIClient } from "../../src/clients/llm/openai-client.js";
 import { CascadingOpenAIClient, type PipelineMetrics } from "../../src/clients/llm/cascading-openai-client.js";
 import type { ILLMClient, ExtractedBookInfo } from "../../src/lib/interfaces/index.js";
 
@@ -34,15 +33,9 @@ const __dirname = dirname(__filename);
 const datasetPath = join(__dirname, "../fixtures/llm/book-extraction-dataset.json");
 const dataset = JSON.parse(readFileSync(datasetPath, "utf-8"));
 
-interface AlternativeBook {
-  title: string;
-  author: string | null;
-}
-
 interface IdealAnswer {
   titles: string[];
   authors: (string | null)[];
-  alternative_books: AlternativeBook[];
 }
 
 interface DatasetEntry {
@@ -59,7 +52,6 @@ interface TestResult {
   passed: boolean;
   titleMatch: boolean;
   authorMatch: boolean;
-  alternativeBooksMatch: boolean;
   expected: IdealAnswer;
   actual: ExtractedBookInfo | null;
   errors: string[];
@@ -100,28 +92,6 @@ function matchesAnyOption(
 }
 
 /**
- * Check if alternative books match (order-independent)
- */
-function alternativeBooksMatch(
-  expected: AlternativeBook[],
-  actual: Array<{ title: string; author: string | null }> | undefined
-): boolean {
-  const actualBooks = actual || [];
-
-  if (expected.length === 0 && actualBooks.length === 0) return true;
-  if (expected.length !== actualBooks.length) return false;
-
-  // Check if all expected books are found in actual (order-independent)
-  return expected.every((expectedBook) =>
-    actualBooks.some(
-      (actualBook) =>
-        stringsMatch(expectedBook.title, actualBook.title) &&
-        stringsMatch(expectedBook.author, actualBook.author)
-    )
-  );
-}
-
-/**
  * Evaluate a single test case
  */
 function evaluateResult(
@@ -137,7 +107,6 @@ function evaluateResult(
       passed: false,
       titleMatch: false,
       authorMatch: false,
-      alternativeBooksMatch: false,
       expected: entry.ideal_answer,
       actual: null,
       errors: ["Extraction returned null"],
@@ -146,10 +115,6 @@ function evaluateResult(
 
   const titleMatch = matchesAnyOption(entry.ideal_answer.titles, result.title);
   const authorMatch = matchesAnyOption(entry.ideal_answer.authors, result.author);
-  const altBooksMatch = alternativeBooksMatch(
-    entry.ideal_answer.alternative_books,
-    result.alternativeBooks
-  );
 
   if (!titleMatch) {
     const accepted = entry.ideal_answer.titles.map((t) => `"${t}"`).join(" | ");
@@ -159,13 +124,8 @@ function evaluateResult(
     const accepted = entry.ideal_answer.authors.map((a) => `"${a}"`).join(" | ");
     errors.push(`Author mismatch: expected ${accepted}, got "${result.author}"`);
   }
-  if (!altBooksMatch) {
-    errors.push(
-      `Alternative books mismatch: expected ${JSON.stringify(entry.ideal_answer.alternative_books)}, got ${JSON.stringify(result.alternativeBooks)}`
-    );
-  }
 
-  // A test passes if title AND author match (alternative books are optional for passing)
+  // A test passes if title AND author match
   const passed = titleMatch && authorMatch;
 
   return {
@@ -174,7 +134,6 @@ function evaluateResult(
     passed,
     titleMatch,
     authorMatch,
-    alternativeBooksMatch: altBooksMatch,
     expected: entry.ideal_answer,
     actual: result,
     errors,
@@ -189,7 +148,6 @@ function calculateMetrics(results: TestResult[]) {
   const passed = results.filter((r) => r.passed).length;
   const titleMatches = results.filter((r) => r.titleMatch).length;
   const authorMatches = results.filter((r) => r.authorMatch).length;
-  const altBooksMatches = results.filter((r) => r.alternativeBooksMatch).length;
 
   return {
     total,
@@ -198,7 +156,6 @@ function calculateMetrics(results: TestResult[]) {
     accuracy: total > 0 ? passed / total : 0,
     titleAccuracy: total > 0 ? titleMatches / total : 0,
     authorAccuracy: total > 0 ? authorMatches / total : 0,
-    alternativeBooksAccuracy: total > 0 ? altBooksMatches / total : 0,
   };
 }
 
@@ -221,9 +178,6 @@ function printReport(results: TestResult[], pipelineMetrics?: PipelineMetrics) {
   console.log(`\nBreakdown:`);
   console.log(`  Title accuracy:   ${(metrics.titleAccuracy * 100).toFixed(1)}%`);
   console.log(`  Author accuracy:  ${(metrics.authorAccuracy * 100).toFixed(1)}%`);
-  console.log(
-    `  Alt books accuracy: ${(metrics.alternativeBooksAccuracy * 100).toFixed(1)}%`
-  );
 
   if (pipelineMetrics) {
     console.log(`\nPipeline Metrics:`);
@@ -245,12 +199,8 @@ function printReport(results: TestResult[], pipelineMetrics?: PipelineMetrics) {
   console.log("\n" + "=".repeat(60) + "\n");
 }
 
-// Determine which client to use
-const clientType = process.env.LLM_CLIENT || "openai";
-const clientName = clientType === "cascading" ? "CascadingOpenAIClient" : "OpenAIClient";
-
-describe(`Book Extraction Accuracy (${clientName})`, () => {
-  let client: ILLMClient;
+describe("Book Extraction Accuracy (CascadingOpenAIClient)", () => {
+  let client: CascadingOpenAIClient;
 
   // Filter dataset if ACCURACY_TEST_FILTER env var is set
   const filter = process.env.ACCURACY_TEST_FILTER;
@@ -267,7 +217,7 @@ describe(`Book Extraction Accuracy (${clientName})`, () => {
     console.log(`\nRunning ${typedDataset.length} test(s) matching: ${filter}\n`);
   }
 
-  console.log(`\nUsing client: ${clientName}\n`);
+  console.log("\nUsing client: CascadingOpenAIClient\n");
 
   beforeAll(() => {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -277,12 +227,7 @@ describe(`Book Extraction Accuracy (${clientName})`, () => {
       );
     }
 
-    // Create the appropriate client based on LLM_CLIENT env var
-    if (clientType === "cascading") {
-      client = new CascadingOpenAIClient({ apiKey });
-    } else {
-      client = new OpenAIClient({ apiKey });
-    }
+    client = new CascadingOpenAIClient({ apiKey });
   });
 
   it("evaluates all entries in parallel", async () => {
@@ -298,10 +243,8 @@ describe(`Book Extraction Accuracy (${clientName})`, () => {
       evaluateResult(entry, results[index])
     );
 
-    // Get pipeline metrics if using cascading client
-    const pipelineMetrics = client instanceof CascadingOpenAIClient 
-      ? client.getMetrics() 
-      : undefined;
+    // Get pipeline metrics
+    const pipelineMetrics = client.getMetrics();
 
     // Print the report
     printReport(testResults, pipelineMetrics);
