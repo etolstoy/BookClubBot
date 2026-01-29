@@ -28,14 +28,15 @@ export async function addReaction(
       typeof chatId === "bigint" ? chatId.toString() : chatId;
 
     // Add reaction using Telegram API
-    // Format: array of reaction objects with type and is_big flag
+    // Format: array of ReactionTypeEmoji objects
+    // See: https://core.telegram.org/bots/api#setmessagereaction
     await telegram.setMessageReaction(
       chatIdValue as any,
       messageId,
       [
         {
-          type: emoji,
-          is_big: false,
+          type: "emoji",
+          emoji: emoji,
         } as any,
       ]
     );

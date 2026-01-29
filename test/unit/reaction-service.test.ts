@@ -35,7 +35,7 @@ describe("Reaction Service", () => {
       expect(mockTelegram.setMessageReaction).toHaveBeenCalledWith(
         -1001234567890,
         123,
-        [{ type: "👀", is_big: false }]
+        [{ type: "emoji", emoji: "👀" }]
       );
       expect(notificationService.sendErrorNotification).not.toHaveBeenCalled();
     });
@@ -52,19 +52,19 @@ describe("Reaction Service", () => {
         1,
         123,
         456,
-        [{ type: "👀", is_big: false }]
+        [{ type: "emoji", emoji: "👀" }]
       );
       expect(mockTelegram.setMessageReaction).toHaveBeenNthCalledWith(
         2,
         123,
         456,
-        [{ type: "✅", is_big: false }]
+        [{ type: "emoji", emoji: "✅" }]
       );
       expect(mockTelegram.setMessageReaction).toHaveBeenNthCalledWith(
         3,
         123,
         456,
-        [{ type: "❌", is_big: false }]
+        [{ type: "emoji", emoji: "❌" }]
       );
     });
 
@@ -108,7 +108,7 @@ describe("Reaction Service", () => {
       expect(mockTelegram.setMessageReaction).toHaveBeenCalledWith(
         expect.any(String), // BigInt converted to string or number
         123,
-        [{ type: "👀", is_big: false }]
+        [{ type: "emoji", emoji: "👀" }]
       );
     });
 

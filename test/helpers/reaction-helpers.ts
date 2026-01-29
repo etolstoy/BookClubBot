@@ -52,7 +52,7 @@ export function getReactionCalls(mockFn: any): ReactionCall[] {
   return mockFn.mock.calls.map((call: any[]) => ({
     chatId: call[0],
     messageId: call[1],
-    emoji: call[2]?.[0]?.type || call[2],
+    emoji: call[2]?.[0]?.emoji || call[2],
   }));
 }
 
@@ -103,8 +103,14 @@ export function assertReactionFormat(mockFn: any, expectedCount?: number) {
         `Call ${index}: messageId must be number, got ${typeof call[1]}`
       );
     }
-    // Reaction parameter can be emoji string or array with {type: emoji}
-    const emoji = call[2]?.[0]?.type || call[2];
+    // Reaction parameter is array with {type: "emoji", emoji: "👀"}
+    const reactionObj = call[2]?.[0];
+    if (!reactionObj || reactionObj.type !== "emoji") {
+      throw new Error(
+        `Call ${index}: reaction must have type "emoji", got ${reactionObj?.type}`
+      );
+    }
+    const emoji = reactionObj.emoji;
     if (!["👀", "✅", "❌"].includes(emoji)) {
       throw new Error(
         `Call ${index}: emoji must be 👀, ✅, or ❌, got ${emoji}`
