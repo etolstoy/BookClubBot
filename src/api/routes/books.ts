@@ -3,6 +3,7 @@ import {
   getAllBooks,
   getBookById,
   searchBooks,
+  createBook,
   updateBook,
   deleteBook,
 } from "../../services/book.service.js";
@@ -294,6 +295,69 @@ router.get("/:id/reviews", async (req, res) => {
   } catch (error) {
     console.error("Error fetching book reviews:", error);
     res.status(500).json({ error: "Failed to fetch reviews" });
+  }
+});
+
+// POST /api/books - Create new book (all authenticated users)
+router.post("/", authenticateTelegramWebApp, async (req, res) => {
+  try {
+    const { title, author, isbn, coverUrl, description, publicationYear, pageCount } = req.body;
+
+    console.log('[POST /api/books] Request body:', JSON.stringify(req.body, null, 2));
+
+    // Validate required fields
+    if (!title || typeof title !== "string" || title.trim().length === 0) {
+      res.status(400).json({ error: "Title is required and cannot be empty" });
+      return;
+    }
+
+    // Create book
+    const book = await createBook({
+      title: title.trim(),
+      author: author || null,
+      isbn: isbn || null,
+      coverUrl: coverUrl || null,
+      description: description || null,
+      publicationYear: publicationYear || null,
+      pageCount: pageCount || null,
+    });
+
+    console.log('[POST /api/books] Book created:', book);
+
+    // Send notification to admin
+    const userName = req.telegramUser!.username || req.telegramUser!.first_name || "Unknown User";
+    await sendInfoNotification(
+      `📘 New book created by @${userName}`,
+      {
+        operation: "Book Creation",
+        additionalInfo: `Book: "${book.title}"${book.author ? ` by ${book.author}` : ""}\nISBN: ${book.isbn || "none"}`,
+      }
+    );
+
+    // Format response with genres parsed
+    const genres = book.genres ? JSON.parse(book.genres) : [];
+
+    res.status(201).json({
+      book: {
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        description: book.description,
+        coverUrl: book.coverUrl,
+        genres,
+        publicationYear: book.publicationYear,
+        isbn: book.isbn,
+        pageCount: book.pageCount,
+        googleBooksUrl: getGoogleBooksUrl(book.googleBooksId),
+        goodreadsUrl: generateGoodreadsUrl(book.isbn, book.title, book.author),
+        reviewCount: 0,
+        sentiments: { positive: 0, negative: 0, neutral: 0 },
+      },
+      message: "Book created successfully",
+    });
+  } catch (error) {
+    console.error("Error creating book:", error);
+    res.status(500).json({ error: "Failed to create book" });
   }
 });
 

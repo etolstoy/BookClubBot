@@ -22,7 +22,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Setup test database
+        run: |
+          mkdir -p data
+          npx prisma db push --skip-generate --accept-data-loss
+        env:
+          DATABASE_URL: file:./data/test.db
+
       - name: Run unit and integration tests
+        env:
+          BOT_TOKEN: test_bot_token_for_ci
+          BOT_USERNAME: test_bot
+          DATABASE_URL: file:./data/test.db
+          OPENAI_API_KEY: test_openai_key
         run: npm test -- --run --reporter=verbose --exclude test/integration/book-extraction-accuracy.test.ts
 
   accuracy-tests:
@@ -56,15 +68,16 @@ jobs:
         run: npm ci
 
       - name: Run accuracy tests
-        if: steps.check_changes.outputs.changed == 'true' && secrets.OPENAI_API_KEY != ''
+        if: steps.check_changes.outputs.changed == 'true'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: npm test -- test/integration/book-extraction-accuracy.test.ts --run --reporter=verbose
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "⚠️ Skipping accuracy tests - OPENAI_API_KEY not configured"
+            exit 0
+          fi
+          npm test -- test/integration/book-extraction-accuracy.test.ts --run --reporter=verbose
 
       - name: Skip accuracy tests (no changes)
         if: steps.check_changes.outputs.changed == 'false'
         run: echo "⏭️ Skipping accuracy tests - cascading-openai-client.ts was not modified"
-
-      - name: Skip accuracy tests (no API key)
-        if: steps.check_changes.outputs.changed == 'true' && secrets.OPENAI_API_KEY == ''
-        run: echo "⚠️ Skipping accuracy tests - OPENAI_API_KEY not configured"

@@ -405,6 +405,25 @@ export interface UpdateBookInput {
   goodreadsUrl?: string | null;
 }
 
+export interface CreateBookInput {
+  title: string;
+  author?: string | null;
+  isbn?: string | null;
+  coverUrl?: string | null;
+  description?: string | null;
+  publicationYear?: number | null;
+  pageCount?: number | null;
+}
+
+export async function createBook(
+  data: CreateBookInput
+): Promise<{ book: BookDetail; message: string }> {
+  return fetchApi(`/books`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
 export async function updateBook(
   bookId: number,
   data: UpdateBookInput

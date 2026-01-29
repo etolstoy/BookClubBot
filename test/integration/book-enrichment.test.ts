@@ -50,24 +50,24 @@ describe("Book Enrichment Integration", () => {
       const results = await searchLocalBooks(
         "The Great Gatsby",
         "F. Scott Fitzgerald",
-        0.9,
+        0.95,
         prisma
       );
 
       expect(results).toHaveLength(1);
       expect(results[0].title).toBe("The Great Gatsby");
       expect(results[0].source).toBe("local");
-      expect(results[0].similarity.title).toBeGreaterThanOrEqual(0.9);
-      expect(results[0].similarity.author).toBeGreaterThanOrEqual(0.9);
+      expect(results[0].similarity.title).toBeGreaterThanOrEqual(0.95);
+      expect(results[0].similarity.author).toBeGreaterThanOrEqual(0.95);
     });
 
     it("should find no matches in empty local DB", async () => {
-      const results = await searchLocalBooks("Nonexistent Book", "Unknown Author", 0.9, prisma);
+      const results = await searchLocalBooks("Nonexistent Book", "Unknown Author", 0.95, prisma);
 
       expect(results).toHaveLength(0);
     });
 
-    it("should filter by 90% similarity threshold", async () => {
+    it("should filter by 95% similarity threshold", async () => {
       await seedTestData(prisma, {
         books: [
           {
@@ -81,8 +81,8 @@ describe("Book Enrichment Integration", () => {
         ],
       });
 
-      // Search for similar title with minor typo (should still meet 90% threshold)
-      const results = await searchLocalBooks("The Great Gatsby", "F. Scott Fitzgerald", 0.9, prisma);
+      // Search for exact match (should meet 95% threshold)
+      const results = await searchLocalBooks("The Great Gatsby", "F. Scott Fitzgerald", 0.95, prisma);
 
       // Should match "The Great Gatsby" but not "Great Expectations"
       expect(results.length).toBeGreaterThan(0);
@@ -97,7 +97,8 @@ describe("Book Enrichment Integration", () => {
       const results = await searchExternalBooksWithThreshold(
         "The Great Gatsby",
         "F. Scott Fitzgerald",
-        0.9
+        0.95,
+        mockClient
       );
 
       expect(results.length).toBeGreaterThan(0);
@@ -111,7 +112,8 @@ describe("Book Enrichment Integration", () => {
       const results = await searchExternalBooksWithThreshold(
         "Nonexistent Book xyz123",
         "Unknown Author",
-        0.9
+        0.95,
+        mockClient
       );
 
       expect(results).toHaveLength(0);
@@ -124,7 +126,8 @@ describe("Book Enrichment Integration", () => {
       const results = await searchExternalBooksWithThreshold(
         "Some Book",
         "Some Author",
-        0.9
+        0.95,
+        mockClient
       );
 
       expect(results).toHaveLength(0);
@@ -167,7 +170,7 @@ describe("Book Enrichment Integration", () => {
       });
 
       // Search for same title with first author
-      const results = await searchLocalBooks("The Great Book", "Author One", 0.9, prisma);
+      const results = await searchLocalBooks("The Great Book", "Author One", 0.95, prisma);
 
       expect(results).toHaveLength(1);
       expect(results[0].author).toBe("Author One");
@@ -194,7 +197,7 @@ describe("Book Enrichment Integration", () => {
         ],
       });
 
-      const results = await searchLocalBooks("Anonymous Book", null, 0.9, prisma);
+      const results = await searchLocalBooks("Anonymous Book", null, 0.95, prisma);
 
       expect(results).toHaveLength(1);
       expect(results[0].author).toBeNull();
@@ -233,7 +236,7 @@ describe("Book Enrichment Integration", () => {
       ]);
 
       // Search local first
-      const localResults = await searchLocalBooks("Test Book", "Test Author", 0.9, prisma);
+      const localResults = await searchLocalBooks("Test Book", "Test Author", 0.95, prisma);
       expect(localResults).toHaveLength(1);
       expect(localResults[0].source).toBe("local");
 
@@ -250,7 +253,7 @@ describe("Book Enrichment Integration", () => {
         ],
       });
 
-      const results = await searchLocalBooks("Local Book", "Local Author", 0.9, prisma);
+      const results = await searchLocalBooks("Local Book", "Local Author", 0.95, prisma);
 
       expect(results).toHaveLength(1);
       // Mock client should have zero calls since we only searched locally

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updateBook, deleteBook, searchGoogleBooks, type BookDetail, type UpdateBookInput } from "../api/client";
+import { updateBook, deleteBook, searchGoogleBooks, createBook, type BookDetail, type UpdateBookInput } from "../api/client";
 
 interface EditBookModalProps {
   book: BookDetail;
@@ -14,6 +14,9 @@ export default function EditBookModal({
   onSuccess,
   onDelete,
 }: EditBookModalProps) {
+  // Detect creation mode (book.id === 0)
+  const isCreating = book.id === 0;
+
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author || "");
   const [isbn, setIsbn] = useState(book.isbn || "");
@@ -86,7 +89,7 @@ export default function EditBookModal({
       return;
     }
 
-    if (!hasChanges()) {
+    if (!isCreating && !hasChanges()) {
       onClose();
       return;
     }
@@ -95,78 +98,105 @@ export default function EditBookModal({
     setError(null);
 
     try {
-      const updateData: UpdateBookInput = {};
+      if (isCreating) {
+        // Creation mode: call createBook API
+        const createData = {
+          title: title.trim(),
+          author: author.trim() || null,
+          isbn: isbn.trim() || null,
+          coverUrl: coverUrl.trim() || null,
+          description: description.trim() || null,
+          publicationYear: publicationYear ? parseInt(publicationYear, 10) : null,
+          pageCount: pageCount ? parseInt(pageCount, 10) : null,
+        };
 
-      // Debug logging
-      console.log('[EditBookModal] Current state:', { title, author, isbn, description, publicationYear, pageCount });
-      console.log('[EditBookModal] Original book:', { title: book.title, author: book.author, isbn: book.isbn, description: book.description, publicationYear: book.publicationYear, pageCount: book.pageCount });
+        console.log('[EditBookModal] Creating book:', createData);
+        const result = await createBook(createData);
+        console.log('[EditBookModal] Book created:', result);
 
-      if (title !== book.title) {
-        console.log('[EditBookModal] Title changed');
-        updateData.title = title.trim();
-      }
-
-      if (author !== (book.author || "")) {
-        console.log('[EditBookModal] Author comparison:', { author, bookAuthor: book.author, different: true });
-        // Don't accidentally clear a non-empty value with an empty string
-        if (book.author && author.trim() === "") {
-          console.log('[EditBookModal] Skipping author clear (safety check)');
-          // Skip: likely unintentional clearing
-        } else {
-          console.log('[EditBookModal] Adding author to update');
-          updateData.author = author.trim() || null;
+        // Show success message
+        const tg = window.Telegram?.WebApp as any;
+        if (tg?.showAlert) {
+          tg.showAlert(result.message);
         }
-      }
 
-      if (isbn !== (book.isbn || "")) {
-        console.log('[EditBookModal] ISBN comparison:', { isbn, bookIsbn: book.isbn, different: true });
-        // Don't accidentally clear a non-empty value with an empty string
-        if (book.isbn && isbn.trim() === "") {
-          console.log('[EditBookModal] Skipping ISBN clear (safety check)');
-          // Skip: likely unintentional clearing
-        } else {
-          console.log('[EditBookModal] Adding ISBN to update');
-          updateData.isbn = isbn.trim() || null;
+        onSuccess(result.book);
+        onClose();
+      } else {
+        // Update mode: call updateBook API (admin only)
+        const updateData: UpdateBookInput = {};
+
+        // Debug logging
+        console.log('[EditBookModal] Current state:', { title, author, isbn, description, publicationYear, pageCount });
+        console.log('[EditBookModal] Original book:', { title: book.title, author: book.author, isbn: book.isbn, description: book.description, publicationYear: book.publicationYear, pageCount: book.pageCount });
+
+        if (title !== book.title) {
+          console.log('[EditBookModal] Title changed');
+          updateData.title = title.trim();
         }
+
+        if (author !== (book.author || "")) {
+          console.log('[EditBookModal] Author comparison:', { author, bookAuthor: book.author, different: true });
+          // Don't accidentally clear a non-empty value with an empty string
+          if (book.author && author.trim() === "") {
+            console.log('[EditBookModal] Skipping author clear (safety check)');
+            // Skip: likely unintentional clearing
+          } else {
+            console.log('[EditBookModal] Adding author to update');
+            updateData.author = author.trim() || null;
+          }
+        }
+
+        if (isbn !== (book.isbn || "")) {
+          console.log('[EditBookModal] ISBN comparison:', { isbn, bookIsbn: book.isbn, different: true });
+          // Don't accidentally clear a non-empty value with an empty string
+          if (book.isbn && isbn.trim() === "") {
+            console.log('[EditBookModal] Skipping ISBN clear (safety check)');
+            // Skip: likely unintentional clearing
+          } else {
+            console.log('[EditBookModal] Adding ISBN to update');
+            updateData.isbn = isbn.trim() || null;
+          }
+        }
+
+        if (coverUrl !== (book.coverUrl || "")) {
+          updateData.coverUrl = coverUrl.trim() || null;
+        }
+
+        if (goodreadsUrl !== (book.goodreadsUrl || "")) {
+          updateData.goodreadsUrl = goodreadsUrl.trim() || null;
+        }
+
+        if (description !== (book.description || "")) {
+          updateData.description = description.trim() || null;
+        }
+
+        const parsedPublicationYear = publicationYear ? parseInt(publicationYear, 10) : null;
+        if (parsedPublicationYear !== book.publicationYear) {
+          updateData.publicationYear = parsedPublicationYear;
+        }
+
+        const parsedPageCount = pageCount ? parseInt(pageCount, 10) : null;
+        if (parsedPageCount !== book.pageCount) {
+          updateData.pageCount = parsedPageCount;
+        }
+
+        console.log('[EditBookModal] Final updateData:', updateData);
+
+        const result = await updateBook(book.id, updateData);
+        console.log('[EditBookModal] Server response:', result);
+
+        // Show success message from backend
+        const tg = window.Telegram?.WebApp as any;
+        if (tg?.showAlert) {
+          tg.showAlert(result.message);
+        }
+
+        onSuccess(result.book);
+        onClose();
       }
-
-      if (coverUrl !== (book.coverUrl || "")) {
-        updateData.coverUrl = coverUrl.trim() || null;
-      }
-
-      if (goodreadsUrl !== (book.goodreadsUrl || "")) {
-        updateData.goodreadsUrl = goodreadsUrl.trim() || null;
-      }
-
-      if (description !== (book.description || "")) {
-        updateData.description = description.trim() || null;
-      }
-
-      const parsedPublicationYear = publicationYear ? parseInt(publicationYear, 10) : null;
-      if (parsedPublicationYear !== book.publicationYear) {
-        updateData.publicationYear = parsedPublicationYear;
-      }
-
-      const parsedPageCount = pageCount ? parseInt(pageCount, 10) : null;
-      if (parsedPageCount !== book.pageCount) {
-        updateData.pageCount = parsedPageCount;
-      }
-
-      console.log('[EditBookModal] Final updateData:', updateData);
-
-      const result = await updateBook(book.id, updateData);
-      console.log('[EditBookModal] Server response:', result);
-
-      // Show success message from backend
-      const tg = window.Telegram?.WebApp as any;
-      if (tg?.showAlert) {
-        tg.showAlert(result.message);
-      }
-
-      onSuccess(result.book);
-      onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update book");
+      setError(err instanceof Error ? err.message : isCreating ? "Failed to create book" : "Failed to update book");
     } finally {
       setSaving(false);
     }
@@ -232,7 +262,9 @@ export default function EditBookModal({
       <div className="bg-tg-bg rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-4 border-b border-tg-secondary sticky top-0 bg-tg-bg">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-tg-text">Edit Book</h2>
+            <h2 className="text-xl font-bold text-tg-text">
+              {isCreating ? "Create Book" : "Edit Book"}
+            </h2>
             <button
               onClick={onClose}
               className="text-tg-hint hover:text-tg-text"
@@ -425,18 +457,23 @@ export default function EditBookModal({
             <button
               onClick={handleSave}
               className="flex-1 px-4 py-3 rounded-[16px] bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black transition-colors disabled:opacity-50 border-2 border-transparent"
-              disabled={saving || deleting || !title.trim() || !hasChanges()}
+              disabled={saving || deleting || !title.trim() || (!isCreating && !hasChanges())}
             >
-              {saving ? "Saving..." : "Save Changes"}
+              {saving
+                ? (isCreating ? "Creating..." : "Saving...")
+                : (isCreating ? "Create Book" : "Save Changes")
+              }
             </button>
           </div>
-          <button
-            onClick={handleDelete}
-            className="w-full px-4 py-3 rounded-[16px] bg-red-500 bg-opacity-20 text-red-500 border-2 border-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
-            disabled={saving || deleting}
-          >
-            {deleting ? "Deleting..." : "🗑️ Delete Book"}
-          </button>
+          {!isCreating && (
+            <button
+              onClick={handleDelete}
+              className="w-full px-4 py-3 rounded-[16px] bg-red-500 bg-opacity-20 text-red-500 border-2 border-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
+              disabled={saving || deleting}
+            >
+              {deleting ? "Deleting..." : "🗑️ Delete Book"}
+            </button>
+          )}
         </div>
       </div>
     </div>

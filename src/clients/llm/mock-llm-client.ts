@@ -73,6 +73,39 @@ export class MockLLMClient implements ILLMClient {
   }
 
   /**
+   * Configure mock response with specific confidence level
+   * @param reviewText - The review text to match
+   * @param confidence - The confidence level to return
+   * @param title - Optional title (defaults based on confidence)
+   * @param author - Optional author (defaults based on confidence)
+   */
+  mockConfidence(
+    reviewText: string,
+    confidence: "high" | "medium" | "low",
+    title?: string,
+    author?: string
+  ): void {
+    const defaultTitles = {
+      high: "High Confidence Book",
+      medium: "Medium Confidence Book",
+      low: "Low Confidence Book",
+    };
+    const defaultAuthors = {
+      high: "High Confidence Author",
+      medium: "Medium Confidence Author",
+      low: "Low Confidence Author",
+    };
+
+    this.mockResponse(reviewText, {
+      extractedInfo: {
+        title: title || defaultTitles[confidence],
+        author: author || defaultAuthors[confidence],
+        confidence,
+      },
+    });
+  }
+
+  /**
    * Extract book information from review text (mock implementation)
    */
   async extractBookInfo(

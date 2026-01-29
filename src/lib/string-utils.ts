@@ -52,3 +52,46 @@ export function calculateSimilarity(str1: string, str2: string): number {
 
   return (longer.length - costs[s2.length]) / longer.length;
 }
+
+/**
+ * Get the correct Russian plural form for "review" based on count
+ *
+ * Russian pluralization rules:
+ * - Numbers ending in 1 (except 11): рецензия (singular)
+ * - Numbers ending in 2-4 (except 12-14): рецензии (few)
+ * - Numbers ending in 0, 5-9, 11-14: рецензий (many)
+ *
+ * @param count - Number of reviews
+ * @returns Correct Russian plural form
+ *
+ * @example
+ * getRussianPluralReview(1)   // "рецензия"
+ * getRussianPluralReview(2)   // "рецензии"
+ * getRussianPluralReview(5)   // "рецензий"
+ * getRussianPluralReview(21)  // "рецензия"
+ * getRussianPluralReview(22)  // "рецензии"
+ * getRussianPluralReview(25)  // "рецензий"
+ * getRussianPluralReview(111) // "рецензий"
+ */
+export function getRussianPluralReview(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+
+  // Special case: numbers ending in 11-14 always use "many" form
+  if (mod100 >= 11 && mod100 <= 14) {
+    return "рецензий";
+  }
+
+  // Numbers ending in 1: singular
+  if (mod10 === 1) {
+    return "рецензия";
+  }
+
+  // Numbers ending in 2-4: few
+  if (mod10 >= 2 && mod10 <= 4) {
+    return "рецензии";
+  }
+
+  // All other cases: many (0, 5-9)
+  return "рецензий";
+}
