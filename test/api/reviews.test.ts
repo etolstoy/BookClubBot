@@ -5,7 +5,7 @@ import reviewsRouter from "../../src/api/routes/reviews.js";
 import prisma from "../../src/lib/prisma.js";
 import { clearTestData } from "../helpers/test-db.js";
 
-describe("GET /api/reviews/:id", () => {
+describe.sequential("GET /api/reviews/:id", () => {
   let app: express.Application;
   let testReviewId: number;
   let testBookId: number;

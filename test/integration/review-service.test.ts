@@ -7,9 +7,12 @@ import prisma from "../../src/lib/prisma.js";
 /**
  * Integration Tests: Review Service
  * Tests review creation, duplicate detection, and stats updates
+ *
+ * Note: Uses global prisma instance (services import it directly).
+ * Marked as sequential to avoid race conditions with other tests.
  */
 
-describe("Review Service Integration", () => {
+describe.sequential("Review Service Integration", () => {
   beforeEach(async () => {
     await clearTestData(prisma);
   });

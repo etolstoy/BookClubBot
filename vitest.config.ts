@@ -7,6 +7,7 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./test/setup.ts'],
     include: ['test/**/*.test.ts'],
+    fileParallelism: false, // Run test files sequentially to avoid race conditions with global prisma
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
