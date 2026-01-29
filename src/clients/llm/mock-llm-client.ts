@@ -184,7 +184,6 @@ export class MockLLMClient implements ILLMClient {
           title: "Mock Book Title",
           author: "Mock Author",
           confidence: "high",
-          alternativeBooks: [],
         };
 
       case "multiple_books":
@@ -192,10 +191,6 @@ export class MockLLMClient implements ILLMClient {
           title: "Primary Book",
           author: "Primary Author",
           confidence: "medium",
-          alternativeBooks: [
-            { title: "Alternative Book 1", author: "Alt Author 1" },
-            { title: "Alternative Book 2", author: "Alt Author 2" },
-          ],
         };
 
       case "low_confidence":
@@ -203,7 +198,6 @@ export class MockLLMClient implements ILLMClient {
           title: "Uncertain Book",
           author: "Uncertain Author",
           confidence: "low",
-          alternativeBooks: [],
         };
 
       case "no_book_found":

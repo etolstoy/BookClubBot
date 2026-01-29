@@ -3,8 +3,7 @@
   "expectedExtraction": {
     "title": "1984",
     "author": "George Orwell",
-    "confidence": "high",
-    "alternativeBooks": []
+    "confidence": "high"
   },
   "expectedSentiment": "negative",
   "expectedBookMatch": {

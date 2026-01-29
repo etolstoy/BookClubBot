@@ -193,14 +193,8 @@ export async function enrichBookInfo(
     { title: extractedInfo.title, author: extractedInfo.author },
   ];
 
-  // Add alternatives (up to 2 more for total of 3)
-  if (extractedInfo.alternativeBooks && extractedInfo.alternativeBooks.length > 0) {
-    const alternativesToAdd = extractedInfo.alternativeBooks.slice(0, 2);
-    booksToEnrich.push(...alternativesToAdd);
-  }
-
   console.log(
-    `[Book Enrichment] Enriching ${booksToEnrich.length} books (primary + alternatives)`
+    `[Book Enrichment] Enriching ${booksToEnrich.length} book(s)`
   );
 
   // Step 1: Search local DB for all books and track which books were found

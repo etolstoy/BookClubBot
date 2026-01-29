@@ -15,10 +15,6 @@ export interface ExtractedBookInfo {
   title: string;
   author: string | null;
   confidence: LLMConfidence;
-  alternativeBooks?: Array<{
-    title: string;
-    author: string | null;
-  }>;
 }
 
 /**
