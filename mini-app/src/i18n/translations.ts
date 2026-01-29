@@ -150,6 +150,7 @@ export const translations = {
     searchingDatabase: "Поиск в базе...",
     searchingGoogleBooks: "Поиск в Google Books...",
     searchGoogleBooks: "Искать в Google Books",
+    createNewBook: "Создать новую книгу",
     databaseResults: "Книги из нашей базы:",
     googleBooksResults: "Книги из Google Books:",
     inOurDatabase: "В нашей базе",

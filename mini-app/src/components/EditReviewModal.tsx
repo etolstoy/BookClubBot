@@ -13,6 +13,7 @@ import {
   isGoogleBook,
 } from "../api/client";
 import { useTranslation } from "../i18n/index.js";
+import EditBookModal from "./EditBookModal";
 
 interface EditReviewModalProps {
   review: Review;
@@ -48,6 +49,7 @@ export default function EditReviewModal({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBookSearch, setShowBookSearch] = useState(false);
+  const [showEditBookModal, setShowEditBookModal] = useState(false);
 
   const handleDatabaseSearch = async (query: string) => {
     if (!query.trim()) {
@@ -440,6 +442,18 @@ export default function EditReviewModal({
                   </button>
                 )}
 
+              {/* Create New Book Button */}
+              {showGoogleBooksButton &&
+                searchQuery.trim() && (
+                  <button
+                    onClick={() => setShowEditBookModal(true)}
+                    disabled={saving || deleting}
+                    className="w-full p-3 rounded-[16px] bg-tg-secondary text-tg-text hover:bg-opacity-80 transition-colors disabled:opacity-50 mb-3"
+                  >
+                    ➕ {t("editReview.createNewBook")}
+                  </button>
+                )}
+
               {/* Google Books Results */}
               {googleBooksSearched && googleBooksResults.length > 0 && (
                 <>
@@ -548,6 +562,47 @@ export default function EditReviewModal({
           </button>
         </div>
       </div>
+
+      {/* Edit Book Modal for Creating New Book */}
+      {showEditBookModal && (
+        <EditBookModal
+          book={{
+            id: 0,
+            title: "",
+            author: null,
+            description: null,
+            coverUrl: null,
+            genres: [],
+            publicationYear: null,
+            isbn: null,
+            pageCount: null,
+            googleBooksUrl: null,
+            goodreadsUrl: null,
+            reviewCount: 0,
+            sentiments: { positive: 0, negative: 0, neutral: 0 },
+          }}
+          onClose={() => setShowEditBookModal(false)}
+          onSuccess={(createdBook) => {
+            // Set the newly created book as selected
+            setSelectedBook({
+              id: createdBook.id,
+              title: createdBook.title,
+              author: createdBook.author,
+              coverUrl: createdBook.coverUrl,
+              genres: createdBook.genres,
+              publicationYear: createdBook.publicationYear,
+              reviewCount: 0,
+              sentiments: { positive: 0, negative: 0, neutral: 0 },
+            });
+            setShowEditBookModal(false);
+            setShowBookSearch(false);
+            setSearchQuery("");
+            setDatabaseResults([]);
+            setGoogleBooksResults([]);
+            setGoogleBooksSearched(false);
+          }}
+        />
+      )}
     </div>
   );
 }

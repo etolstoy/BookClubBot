@@ -1,9 +1,17 @@
+import fs from "fs";
 import { createBot, startBot } from "./bot/index.js";
 import { createServer, startServer } from "./server.js";
 import { sendErrorNotification } from "./services/notification.service.js";
 
 async function main() {
   console.log("Book Club Bot starting...");
+
+  // Initialize required directories
+  const logDir = "data/google-books-failures";
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+    console.log(`Created log directory: ${logDir}`);
+  }
 
   // Create bot first (needed for notifications)
   const bot = createBot();
