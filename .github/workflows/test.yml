@@ -23,6 +23,11 @@ jobs:
         run: npm ci
 
       - name: Run unit and integration tests
+        env:
+          BOT_TOKEN: test_bot_token_for_ci
+          BOT_USERNAME: test_bot
+          DATABASE_URL: file:./data/test.db
+          OPENAI_API_KEY: test_openai_key
         run: npm test -- --run --reporter=verbose --exclude test/integration/book-extraction-accuracy.test.ts
 
   accuracy-tests:
