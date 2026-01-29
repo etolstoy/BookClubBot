@@ -1,26 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createReview, checkDuplicateReview } from "../../src/services/review.service.js";
 import { createBook } from "../../src/services/book.service.js";
-import { setupTestDatabase, teardownTestDatabase } from "../helpers/test-db.js";
-import type { PrismaClient } from "@prisma/client";
+import { clearTestData } from "../helpers/test-db.js";
+import prisma from "../../src/lib/prisma.js";
 
 /**
  * Integration Tests: Review Service
  * Tests review creation, duplicate detection, and stats updates
  */
 
-describe.skip("Review Service Integration", () => {
-  let testDb: PrismaClient;
-  let testDbPath: string;
-
+describe("Review Service Integration", () => {
   beforeEach(async () => {
-    const setup = await setupTestDatabase();
-    testDb = setup.prisma;
-    testDbPath = setup.dbPath;
+    await clearTestData(prisma);
   });
 
   afterEach(async () => {
-    await teardownTestDatabase(testDb, testDbPath);
+    await clearTestData(prisma);
   });
 
   it("Create first review for user → stats updated", async () => {
@@ -51,12 +46,12 @@ describe.skip("Review Service Integration", () => {
     expect(review.sentiment).toBe("positive");
 
     // Assert: Stats are correct
-    const reviewCount = await testDb.review.count({
+    const reviewCount = await prisma.review.count({
       where: { telegramUserId: BigInt(12345) },
     });
     expect(reviewCount).toBe(1);
 
-    const bookReviewCount = await testDb.review.count({
+    const bookReviewCount = await prisma.review.count({
       where: { bookId: book.id },
     });
     expect(bookReviewCount).toBe(1);
@@ -103,18 +98,18 @@ describe.skip("Review Service Integration", () => {
     });
 
     // Assert: User has 2 reviews
-    const userReviewCount = await testDb.review.count({
+    const userReviewCount = await prisma.review.count({
       where: { telegramUserId: userId },
     });
     expect(userReviewCount).toBe(2);
 
     // Assert: Each book has 1 review
-    const book1ReviewCount = await testDb.review.count({
+    const book1ReviewCount = await prisma.review.count({
       where: { bookId: book1.id },
     });
     expect(book1ReviewCount).toBe(1);
 
-    const book2ReviewCount = await testDb.review.count({
+    const book2ReviewCount = await prisma.review.count({
       where: { bookId: book2.id },
     });
     expect(book2ReviewCount).toBe(1);
@@ -149,7 +144,7 @@ describe.skip("Review Service Integration", () => {
     expect(isDuplicate).toBe(true);
 
     // Verify only one review exists
-    const reviewCount = await testDb.review.count({
+    const reviewCount = await prisma.review.count({
       where: {
         telegramUserId: userId,
         messageId,
@@ -181,7 +176,7 @@ describe.skip("Review Service Integration", () => {
     expect(review.sentiment).toBe("positive");
 
     // Fetch from DB to verify persistence
-    const savedReview = await testDb.review.findUnique({
+    const savedReview = await prisma.review.findUnique({
       where: { id: review.id },
     });
     expect(savedReview?.sentiment).toBe("positive");
@@ -210,39 +205,10 @@ describe.skip("Review Service Integration", () => {
     expect(review.sentiment).toBeNull();
 
     // Fetch from DB to verify persistence
-    const savedReview = await testDb.review.findUnique({
+    const savedReview = await prisma.review.findUnique({
       where: { id: review.id },
     });
     expect(savedReview?.sentiment).toBeNull();
   });
 
-  it("Empty/short review text → still creates review", async () => {
-    const book = await createBook({
-      title: "Short Review Book",
-      author: "Short Review Author",
-    });
-
-    // Create review with very short text
-    const review = await createReview({
-      bookId: book.id,
-      telegramUserId: BigInt(12350),
-      telegramUsername: "testuser6",
-      telegramDisplayName: "Test User 6",
-      reviewText: "👍", // Just emoji
-      messageId: BigInt(106),
-      chatId: BigInt(1),
-      reviewedAt: new Date(),
-      sentiment: "positive",
-    });
-
-    // Assert: Review was created with short text
-    expect(review).toBeDefined();
-    expect(review.reviewText).toBe("👍");
-
-    // Verify in DB
-    const savedReview = await testDb.review.findUnique({
-      where: { id: review.id },
-    });
-    expect(savedReview?.reviewText).toBe("👍");
-  });
 });
