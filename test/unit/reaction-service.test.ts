@@ -6,11 +6,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { addReaction } from "../../src/services/reaction.service.js";
 import * as notificationService from "../../src/services/notification.service.js";
 
-// Mock Telegram bot instance
-const mockBot = {
-  telegram: {
-    setMessageReaction: vi.fn(),
-  },
+// Mock Telegram API client
+const mockTelegram = {
+  setMessageReaction: vi.fn(),
 };
 
 // Mock notification service
@@ -25,16 +23,16 @@ describe("Reaction Service", () => {
 
   describe("addReaction", () => {
     it("should add reaction successfully", async () => {
-      mockBot.telegram.setMessageReaction.mockResolvedValue(true);
+      mockTelegram.setMessageReaction.mockResolvedValue(true);
 
       await addReaction(
-        mockBot as any,
+        mockTelegram as any,
         -1001234567890,
         123,
         "👀"
       );
 
-      expect(mockBot.telegram.setMessageReaction).toHaveBeenCalledWith(
+      expect(mockTelegram.setMessageReaction).toHaveBeenCalledWith(
         -1001234567890,
         123,
         [{ type: "👀", is_big: false }]
@@ -43,26 +41,26 @@ describe("Reaction Service", () => {
     });
 
     it("should support all emoji types (👀, ✅, ❌)", async () => {
-      mockBot.telegram.setMessageReaction.mockResolvedValue(true);
+      mockTelegram.setMessageReaction.mockResolvedValue(true);
 
-      await addReaction(mockBot as any, 123, 456, "👀");
-      await addReaction(mockBot as any, 123, 456, "✅");
-      await addReaction(mockBot as any, 123, 456, "❌");
+      await addReaction(mockTelegram as any, 123, 456, "👀");
+      await addReaction(mockTelegram as any, 123, 456, "✅");
+      await addReaction(mockTelegram as any, 123, 456, "❌");
 
-      expect(mockBot.telegram.setMessageReaction).toHaveBeenCalledTimes(3);
-      expect(mockBot.telegram.setMessageReaction).toHaveBeenNthCalledWith(
+      expect(mockTelegram.setMessageReaction).toHaveBeenCalledTimes(3);
+      expect(mockTelegram.setMessageReaction).toHaveBeenNthCalledWith(
         1,
         123,
         456,
         [{ type: "👀", is_big: false }]
       );
-      expect(mockBot.telegram.setMessageReaction).toHaveBeenNthCalledWith(
+      expect(mockTelegram.setMessageReaction).toHaveBeenNthCalledWith(
         2,
         123,
         456,
         [{ type: "✅", is_big: false }]
       );
-      expect(mockBot.telegram.setMessageReaction).toHaveBeenNthCalledWith(
+      expect(mockTelegram.setMessageReaction).toHaveBeenNthCalledWith(
         3,
         123,
         456,
@@ -72,42 +70,42 @@ describe("Reaction Service", () => {
 
     it("should not throw on reaction failure", async () => {
       const error = new Error("Telegram API error");
-      mockBot.telegram.setMessageReaction.mockRejectedValue(error);
+      mockTelegram.setMessageReaction.mockRejectedValue(error);
 
       // Should not throw
       await expect(
-        addReaction(mockBot as any, 123, 456, "✅")
+        addReaction(mockTelegram as any, 123, 456, "✅")
       ).resolves.toBeUndefined();
     });
 
     it("should notify admin on reaction failure", async () => {
       const error = new Error("Telegram API error");
-      mockBot.telegram.setMessageReaction.mockRejectedValue(error);
+      mockTelegram.setMessageReaction.mockRejectedValue(error);
 
-      await addReaction(mockBot as any, 123, 456, "✅");
+      await addReaction(mockTelegram as any, 123, 456, "✅");
 
       expect(notificationService.sendErrorNotification).toHaveBeenCalledWith(
-        "Failed to add reaction",
         expect.objectContaining({
-          chatId: "123", // chatId is converted to string
-          messageId: 456,
-          emoji: "✅",
-          error: error.message,
+          message: "Failed to add reaction: Telegram API error",
+        }),
+        expect.objectContaining({
+          messageId: BigInt(456),
+          additionalInfo: "chatId: 123, emoji: ✅",
         })
       );
     });
 
     it("should handle BigInt chatId", async () => {
-      mockBot.telegram.setMessageReaction.mockResolvedValue(true);
+      mockTelegram.setMessageReaction.mockResolvedValue(true);
 
       await addReaction(
-        mockBot as any,
+        mockTelegram as any,
         BigInt("-1001234567890"),
         123,
         "👀"
       );
 
-      expect(mockBot.telegram.setMessageReaction).toHaveBeenCalledWith(
+      expect(mockTelegram.setMessageReaction).toHaveBeenCalledWith(
         expect.any(String), // BigInt converted to string or number
         123,
         [{ type: "👀", is_big: false }]
@@ -115,11 +113,11 @@ describe("Reaction Service", () => {
     });
 
     it("should handle reaction API returning false (no error thrown)", async () => {
-      mockBot.telegram.setMessageReaction.mockResolvedValue(false);
+      mockTelegram.setMessageReaction.mockResolvedValue(false);
 
       // Should not throw even if API returns false
       await expect(
-        addReaction(mockBot as any, 123, 456, "✅")
+        addReaction(mockTelegram as any, 123, 456, "✅")
       ).resolves.toBeUndefined();
 
       // Should not notify admin if no error thrown (false is acceptable)
@@ -127,12 +125,12 @@ describe("Reaction Service", () => {
     });
 
     it("should be non-blocking - continue processing even on failure", async () => {
-      mockBot.telegram.setMessageReaction.mockRejectedValue(
+      mockTelegram.setMessageReaction.mockRejectedValue(
         new Error("Network error")
       );
 
       const startTime = Date.now();
-      await addReaction(mockBot as any, 123, 456, "✅");
+      await addReaction(mockTelegram as any, 123, 456, "✅");
       const duration = Date.now() - startTime;
 
       // Should complete quickly (non-blocking)

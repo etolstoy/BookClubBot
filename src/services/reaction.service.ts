@@ -3,7 +3,6 @@
  * Handles adding emoji reactions to messages
  */
 
-import type { Telegraf } from "telegraf";
 import { sendErrorNotification } from "./notification.service.js";
 
 export type ReactionEmoji = "👀" | "✅" | "❌";
@@ -12,13 +11,13 @@ export type ReactionEmoji = "👀" | "✅" | "❌";
  * Add emoji reaction to a Telegram message
  * Non-blocking: failures are logged but don't throw
  *
- * @param bot - Telegraf bot instance
+ * @param telegram - Telegram API client
  * @param chatId - Chat ID (number or BigInt)
  * @param messageId - Message ID
  * @param emoji - Reaction emoji (👀, ✅, or ❌)
  */
 export async function addReaction(
-  bot: Telegraf,
+  telegram: any,
   chatId: number | bigint | string,
   messageId: number,
   emoji: ReactionEmoji
@@ -30,7 +29,7 @@ export async function addReaction(
 
     // Add reaction using Telegram API
     // Format: array of reaction objects with type and is_big flag
-    await bot.telegram.setMessageReaction(
+    await telegram.setMessageReaction(
       chatIdValue as any,
       messageId,
       [

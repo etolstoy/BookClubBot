@@ -148,7 +148,7 @@ async function processReview(
   }
 
   // Step 2: Add 👀 reaction (non-blocking)
-  await addReaction(ctx.telegram as any, chatId, message.message_id, "👀");
+  await addReaction(ctx.telegram, chatId, message.message_id, "👀");
 
   try {
     // Step 3: Extract book info with LLM (no commandParams)
@@ -181,15 +181,40 @@ async function processReview(
             // Reuse existing local book
             bookId = match.id;
           } else {
-            // Create book from Google Books data
-            const book = await createBook({
-              title: match.title,
-              author: match.author,
-              isbn: match.isbn,
-              coverUrl: match.coverUrl,
-              googleBooksId: match.googleBooksId,
-            });
-            bookId = book.id;
+            // Check if book with this googleBooksId already exists
+            if (match.googleBooksId) {
+              const existingBook = await prisma.book.findUnique({
+                where: { googleBooksId: match.googleBooksId },
+              });
+
+              if (existingBook) {
+                // Reuse existing book with same googleBooksId
+                console.log(
+                  `[Review] Found existing book with googleBooksId: ${match.googleBooksId}`
+                );
+                bookId = existingBook.id;
+              } else {
+                // Create book from Google Books data
+                const book = await createBook({
+                  title: match.title,
+                  author: match.author,
+                  isbn: match.isbn,
+                  coverUrl: match.coverUrl,
+                  googleBooksId: match.googleBooksId,
+                });
+                bookId = book.id;
+              }
+            } else {
+              // No googleBooksId, create book directly
+              const book = await createBook({
+                title: match.title,
+                author: match.author,
+                isbn: match.isbn,
+                coverUrl: match.coverUrl,
+                googleBooksId: match.googleBooksId,
+              });
+              bookId = book.id;
+            }
           }
         } else {
           // No match → create book with just title/author
@@ -254,7 +279,7 @@ async function processReview(
     );
 
     // Step 7: Add ✅ reaction
-    await addReaction(ctx.telegram as any, chatId, message.message_id, "✅");
+    await addReaction(ctx.telegram, chatId, message.message_id, "✅");
 
     // Step 8: If 2+ reviews WITH book: post sentiment breakdown
     if (bookId) {
@@ -306,7 +331,7 @@ async function processReview(
     // Step 9: On error: add ❌ reaction + notify admin
     console.error("[Review] Error processing review:", error);
 
-    await addReaction(ctx.telegram as any, chatId, message.message_id, "❌");
+    await addReaction(ctx.telegram, chatId, message.message_id, "❌");
 
     const errorObj = error instanceof Error ? error : new Error(String(error));
     await sendErrorNotification(errorObj, {
