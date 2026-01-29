@@ -103,12 +103,44 @@ export class MockBookDataClient implements IBookDataClient {
       return [];
     }
 
-    // Filter books by query (simple search in title and author)
+    // Filter books by query (supports Google Books format: intitle:... +inauthor:...)
     const results = Array.from(this.books.values())
       .filter((book) => {
-        const searchText =
-          `${book.title} ${book.author || ""}`.toLowerCase();
-        return searchText.includes(query.toLowerCase());
+        // Parse Google Books query format
+        const queryLower = query.toLowerCase();
+        let titleQuery = "";
+        let authorQuery = "";
+
+        // Extract intitle: part
+        const titleMatch = queryLower.match(/intitle:([^+]+)/);
+        if (titleMatch) {
+          titleQuery = titleMatch[1].trim();
+        }
+
+        // Extract inauthor: part
+        const authorMatch = queryLower.match(/inauthor:(.+)/);
+        if (authorMatch) {
+          authorQuery = authorMatch[1].trim();
+        }
+
+        // If no special format, fallback to simple search
+        if (!titleQuery && !authorQuery) {
+          const searchText =
+            `${book.title} ${book.author || ""}`.toLowerCase();
+          return searchText.includes(queryLower);
+        }
+
+        // Match title if specified
+        if (titleQuery && !book.title.toLowerCase().includes(titleQuery)) {
+          return false;
+        }
+
+        // Match author if specified
+        if (authorQuery && book.author && !book.author.toLowerCase().includes(authorQuery)) {
+          return false;
+        }
+
+        return true;
       })
       // Deduplicate by googleBooksId
       .filter(

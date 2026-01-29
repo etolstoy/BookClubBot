@@ -3,17 +3,7 @@ import { message } from "telegraf/filters";
 import { config } from "../lib/config.js";
 import { chatFilter, errorHandler } from "./middleware/auth.js";
 import { handleReviewMessage, handleReviewCommand } from "./handlers/review.js";
-import {
-  handleStartCommand,
-} from "./handlers/commands.js";
-import {
-  handleBookSelected,
-  handleIsbnRequested,
-  handleManualEntryRequested,
-  handleCancel,
-  handleExtractedBookConfirmed,
-  handleTextInput as handleConfirmationTextInput,
-} from "./handlers/book-confirmation.js";
+import { handleStartCommand } from "./handlers/commands.js";
 import { initNotificationService, sendSuccessNotification } from "../services/notification.service.js";
 
 export function createBot() {
@@ -27,27 +17,7 @@ export function createBot() {
   bot.command("start", handleStartCommand);
   bot.command("review", (ctx) => handleReviewCommand(ctx));
 
-  // Callback query handlers for confirmation flow
-  bot.action(/^confirm_book:/, (ctx) => handleBookSelected(ctx));
-  bot.action(/^confirm_isbn$/, (ctx) => handleIsbnRequested(ctx));
-  bot.action(/^confirm_manual$/, (ctx) => handleManualEntryRequested(ctx));
-  bot.action(/^confirm_extracted$/, (ctx) => handleExtractedBookConfirmed(ctx));
-  bot.action(/^confirm_cancel$/, (ctx) => handleCancel(ctx));
-
   // Message handlers
-  // Handle text messages in priority order:
-  // 1. Confirmation flow input (ISBN/title/author)
-  // 2. Regular review message
-  bot.on(message("text"), async (ctx, next) => {
-    // Priority 1: Confirmation flow input
-    const handledConfirmation = await handleConfirmationTextInput(ctx);
-    if (handledConfirmation) {
-      return; // Stop here, handled by confirmation flow
-    }
-
-    // Continue to review message handler
-    return next();
-  });
   bot.on(message("text"), (ctx) => handleReviewMessage(ctx));
 
   // Also handle media messages with captions (photo, video, document, etc.)

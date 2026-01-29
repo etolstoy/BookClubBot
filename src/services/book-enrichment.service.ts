@@ -7,17 +7,17 @@ import type {
   ExtractedBookInfo,
   EnrichedBook,
   EnrichmentResult,
-} from "../bot/types/confirmation-state.js";
+} from "../lib/types/book-types.js";
 
 /**
- * Search local database for books matching title and author with 90% similarity threshold
- * BOTH title AND author must be ≥90% independently
+ * Search local database for books matching title and author with 95% similarity threshold
+ * BOTH title AND author must be ≥95% independently
  * @param prismaClient - Optional Prisma client for testing (defaults to global instance)
  */
 export async function searchLocalBooks(
   title: string,
   author: string | null,
-  threshold: number = 0.9,
+  threshold: number = 0.95,
   prismaClient?: PrismaClient
 ): Promise<EnrichedBook[]> {
   const db = prismaClient || prisma;
@@ -92,14 +92,14 @@ export async function searchLocalBooks(
 }
 
 /**
- * Search external book API and filter results with 90% similarity threshold
- * BOTH title AND author must be ≥90% independently
+ * Search external book API and filter results with 95% similarity threshold
+ * BOTH title AND author must be ≥95% independently
  * @param bookDataClient - Optional book data client for testing (defaults to factory-created instance)
  */
 export async function searchExternalBooksWithThreshold(
   title: string,
   author: string | null,
-  threshold: number = 0.9,
+  threshold: number = 0.95,
   bookDataClient?: IBookDataClient
 ): Promise<EnrichedBook[]> {
   try {
@@ -202,7 +202,7 @@ export async function enrichBookInfo(
   const booksFoundLocally = new Set<string>();
 
   for (const book of booksToEnrich) {
-    const matches = await searchLocalBooks(book.title, book.author, 0.9, prismaClient);
+    const matches = await searchLocalBooks(book.title, book.author, 0.95, prismaClient);
     if (matches.length > 0) {
       localMatches.push(...matches);
       booksFoundLocally.add(`${book.title}|||${book.author}`); // Track found books
@@ -224,7 +224,7 @@ export async function enrichBookInfo(
       `[Book Enrichment] Searching external book API for ${booksToSearchExternal.length} books not found locally`
     );
     for (const book of booksToSearchExternal) {
-      const matches = await searchExternalBooksWithThreshold(book.title, book.author, 0.9, client);
+      const matches = await searchExternalBooksWithThreshold(book.title, book.author, 0.95, client);
       externalMatches.push(...matches);
     }
   }

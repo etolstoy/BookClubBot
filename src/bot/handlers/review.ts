@@ -1,16 +1,15 @@
-import { Context } from "telegraf";
+import { Context, Markup } from "telegraf";
 import { Message } from "telegraf/types";
 import { config } from "../../lib/config.js";
-import { checkDuplicateReview } from "../../services/review.service.js";
+import { checkDuplicateReview, createReview } from "../../services/review.service.js";
 import { extractBookInfo } from "../../services/book-extraction.service.js";
 import { enrichBookInfo } from "../../services/book-enrichment.service.js";
-import {
-  storeConfirmationState,
-  getConfirmationStateByUser,
-  clearConfirmationState,
-  generateOptionsMessage,
-} from "./book-confirmation.js";
-import type { BookConfirmationState } from "../types/confirmation-state.js";
+import { analyzeSentiment } from "../../services/sentiment.js";
+import { addReaction } from "../../services/reaction.service.js";
+import { logGoogleBooksFailure } from "../../services/failure-logging.service.js";
+import { sendErrorNotification } from "../../services/notification.service.js";
+import { createBook } from "../../services/book.service.js";
+import prisma from "../../lib/prisma.js";
 import type { BotContext } from "../types/bot-context.js";
 
 function getDisplayName(from: Message["from"]): string | null {
@@ -80,7 +79,7 @@ export async function handleReviewMessage(ctx: Context, botContext?: BotContext)
     return;
   }
 
-  await processReview(ctx, message, undefined, botContext);
+  await processReview(ctx, message, botContext);
 }
 
 export async function handleReviewCommand(ctx: Context, botContext?: BotContext) {
@@ -97,11 +96,6 @@ export async function handleReviewCommand(ctx: Context, botContext?: BotContext)
     );
     return;
   }
-
-  // Extract command text and check for parameters (e.g., /review Title – Author)
-  const commandText = getMessageText(message);
-  const commandMatch = commandText?.match(/^\/review\s+(.+)$/);
-  const commandParams = commandMatch ? commandMatch[1].trim() : undefined;
 
   if (!("reply_to_message" in message) || !message.reply_to_message) {
     await ctx.reply(
@@ -122,16 +116,15 @@ export async function handleReviewCommand(ctx: Context, botContext?: BotContext)
     return;
   }
 
-  await processReview(ctx, replyMessage, commandParams, botContext);
+  await processReview(ctx, replyMessage, botContext);
 }
 
 async function processReview(
   ctx: Context,
   message: Message,
-  commandParams?: string,
   botContext?: BotContext
 ) {
-  if (!message.from) {
+  if (!message.from || !message.chat) {
     return;
   }
 
@@ -143,9 +136,9 @@ async function processReview(
 
   const telegramUserId = BigInt(message.from.id);
   const messageId = BigInt(message.message_id);
-  const userId = message.from.id.toString();
+  const chatId = BigInt(message.chat.id);
 
-  // Check for duplicate
+  // Step 1: Check for duplicate
   const isDuplicate = await checkDuplicateReview(telegramUserId, messageId);
   if (isDuplicate) {
     await ctx.reply("Эта рецензия уже сохранена!", {
@@ -154,141 +147,172 @@ async function processReview(
     return;
   }
 
-  // Check if user has pending confirmation - replace it with new one
-  const chatId = message.chat ? message.chat.id.toString() : null;
-  if (chatId) {
-    const existingState = getConfirmationStateByUser(chatId, userId);
-    if (existingState) {
-      // Delete old confirmation message
-      if (existingState.statusMessageId && existingState.reviewData.chatId) {
-        try {
-          await ctx.telegram.deleteMessage(
-            Number(existingState.reviewData.chatId),
-            existingState.statusMessageId
-          );
-        } catch {
-          // Ignore if message can't be deleted (already deleted, no permissions, etc.)
-        }
-      }
-      clearConfirmationState(chatId, existingState.statusMessageId, userId);
-      console.log(`[Review] Replaced pending review for user ${userId}`);
-    }
-  }
-
-  // Send processing message
-  const processingMsg = await ctx.reply("📖 Извлекаю информацию о книге...", {
-    reply_parameters: { message_id: message.message_id },
-  });
+  // Step 2: Add 👀 reaction (non-blocking)
+  await addReaction(ctx.telegram as any, chatId, message.message_id, "👀");
 
   try {
-    // Step 1: Extract book info with LLM
-    const extractedInfo = await extractBookInfo(messageText, commandParams, botContext?.llmClient);
+    // Step 3: Extract book info with LLM (no commandParams)
+    const extractedInfo = await extractBookInfo(messageText, botContext?.llmClient);
 
-    // Step 2: If extraction failed, show manual entry options
-    if (!extractedInfo || !extractedInfo.title) {
-      console.log("[Review] LLM extraction failed, showing manual entry options");
+    let bookId: number | null = null;
 
-      const state: BookConfirmationState = {
-        reviewData: {
-          telegramUserId,
-          telegramUsername: message.from.username,
-          telegramDisplayName: getDisplayName(message.from),
-          reviewText: messageText,
-          messageId,
-          chatId: message.chat ? BigInt(message.chat.id) : null,
-          reviewedAt: new Date(message.date * 1000),
-        },
-        extractedInfo: null,
-        enrichmentResults: null,
-        state: "showing_options",
-        statusMessageId: processingMsg.message_id,
-        tempData: {},
-        createdAt: new Date(),
-      };
-
-      if (chatId) {
-        storeConfirmationState(chatId, processingMsg.message_id, userId, state);
-      }
-
-      const options = generateOptionsMessage(state);
-      await ctx.telegram.editMessageText(
-        ctx.chat!.id,
-        processingMsg.message_id,
-        undefined,
-        options.text,
-        options.keyboard
+    // Step 4: Determine enrichment path based on confidence
+    if (extractedInfo && extractedInfo.confidence === "high") {
+      console.log(
+        `[Review] HIGH confidence: ${extractedInfo.title} by ${extractedInfo.author}`
       );
-      return;
+
+      try {
+        // HIGH CONFIDENCE: Try enrichment with 95% threshold
+        const enrichmentResults = await enrichBookInfo(
+          extractedInfo,
+          undefined,
+          botContext?.bookDataClient
+        );
+
+        if (enrichmentResults.matches.length > 0) {
+          // Match found → create/reuse book
+          const match = enrichmentResults.matches[0];
+          console.log(
+            `[Review] Google Books match found: ${match.title} (source: ${match.source})`
+          );
+
+          if (match.source === "local" && match.id) {
+            // Reuse existing local book
+            bookId = match.id;
+          } else {
+            // Create book from Google Books data
+            const book = await createBook({
+              title: match.title,
+              author: match.author,
+              isbn: match.isbn,
+              coverUrl: match.coverUrl,
+              googleBooksId: match.googleBooksId,
+            });
+            bookId = book.id;
+          }
+        } else {
+          // No match → create book with just title/author
+          console.log(
+            `[Review] No Google Books match, creating book with title/author only`
+          );
+          const book = await createBook({
+            title: extractedInfo.title,
+            author: extractedInfo.author,
+          });
+          bookId = book.id;
+
+          // Log failure for monitoring
+          await logGoogleBooksFailure(
+            "data/google-books-failures",
+            extractedInfo.title,
+            extractedInfo.author
+          );
+        }
+      } catch (error) {
+        // Enrichment failed → create book with just title/author
+        console.error("[Review] Enrichment error:", error);
+        const book = await createBook({
+          title: extractedInfo.title,
+          author: extractedInfo.author,
+        });
+        bookId = book.id;
+
+        // Log failure
+        await logGoogleBooksFailure(
+          "data/google-books-failures",
+          extractedInfo.title,
+          extractedInfo.author
+        );
+      }
+    } else {
+      // LOW/MEDIUM confidence OR extraction failed → orphaned review
+      console.log(
+        `[Review] Low/medium confidence or extraction failed - creating orphaned review`
+      );
+      bookId = null;
     }
 
+    // Step 5: Analyze sentiment
+    const sentiment = await analyzeSentiment(messageText, botContext?.llmClient);
+
+    // Step 6: Create review (with or without book)
+    const review = await createReview({
+      bookId,
+      telegramUserId,
+      telegramUsername: message.from.username || null,
+      telegramDisplayName: getDisplayName(message.from),
+      reviewText: messageText,
+      sentiment: sentiment || "neutral",
+      messageId,
+      chatId,
+      reviewedAt: new Date(message.date * 1000),
+    });
+
     console.log(
-      `[Review] Extracted: ${extractedInfo.title} by ${extractedInfo.author}, confidence: ${extractedInfo.confidence}`
+      `[Review] Review created: id=${review.id}, bookId=${bookId || "null (orphaned)"}`
     );
 
-    // Step 3: Enrich with 90% matching (local DB + external API)
-    const enrichmentResults = await enrichBookInfo(extractedInfo, undefined, botContext?.bookDataClient);
+    // Step 7: Add ✅ reaction
+    await addReaction(ctx.telegram as any, chatId, message.message_id, "✅");
 
-    console.log(
-      `[Review] Enrichment results: source=${enrichmentResults.source}, matches=${enrichmentResults.matches.length}`
-    );
+    // Step 8: If 2+ reviews WITH book: post sentiment breakdown
+    if (bookId) {
+      const reviewCount = await prisma.review.count({ where: { bookId } });
 
-    // Step 4: Create confirmation state and show options
-    const state: BookConfirmationState = {
-      reviewData: {
-        telegramUserId,
-        telegramUsername: message.from.username,
-        telegramDisplayName: getDisplayName(message.from),
-        reviewText: messageText,
-        messageId,
-        chatId: message.chat ? BigInt(message.chat.id) : null,
-        reviewedAt: new Date(message.date * 1000),
-      },
-      extractedInfo,
-      enrichmentResults,
-      state: "showing_options",
-      statusMessageId: processingMsg.message_id,
-      tempData: {},
-      createdAt: new Date(),
-    };
+      if (reviewCount >= 2) {
+        // Get book details and sentiment breakdown
+        const book = await prisma.book.findUnique({ where: { id: bookId } });
+        const reviews = await prisma.review.findMany({ where: { bookId } });
 
-    if (chatId) {
-      storeConfirmationState(chatId, processingMsg.message_id, userId, state);
+        const sentiments = reviews.reduce((acc, r) => {
+          const sent = r.sentiment || "neutral";
+          acc[sent] = (acc[sent] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const sentimentText = [
+          sentiments.positive ? `👍 ${sentiments.positive}` : null,
+          sentiments.neutral ? `😐 ${sentiments.neutral}` : null,
+          sentiments.negative ? `👎 ${sentiments.negative}` : null,
+        ]
+          .filter(Boolean)
+          .join(" / ");
+
+        const reviewWord =
+          reviewCount === 1
+            ? "рецензия"
+            : reviewCount >= 2 && reviewCount <= 4
+            ? "рецензии"
+            : "рецензий";
+
+        const text = `Теперь на книгу «${book?.title}» написано ${reviewCount} ${reviewWord} (${sentimentText}).`;
+
+        // Send message with deep link to book page in Mini App
+        await ctx.reply(text, {
+          reply_parameters: { message_id: message.message_id },
+          ...Markup.inlineKeyboard([
+            [
+              Markup.button.url(
+                "📖 Смотреть в приложении",
+                `${config.miniAppUrl}?startapp=book_${bookId}`
+              ),
+            ],
+          ]),
+        });
+      }
     }
-
-    const options = generateOptionsMessage(state);
-    await ctx.telegram.editMessageText(
-      ctx.chat!.id,
-      processingMsg.message_id,
-      undefined,
-      options.text,
-      options.keyboard
-    );
-    console.log(`[Review] Options message sent for user ${userId}, messageId: ${processingMsg.message_id}`);
   } catch (error) {
+    // Step 9: On error: add ❌ reaction + notify admin
     console.error("[Review] Error processing review:", error);
 
-    // Delete processing message
-    try {
-      await ctx.telegram.deleteMessage(ctx.chat!.id, processingMsg.message_id);
-    } catch {
-      // Ignore if can't delete
-    }
+    await addReaction(ctx.telegram as any, chatId, message.message_id, "❌");
 
-    // Check for specific errors
-    const isRateLimitError =
-      error instanceof Error && error.message.includes("Rate limit exceeded");
-
-    if (isRateLimitError) {
-      await ctx.reply(
-        "Кажется, у нас закончились лимиты в Google Books API – попробуем импортнуть все завтра! 📚💤",
-        { reply_parameters: { message_id: message.message_id } }
-      );
-      return;
-    }
-
-    await ctx.reply(
-      "❌ Произошла ошибка при обработке рецензии. Пожалуйста, попробуйте ещё раз.",
-      { reply_parameters: { message_id: message.message_id } }
-    );
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    await sendErrorNotification(errorObj, {
+      userId: BigInt(message.from.id),
+      messageId: BigInt(message.message_id),
+      additionalInfo: `chatId: ${message.chat.id}`,
+    });
   }
 }
