@@ -1,0 +1,70 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit and integration tests
+        run: npm test -- --run --reporter=verbose --exclude test/integration/book-extraction-accuracy.test.ts
+
+  accuracy-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for changed files detection
+
+      - name: Check for LLM client changes
+        id: check_changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Check if cascading-openai-client.ts was changed in this PR
+            git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "src/clients/llm/cascading-openai-client.ts" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            # For push events, check the current commit
+            git diff --name-only HEAD~1 HEAD | grep -q "src/clients/llm/cascading-openai-client.ts" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        if: steps.check_changes.outputs.changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: steps.check_changes.outputs.changed == 'true'
+        run: npm ci
+
+      - name: Run accuracy tests
+        if: steps.check_changes.outputs.changed == 'true' && secrets.OPENAI_API_KEY != ''
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: npm test -- test/integration/book-extraction-accuracy.test.ts --run --reporter=verbose
+
+      - name: Skip accuracy tests (no changes)
+        if: steps.check_changes.outputs.changed == 'false'
+        run: echo "⏭️ Skipping accuracy tests - cascading-openai-client.ts was not modified"
+
+      - name: Skip accuracy tests (no API key)
+        if: steps.check_changes.outputs.changed == 'true' && secrets.OPENAI_API_KEY == ''
+        run: echo "⚠️ Skipping accuracy tests - OPENAI_API_KEY not configured"

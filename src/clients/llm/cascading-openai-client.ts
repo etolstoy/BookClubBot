@@ -234,10 +234,21 @@ export class CascadingOpenAIClient implements ILLMClient {
       const webSearchAuthor = await this.extractAuthorWithWebSearch(titleResult.title, userContent);
       console.log("[Cascading Client] Web search result:", JSON.stringify(webSearchAuthor));
 
+      // Fall back to nano author if web search didn't improve the result
+      let finalAuthor = webSearchAuthor.author;
+      let finalConfidence = webSearchAuthor.confidence;
+
+      if (!webSearchAuthor.author ||
+          (webSearchAuthor.confidence === "low" && authorResult.author && authorResult.confidence === "medium")) {
+        console.log("[Cascading Client] Web search failed or returned worse result, falling back to nano author");
+        finalAuthor = authorResult.author;
+        finalConfidence = authorResult.confidence;
+      }
+
       return {
         title: titleResult.title,
-        author: webSearchAuthor.author,
-        confidence: this.combineConfidence(titleResult.confidence, webSearchAuthor.confidence),
+        author: finalAuthor,
+        confidence: this.combineConfidence(titleResult.confidence, finalConfidence),
       };
     }
 

@@ -1,24 +1,25 @@
 /**
  * Book Extraction Accuracy Tests
  *
- * This test suite runs an LLM client against a dataset of reviews
+ * This test suite runs the LLM client against a dataset of reviews
  * and measures extraction accuracy. Use this to refine prompts and
  * evaluate model performance.
+ *
+ * IMPORTANT: This test is automatically skipped if OPENAI_API_KEY is not set.
+ * In CI/CD, it only runs when cascading-openai-client.ts is modified.
  *
  * Run with: npm test -- test/integration/book-extraction-accuracy.test.ts
  *
  * Environment variables:
- *   OPENAI_API_KEY - Required for API access
- *   LLM_CLIENT - Optional: "openai" (default) or "cascading"
+ *   OPENAI_API_KEY - Required for API access (test skipped if not set)
  *   ACCURACY_TEST_FILTER - Optional: filter tests by ID (exact match)
  *
  * Examples:
- *   npm test -- test/integration/book-extraction-accuracy.test.ts
- *   LLM_CLIENT=cascading npm test -- test/integration/book-extraction-accuracy.test.ts
- *   LLM_CLIENT=cascading npm run test:accuracy review-2
+ *   OPENAI_API_KEY=sk-... npm test -- test/integration/book-extraction-accuracy.test.ts
+ *   ACCURACY_TEST_FILTER=review-2 npm test -- test/integration/book-extraction-accuracy.test.ts
  */
 
-import { describe, it, beforeAll } from "vitest";
+import { describe, it, beforeAll, beforeEach } from "vitest";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -201,6 +202,7 @@ function printReport(results: TestResult[], pipelineMetrics?: PipelineMetrics) {
 
 describe("Book Extraction Accuracy (CascadingOpenAIClient)", () => {
   let client: CascadingOpenAIClient;
+  const hasApiKey = !!process.env.OPENAI_API_KEY;
 
   // Filter dataset if ACCURACY_TEST_FILTER env var is set
   const filter = process.env.ACCURACY_TEST_FILTER;
@@ -219,18 +221,20 @@ describe("Book Extraction Accuracy (CascadingOpenAIClient)", () => {
 
   console.log("\nUsing client: CascadingOpenAIClient\n");
 
-  beforeAll(() => {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error(
-        "OPENAI_API_KEY environment variable is required for accuracy tests"
-      );
+  beforeEach(() => {
+    if (!hasApiKey) {
+      console.log("⚠️  Skipping accuracy tests - OPENAI_API_KEY not set\n");
     }
-
-    client = new CascadingOpenAIClient({ apiKey });
   });
 
-  it("evaluates all entries in parallel", async () => {
+  beforeAll(() => {
+    if (hasApiKey) {
+      const apiKey = process.env.OPENAI_API_KEY!;
+      client = new CascadingOpenAIClient({ apiKey });
+    }
+  });
+
+  it.skipIf(!hasApiKey)("evaluates all entries in parallel", async () => {
     // Fire all API requests concurrently
     const extractionPromises = typedDataset.map((entry) =>
       client.extractBookInfo(entry.review_text, entry.command_params)
