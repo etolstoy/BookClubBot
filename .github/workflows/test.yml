@@ -56,15 +56,16 @@ jobs:
         run: npm ci
 
       - name: Run accuracy tests
-        if: steps.check_changes.outputs.changed == 'true' && secrets.OPENAI_API_KEY != ''
+        if: steps.check_changes.outputs.changed == 'true'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: npm test -- test/integration/book-extraction-accuracy.test.ts --run --reporter=verbose
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "⚠️ Skipping accuracy tests - OPENAI_API_KEY not configured"
+            exit 0
+          fi
+          npm test -- test/integration/book-extraction-accuracy.test.ts --run --reporter=verbose
 
       - name: Skip accuracy tests (no changes)
         if: steps.check_changes.outputs.changed == 'false'
         run: echo "⏭️ Skipping accuracy tests - cascading-openai-client.ts was not modified"
-
-      - name: Skip accuracy tests (no API key)
-        if: steps.check_changes.outputs.changed == 'true' && secrets.OPENAI_API_KEY == ''
-        run: echo "⚠️ Skipping accuracy tests - OPENAI_API_KEY not configured"
