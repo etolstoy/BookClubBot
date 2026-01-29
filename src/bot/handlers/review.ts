@@ -116,6 +116,14 @@ export async function handleReviewCommand(ctx: Context, botContext?: BotContext)
     return;
   }
 
+  // Delete the command message to keep the chat clean
+  try {
+    await ctx.deleteMessage();
+  } catch (error) {
+    // Non-critical: log but continue processing
+    console.warn("[Review] Failed to delete command message:", error);
+  }
+
   await processReview(ctx, replyMessage, botContext);
 }
 
