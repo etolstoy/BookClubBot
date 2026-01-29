@@ -5,7 +5,7 @@
 import { vi } from "vitest";
 import type { Context } from "telegraf";
 
-export type ReactionEmoji = "👀" | "✅" | "❌";
+export type ReactionEmoji = "👀" | "👍" | "👎";
 
 interface ReactionCall {
   chatId: number | string;
@@ -111,9 +111,9 @@ export function assertReactionFormat(mockFn: any, expectedCount?: number) {
       );
     }
     const emoji = reactionObj.emoji;
-    if (!["👀", "✅", "❌"].includes(emoji)) {
+    if (!["👀", "👍", "👎"].includes(emoji)) {
       throw new Error(
-        `Call ${index}: emoji must be 👀, ✅, or ❌, got ${emoji}`
+        `Call ${index}: emoji must be 👀, 👍, or 👎, got ${emoji}`
       );
     }
   });

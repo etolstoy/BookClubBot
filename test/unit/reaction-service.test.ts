@@ -40,12 +40,12 @@ describe("Reaction Service", () => {
       expect(notificationService.sendErrorNotification).not.toHaveBeenCalled();
     });
 
-    it("should support all emoji types (👀, ✅, ❌)", async () => {
+    it("should support all emoji types (👀, 👍, 👎)", async () => {
       mockTelegram.setMessageReaction.mockResolvedValue(true);
 
       await addReaction(mockTelegram as any, 123, 456, "👀");
-      await addReaction(mockTelegram as any, 123, 456, "✅");
-      await addReaction(mockTelegram as any, 123, 456, "❌");
+      await addReaction(mockTelegram as any, 123, 456, "👍");
+      await addReaction(mockTelegram as any, 123, 456, "👎");
 
       expect(mockTelegram.setMessageReaction).toHaveBeenCalledTimes(3);
       expect(mockTelegram.setMessageReaction).toHaveBeenNthCalledWith(
@@ -58,13 +58,13 @@ describe("Reaction Service", () => {
         2,
         123,
         456,
-        [{ type: "emoji", emoji: "✅" }]
+        [{ type: "emoji", emoji: "👍" }]
       );
       expect(mockTelegram.setMessageReaction).toHaveBeenNthCalledWith(
         3,
         123,
         456,
-        [{ type: "emoji", emoji: "❌" }]
+        [{ type: "emoji", emoji: "👎" }]
       );
     });
 
@@ -74,7 +74,7 @@ describe("Reaction Service", () => {
 
       // Should not throw
       await expect(
-        addReaction(mockTelegram as any, 123, 456, "✅")
+        addReaction(mockTelegram as any, 123, 456, "👍")
       ).resolves.toBeUndefined();
     });
 
@@ -82,7 +82,7 @@ describe("Reaction Service", () => {
       const error = new Error("Telegram API error");
       mockTelegram.setMessageReaction.mockRejectedValue(error);
 
-      await addReaction(mockTelegram as any, 123, 456, "✅");
+      await addReaction(mockTelegram as any, 123, 456, "👍");
 
       expect(notificationService.sendErrorNotification).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -90,7 +90,7 @@ describe("Reaction Service", () => {
         }),
         expect.objectContaining({
           messageId: BigInt(456),
-          additionalInfo: "chatId: 123, emoji: ✅",
+          additionalInfo: "chatId: 123, emoji: 👍",
         })
       );
     });
@@ -117,7 +117,7 @@ describe("Reaction Service", () => {
 
       // Should not throw even if API returns false
       await expect(
-        addReaction(mockTelegram as any, 123, 456, "✅")
+        addReaction(mockTelegram as any, 123, 456, "👍")
       ).resolves.toBeUndefined();
 
       // Should not notify admin if no error thrown (false is acceptable)
@@ -130,7 +130,7 @@ describe("Reaction Service", () => {
       );
 
       const startTime = Date.now();
-      await addReaction(mockTelegram as any, 123, 456, "✅");
+      await addReaction(mockTelegram as any, 123, 456, "👍");
       const duration = Date.now() - startTime;
 
       // Should complete quickly (non-blocking)
@@ -138,6 +138,17 @@ describe("Reaction Service", () => {
 
       // Should have logged error but not thrown
       expect(notificationService.sendErrorNotification).toHaveBeenCalled();
+    });
+
+    it("should not notify admin for REACTION_INVALID (group settings)", async () => {
+      // REACTION_INVALID means the emoji isn't enabled in this group
+      const error = new Error("400: Bad Request: REACTION_INVALID");
+      mockTelegram.setMessageReaction.mockRejectedValue(error);
+
+      await addReaction(mockTelegram as any, 123, 456, "👍");
+
+      // Should not notify admin - this is expected behavior for groups
+      expect(notificationService.sendErrorNotification).not.toHaveBeenCalled();
     });
   });
 });
