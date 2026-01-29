@@ -9,6 +9,7 @@ import { addReaction } from "../../services/reaction.service.js";
 import { logGoogleBooksFailure } from "../../services/failure-logging.service.js";
 import { sendErrorNotification } from "../../services/notification.service.js";
 import { createBook } from "../../services/book.service.js";
+import { getRussianPluralReview } from "../../lib/string-utils.js";
 import prisma from "../../lib/prisma.js";
 import type { BotContext } from "../types/bot-context.js";
 
@@ -312,12 +313,7 @@ async function processReview(
           .filter(Boolean)
           .join(" / ");
 
-        const reviewWord =
-          reviewCount === 1
-            ? "рецензия"
-            : reviewCount >= 2 && reviewCount <= 4
-            ? "рецензии"
-            : "рецензий";
+        const reviewWord = getRussianPluralReview(reviewCount);
 
         const text = `Теперь на книгу «${book?.title}» написано ${reviewCount} ${reviewWord} (${sentimentText}).`;
 
