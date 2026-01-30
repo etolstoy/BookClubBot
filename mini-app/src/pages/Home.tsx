@@ -65,26 +65,21 @@ export default function Home() {
         <>
           {/* Statistics */}
           {stats && (
-            <p className="text-sm text-tg-hint mb-8">
-              {t("home.statistics.text", {
-                booksCount: stats.booksCount,
-                reviewsCount: stats.reviewsCount,
-                reviewersCount: stats.reviewersCount
-              })}
-            </p>
-          )}
-
-          {/* Volunteer Entry Point */}
-          {isChatMember && volunteerStats &&
-           (volunteerStats.booksNeedingHelp > 0 || volunteerStats.reviewsNeedingHelp > 0) && (
-            <section className="mb-8 p-4 rounded-lg bg-yellow-50 border border-yellow-200">
-              <p className="text-sm text-gray-700 mb-2">
-                {volunteerStats.booksNeedingHelp} книг и {volunteerStats.reviewsNeedingHelp} рецензий нужна ваша помощь
+            <div className="mb-8">
+              <p className="text-sm text-tg-hint mb-2">
+                {t("home.statistics.text", {
+                  booksCount: stats.booksCount,
+                  reviewsCount: stats.reviewsCount,
+                  reviewersCount: stats.reviewersCount
+                })}
               </p>
-              <Link to="/volunteer" className="text-tg-button font-medium">
-                Погнали!
-              </Link>
-            </section>
+              {isChatMember && volunteerStats &&
+               (volunteerStats.booksNeedingHelp > 0 || volunteerStats.reviewsNeedingHelp > 0) && (
+                <Link to="/volunteer" className="text-sm text-tg-button hover:underline">
+                  Помочь с модерацией
+                </Link>
+              )}
+            </div>
           )}
 
           {/* Recent Reviews Gallery */}
