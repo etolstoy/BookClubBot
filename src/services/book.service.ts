@@ -326,6 +326,7 @@ export async function getAllBooks(options?: {
   sortBy?: "reviewCount" | "recentlyReviewed" | "alphabetical";
   genre?: string;
   search?: string;
+  needsHelp?: boolean;
   limit?: number;
   offset?: number;
 }) {
@@ -333,6 +334,7 @@ export async function getAllBooks(options?: {
     sortBy = "recentlyReviewed",
     genre,
     search,
+    needsHelp,
     limit = 50,
     offset = 0,
   } = options || {};
@@ -347,6 +349,14 @@ export async function getAllBooks(options?: {
     where.OR = [
       { title: { contains: search } },
       { author: { contains: search } },
+    ];
+  }
+
+  if (needsHelp) {
+    where.OR = [
+      { coverUrl: null },
+      { goodreadsUrl: null },
+      { author: null },
     ];
   }
 
@@ -372,7 +382,10 @@ export async function getAllBooks(options?: {
         select: { reviews: true },
       },
       reviews: {
-        select: { sentiment: true },
+        select: {
+          sentiment: true,
+          reviewedAt: true,
+        },
       },
     },
     orderBy,
@@ -387,11 +400,12 @@ export async function getAllBooks(options?: {
     coverUrl: string | null;
     genres: string | null;
     publicationYear: number | null;
-    reviews: Array<{ sentiment: string | null }>;
+    goodreadsUrl: string | null;
+    reviews: Array<{ sentiment: string | null; reviewedAt: Date }>;
     _count: { reviews: number };
   }) => {
     const sentiments = book.reviews.reduce(
-      (acc: { positive: number; negative: number; neutral: number }, r: { sentiment: string | null }) => {
+      (acc: { positive: number; negative: number; neutral: number }, r: { sentiment: string | null; reviewedAt: Date }) => {
         if (r.sentiment === "positive") acc.positive++;
         else if (r.sentiment === "negative") acc.negative++;
         else if (r.sentiment === "neutral") acc.neutral++;
@@ -399,6 +413,14 @@ export async function getAllBooks(options?: {
       },
       { positive: 0, negative: 0, neutral: 0 }
     );
+
+    // Get the most recent review date
+    const lastReviewedAt = book.reviews.length > 0
+      ? book.reviews.reduce((latest, review) =>
+          review.reviewedAt > latest ? review.reviewedAt : latest,
+          book.reviews[0].reviewedAt
+        )
+      : null;
 
     return {
       id: book.id,
@@ -409,6 +431,8 @@ export async function getAllBooks(options?: {
       publicationYear: book.publicationYear,
       reviewCount: book._count.reviews,
       sentiments,
+      goodreadsUrl: book.goodreadsUrl,
+      lastReviewedAt: lastReviewedAt ? lastReviewedAt.toISOString() : null,
     };
   });
 }

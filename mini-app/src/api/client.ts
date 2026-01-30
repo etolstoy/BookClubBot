@@ -44,6 +44,8 @@ export interface Book {
     negative: number;
     neutral: number;
   };
+  goodreadsUrl?: string | null;
+  lastReviewedAt?: string | null;
 }
 
 export interface GoogleBook {
@@ -475,6 +477,7 @@ export async function getAuthorBooks(
 export interface Config {
   adminUserIds: string[];
   botUsername: string;
+  isChatMember?: boolean;
 }
 
 export async function getConfig(): Promise<Config> {
@@ -492,4 +495,40 @@ export function getCurrentUserId(): string | null {
 
   const tg = window.Telegram?.WebApp;
   return tg?.initDataUnsafe?.user?.id?.toString() || null;
+}
+
+// Volunteer API
+
+export interface VolunteerStats {
+  booksNeedingHelp: number;
+  reviewsNeedingHelp: number;
+}
+
+export async function getVolunteerStats(): Promise<VolunteerStats> {
+  return fetchApi("/volunteer/stats");
+}
+
+export async function getBooksNeedingHelp(params: {
+  limit?: number;
+  offset?: number;
+}): Promise<{ books: Book[] }> {
+  const query = new URLSearchParams({
+    needsHelp: "true",
+    sortBy: "reviewCount",
+    limit: (params.limit || 20).toString(),
+    offset: (params.offset || 0).toString(),
+  });
+  return fetchApi(`/books?${query}`);
+}
+
+export async function getReviewsNeedingHelp(params: {
+  limit?: number;
+  offset?: number;
+}): Promise<{ reviews: Review[] }> {
+  const query = new URLSearchParams({
+    needsHelp: "true",
+    limit: (params.limit || 20).toString(),
+    offset: (params.offset || 0).toString(),
+  });
+  return fetchApi(`/reviews/recent?${query}`);
 }

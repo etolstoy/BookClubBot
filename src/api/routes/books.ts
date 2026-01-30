@@ -7,13 +7,14 @@ import {
   updateBook,
   deleteBook,
 } from "../../services/book.service.js";
-import { getReviewsByBookId, isAdmin } from "../../services/review.service.js";
+import { getReviewsByBookId, isAdmin, isChatMember } from "../../services/review.service.js";
 import { authenticateTelegramWebApp } from "../middleware/telegram-auth.js";
 import { sendInfoNotification } from "../../services/notification.service.js";
 import { createBookDataClient } from "../../clients/book-data/factory.js";
 import type { BookSearchResult } from "../../lib/interfaces/index.js";
 import { getGoogleBooksUrl, generateGoodreadsUrl } from "../../lib/url-utils.js";
 import { detectISBN } from "../../lib/isbn-utils.js";
+import { config } from "../../lib/config.js";
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.get("/", async (req, res) => {
       sortBy,
       genre,
       search,
+      needsHelp,
       limit = "50",
       offset = "0",
     } = req.query;
@@ -40,6 +42,7 @@ router.get("/", async (req, res) => {
       sortBy: sortBy as "reviewCount" | "recentlyReviewed" | "alphabetical" | undefined,
       genre: genre as string | undefined,
       search: search as string | undefined,
+      needsHelp: needsHelp === "true",
       limit: parsedLimit,
       offset: parsedOffset,
     });
@@ -361,7 +364,7 @@ router.post("/", authenticateTelegramWebApp, async (req, res) => {
   }
 });
 
-// PATCH /api/books/:id - Update book metadata (admin only)
+// PATCH /api/books/:id - Update book metadata (admin or chat member)
 router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
   try {
     const bookId = parseInt(req.params.id, 10);
@@ -376,10 +379,12 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
       return;
     }
 
-    // Check admin authorization
+    // Check authorization (admin or chat member)
     const userIsAdmin = isAdmin(req.telegramUser!.id);
-    if (!userIsAdmin) {
-      res.status(403).json({ error: "Admin access required" });
+    const userIsChatMember = isChatMember(req.telegramUser!);
+
+    if (!userIsAdmin && !userIsChatMember) {
+      res.status(403).json({ error: "Chat membership required" });
       return;
     }
 
@@ -450,26 +455,44 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
     // Update book
     const updatedBook = await updateBook(bookId, updateData);
 
-    // Send admin notification
-    const userName = req.telegramUser!.username || req.telegramUser!.first_name || "Unknown Admin";
+    // Send admin notification with before/after
+    const editorInfo = `@${req.telegramUser!.username || 'unknown'} (${req.telegramUser!.first_name || 'Unknown'}, ID: ${req.telegramUser!.id})`;
+    const notificationHeader = userIsAdmin ? 'Admin' : 'Volunteer';
 
     const changes: string[] = [];
-    if (title !== undefined) changes.push("title");
-    if (author !== undefined) changes.push("author");
-    if (isbn !== undefined) changes.push("isbn");
-    if (coverUrl !== undefined) changes.push("cover");
-    if (description !== undefined) changes.push("description");
-    if (publicationYear !== undefined) changes.push("publication year");
-    if (pageCount !== undefined) changes.push("page count");
-    if (goodreadsUrl !== undefined) changes.push("goodreads url");
+    if (title !== undefined && existingBook.title !== updatedBook.title) {
+      changes.push(`• Title: "${existingBook.title}" → "${updatedBook.title}"`);
+    }
+    if (author !== undefined && existingBook.author !== updatedBook.author) {
+      changes.push(`• Author: ${existingBook.author || 'empty'} → ${updatedBook.author || 'empty'}`);
+    }
+    if (isbn !== undefined && existingBook.isbn !== updatedBook.isbn) {
+      changes.push(`• ISBN: ${existingBook.isbn || 'empty'} → ${updatedBook.isbn || 'empty'}`);
+    }
+    if (coverUrl !== undefined && existingBook.coverUrl !== updatedBook.coverUrl) {
+      changes.push(`• Cover: ${existingBook.coverUrl ? 'set' : 'empty'} → ${updatedBook.coverUrl ? 'set' : 'empty'}`);
+    }
+    if (description !== undefined && existingBook.description !== updatedBook.description) {
+      const oldDesc = existingBook.description ? existingBook.description.slice(0, 50) + '...' : 'empty';
+      const newDesc = updatedBook.description ? updatedBook.description.slice(0, 50) + '...' : 'empty';
+      changes.push(`• Description: ${oldDesc} → ${newDesc}`);
+    }
+    if (publicationYear !== undefined && existingBook.publicationYear !== updatedBook.publicationYear) {
+      changes.push(`• Publication Year: ${existingBook.publicationYear || 'empty'} → ${updatedBook.publicationYear || 'empty'}`);
+    }
+    if (pageCount !== undefined && existingBook.pageCount !== updatedBook.pageCount) {
+      changes.push(`• Page Count: ${existingBook.pageCount || 'empty'} → ${updatedBook.pageCount || 'empty'}`);
+    }
+    if (goodreadsUrl !== undefined && existingBook.goodreadsUrl !== updatedBook.goodreadsUrl) {
+      changes.push(`• Goodreads URL: ${existingBook.goodreadsUrl ? 'set' : 'empty'} → ${updatedBook.goodreadsUrl ? 'set' : 'empty'}`);
+    }
 
-    await sendInfoNotification(
-      `Book #${bookId} updated by admin @${userName}`,
-      {
-        operation: "Book Update (ADMIN)",
-        additionalInfo: `Book: "${updatedBook.title}" by ${updatedBook.author || "Unknown"}\nChanges: ${changes.join(", ")}`,
-      }
-    );
+    if (changes.length > 0) {
+      await sendInfoNotification(
+        `📝 Book Edited by ${notificationHeader}\n\nEditor: ${editorInfo}\n\nBook: "${updatedBook.title}"\n\nChanges:\n${changes.join('\n')}\n\n🔗 View: ${config.miniAppUrl}?startapp=book_${bookId}\n\n⏰ ${new Date().toISOString()}`,
+        { operation: 'Book Update' }
+      );
+    }
 
     // Fetch the book with reviews to get accurate counts and sentiments
     const bookWithReviews = await getBookById(bookId);

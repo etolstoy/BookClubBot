@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getRecentReviews, getStats, type Review } from "../api/client";
+import { getRecentReviews, getStats, getVolunteerStats, getConfig, type Review, type VolunteerStats } from "../api/client";
 import SearchBar from "../components/SearchBar";
 import SentimentBadge from "../components/SentimentBadge";
 import Loading from "../components/Loading";
@@ -12,6 +12,8 @@ export default function Home() {
   const { t } = useTranslation();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [stats, setStats] = useState<{ booksCount: number; reviewsCount: number; reviewersCount: number } | null>(null);
+  const [volunteerStats, setVolunteerStats] = useState<VolunteerStats | null>(null);
+  const [isChatMember, setIsChatMember] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,13 +23,17 @@ export default function Home() {
       setError(null);
 
       try {
-        const [reviewsData, statsData] = await Promise.all([
+        const [reviewsData, statsData, configData, volunteerData] = await Promise.all([
           getRecentReviews({ limit: 4 }),
           getStats(),
+          getConfig(),
+          getVolunteerStats(),
         ]);
 
         setReviews(reviewsData.reviews);
         setStats(statsData);
+        setIsChatMember(configData.isChatMember || false);
+        setVolunteerStats(volunteerData);
       } catch (err) {
         setError(err instanceof Error ? err.message : t("errors.loadData"));
       } finally {
@@ -66,6 +72,19 @@ export default function Home() {
                 reviewersCount: stats.reviewersCount
               })}
             </p>
+          )}
+
+          {/* Volunteer Entry Point */}
+          {isChatMember && volunteerStats &&
+           (volunteerStats.booksNeedingHelp > 0 || volunteerStats.reviewsNeedingHelp > 0) && (
+            <section className="mb-8 p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+              <p className="text-sm text-gray-700 mb-2">
+                {volunteerStats.booksNeedingHelp} книг и {volunteerStats.reviewsNeedingHelp} рецензий нужна ваша помощь
+              </p>
+              <Link to="/volunteer" className="text-tg-button font-medium">
+                Погнали!
+              </Link>
+            </section>
           )}
 
           {/* Recent Reviews Gallery */}

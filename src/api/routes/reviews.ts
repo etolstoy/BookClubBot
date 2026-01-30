@@ -6,6 +6,7 @@ import {
   deleteReview,
   isReviewOwner,
   isAdmin,
+  isChatMember,
   getReviewById,
   cleanupOrphanBooks,
 } from "../../services/review.service.js";
@@ -13,6 +14,7 @@ import { authenticateTelegramWebApp } from "../middleware/telegram-auth.js";
 import { sendInfoNotification } from "../../services/notification.service.js";
 import { analyzeSentiment } from "../../services/sentiment.js";
 import { findOrCreateBookFromExternalMetadata } from "../../services/book.service.js";
+import { config } from "../../lib/config.js";
 
 const router = Router();
 
@@ -73,7 +75,7 @@ router.get("/random", async (req, res) => {
 // GET /api/reviews/recent - Get recent reviews with pagination
 router.get("/recent", async (req, res) => {
   try {
-    const { limit = "20", offset = "0" } = req.query;
+    const { limit = "20", offset = "0", needsHelp } = req.query;
     const parsedLimit = parseInt(limit as string, 10);
     const parsedOffset = parseInt(offset as string, 10);
 
@@ -82,7 +84,7 @@ router.get("/recent", async (req, res) => {
       return;
     }
 
-    const reviews = await getRecentReviews(parsedLimit, parsedOffset);
+    const reviews = await getRecentReviews(parsedLimit, parsedOffset, needsHelp === "true");
 
     res.json({
       reviews: reviews.map((review: {
@@ -199,11 +201,13 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
       return;
     }
 
-    // Check ownership
+    // Check ownership (allow admin or chat member to edit)
     const isOwner = await isReviewOwner(reviewId, req.telegramUser!.id);
     const userIsAdmin = isAdmin(req.telegramUser!.id);
-    if (!isOwner && !userIsAdmin) {
-      res.status(403).json({ error: "You can only edit your own reviews" });
+    const userIsChatMember = isChatMember(req.telegramUser!);
+
+    if (!isOwner && !userIsAdmin && !userIsChatMember) {
+      res.status(403).json({ error: "You can only edit your own reviews unless you are a chat member" });
       return;
     }
 
@@ -298,33 +302,31 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
       }
     }
 
-    // Send admin notification
-    const userName =
-      req.telegramUser!.username ||
-      req.telegramUser!.first_name ||
-      "Unknown User";
+    // Send admin notification with before/after
+    const editorInfo = `@${req.telegramUser!.username || 'unknown'} (${req.telegramUser!.first_name || 'Unknown'}, ID: ${req.telegramUser!.id})`;
+    const notificationHeader = userIsAdmin ? 'Admin' : (userIsChatMember ? 'Volunteer' : 'User');
 
     const changes: string[] = [];
-    if (reviewText !== undefined) changes.push("text");
-    if (sentiment !== undefined) changes.push("sentiment");
-    if (bookId !== undefined || googleBooksData !== undefined)
-      changes.push("book assignment");
+    if (reviewText !== undefined && existingReview.reviewText !== updatedReview.reviewText) {
+      const oldText = existingReview.reviewText.slice(0, 50) + '...';
+      const newText = updatedReview.reviewText.slice(0, 50) + '...';
+      changes.push(`• Review Text: "${oldText}" → "${newText}"`);
+    }
+    if (sentiment !== undefined && existingReview.sentiment !== updatedReview.sentiment) {
+      changes.push(`• Sentiment: ${existingReview.sentiment} → ${updatedReview.sentiment}`);
+    }
+    if (existingReview.bookId !== updatedReview.bookId) {
+      const oldBook = existingReview.book?.title || 'None';
+      const newBook = updatedReview.book?.title || 'None';
+      changes.push(`• Book: ${oldBook} → ${newBook}`);
+    }
 
-    const actionType = isOwner ? "edited" : "edited (ADMIN)";
-
-    await sendInfoNotification(
-      `Review #${reviewId} ${actionType} by ${userName}`,
-      {
-        operation: "Review Update",
-        additionalInfo: `Changes: ${changes.join(", ")}${
-          !isOwner ? `\nAdmin edited review by @${existingReview.telegramUsername || 'unknown'}` : ''
-        }${
-          bookId !== undefined || googleBooksData !== undefined
-            ? `\nNew book: ${updatedReview.book?.title || "None"}`
-            : ""
-        }`,
-      }
-    );
+    if (changes.length > 0) {
+      await sendInfoNotification(
+        `📝 Review Edited by ${notificationHeader}\n\nEditor: ${editorInfo}\n\nReview ID: ${reviewId}${!isOwner ? `\nOriginal Author: @${existingReview.telegramUsername || 'unknown'}` : ''}\n\nChanges:\n${changes.join('\n')}\n\n🔗 View: ${config.miniAppUrl}?startapp=review_${reviewId}\n\n⏰ ${new Date().toISOString()}`,
+        { operation: 'Review Update' }
+      );
+    }
 
     // Format response
     const formattedReview = {

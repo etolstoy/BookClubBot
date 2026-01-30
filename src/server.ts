@@ -2,14 +2,28 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+import { Telegraf } from "telegraf";
 import { config } from "./lib/config.js";
 import apiRouter from "./api/index.js";
+import {
+  createAuthenticateTelegramWebApp,
+  setAuthMiddleware,
+  createOptionalTelegramAuth,
+  setOptionalAuthMiddleware,
+} from "./api/middleware/telegram-auth.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export function createServer() {
+export function createServer(bot: Telegraf) {
   const app = express();
+
+  // Initialize auth middleware with bot instance
+  const authMiddleware = createAuthenticateTelegramWebApp(bot);
+  setAuthMiddleware(authMiddleware);
+
+  const optionalAuthMiddleware = createOptionalTelegramAuth(bot);
+  setOptionalAuthMiddleware(optionalAuthMiddleware);
 
   // Middleware
   app.use(cors());

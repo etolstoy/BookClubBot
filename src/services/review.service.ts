@@ -478,8 +478,11 @@ export async function getRandomReviews(limit = 5) {
   return reviews.flat();
 }
 
-export async function getRecentReviews(limit = 20, offset = 0) {
+export async function getRecentReviews(limit = 20, offset = 0, needsHelp = false) {
+  const where = needsHelp ? { bookId: null } : {};
+
   return prisma.review.findMany({
+    where,
     include: {
       book: true,
     },
@@ -557,6 +560,13 @@ export async function isReviewOwner(
  */
 export function isAdmin(telegramUserId: bigint): boolean {
   return config.adminUserIds.includes(telegramUserId);
+}
+
+/**
+ * Check if a user is a chat member
+ */
+export function isChatMember(telegramUser: { isChatMember?: boolean }): boolean {
+  return telegramUser.isChatMember === true;
 }
 
 /**
