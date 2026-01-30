@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { Book } from "../api/client";
 import SentimentBadge from "./SentimentBadge";
+import MissingFieldsBadge from "./MissingFieldsBadge";
 import { useTranslation } from "../i18n/index.js";
 
 interface BookCardProps {
@@ -50,19 +51,11 @@ export default function BookCard({ book, missingFields, onEdit }: BookCardProps)
           </span>
           {dominantSentiment && <SentimentBadge sentiment={dominantSentiment} />}
         </div>
-        {missingFields && missingFields.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {missingFields.map((field) => (
-              <span
-                key={field}
-                className="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded"
-              >
-                {field === "coverUrl" && "Обложка"}
-                {field === "author" && "Автор"}
-              </span>
-            ))}
-          </div>
-        )}
+        <MissingFieldsBadge
+          fields={missingFields}
+          labels={{ coverUrl: "Обложка", author: "Автор" }}
+          className="mt-2"
+        />
       </div>
     </>
   );

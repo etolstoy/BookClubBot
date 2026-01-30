@@ -23,17 +23,27 @@ export default function Home() {
       setError(null);
 
       try {
-        const [reviewsData, statsData, configData, volunteerData] = await Promise.all([
+        // Load essential data that doesn't require auth
+        const [reviewsData, statsData, configData] = await Promise.all([
           getRecentReviews({ limit: 4 }),
           getStats(),
           getConfig(),
-          getVolunteerStats(),
         ]);
 
         setReviews(reviewsData.reviews);
         setStats(statsData);
         setIsChatMember(configData.isChatMember || false);
-        setVolunteerStats(volunteerData);
+
+        // Load volunteer stats separately (only for chat members, may fail for unauthenticated users)
+        if (configData.isChatMember) {
+          try {
+            const volunteerData = await getVolunteerStats();
+            setVolunteerStats(volunteerData);
+          } catch (volunteerErr) {
+            console.warn("Failed to load volunteer stats:", volunteerErr);
+            // Don't block the page if volunteer stats fail
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : t("errors.loadData"));
       } finally {

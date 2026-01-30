@@ -4,10 +4,12 @@ import type { Review } from "../api/client";
 import { getCurrentUserId, isCurrentUserAdmin } from "../api/client";
 import { ConfigContext } from "../App";
 import SentimentBadge from "./SentimentBadge";
+import MissingFieldsBadge from "./MissingFieldsBadge";
 import EditReviewModal from "./EditReviewModal";
 import { useTranslation } from "../i18n/index.js";
 import { getReviewDeepLink, copyToClipboard, showHapticFeedback } from "../lib/deepLinks.js";
 import { useToast } from "../hooks/useToast.js";
+import { stopPropagationIf, withStopPropagation } from "../lib/eventUtils";
 import Toast from "./Toast.js";
 
 interface ReviewCardProps {
@@ -80,6 +82,7 @@ export default function ReviewCard({
           <Link
             to={`/reviewer/${currentReview.telegramUserId}`}
             className="font-medium text-tg-text no-underline"
+            onClick={stopPropagationIf(!!onEdit)}
           >
             {currentReview.reviewerName}
           </Link>
@@ -90,12 +93,13 @@ export default function ReviewCard({
             <Link
               to={`/review/${currentReview.id}`}
               className="text-xs text-tg-hint no-underline hover:opacity-70"
+              onClick={stopPropagationIf(!!onEdit)}
             >
               {formattedDate}
             </Link>
             {canEdit && (
               <button
-                onClick={() => setShowEditModal(true)}
+                onClick={withStopPropagation(() => setShowEditModal(true), !!onEdit)}
                 className="ml-2 text-xs text-tg-text no-underline"
                 title={t("review.edit")}
               >
@@ -109,6 +113,7 @@ export default function ReviewCard({
           <Link
             to={`/book/${currentReview.book.id}`}
             className="flex items-start gap-2 mb-2 text-sm no-underline"
+            onClick={stopPropagationIf(!!onEdit)}
           >
             {currentReview.book.coverUrl && (
               <img
@@ -134,22 +139,14 @@ export default function ReviewCard({
           {currentReview.reviewText}
         </p>
 
-        {missingFields && missingFields.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {missingFields.map((field) => (
-              <span
-                key={field}
-                className="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded"
-              >
-                {field === "book" && "Книга"}
-              </span>
-            ))}
-          </div>
-        )}
+        <MissingFieldsBadge
+          fields={missingFields}
+          labels={{ book: "Книга" }}
+        />
 
         {showShareButton && config?.botUsername && (
           <button
-            onClick={handleCopyLink}
+            onClick={withStopPropagation(handleCopyLink, !!onEdit)}
             className="mt-3 text-xs text-tg-hint hover:text-tg-text transition-colors"
           >
             🔗 {t("common.copyLink")}
