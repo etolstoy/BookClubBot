@@ -1,7 +1,33 @@
 import fs from "fs";
+import path from "path";
 import { createBot, startBot } from "./bot/index.js";
 import { createServer, startServer } from "./server.js";
 import { sendErrorNotification } from "./services/notification.service.js";
+import { config } from "./lib/config.js";
+
+async function validateEvalCaseLogging(): Promise<void> {
+  try {
+    const testDir = path.join(
+      process.cwd(),
+      "data",
+      "review-eval-cases",
+      config.extractionVersion
+    );
+
+    if (!fs.existsSync(testDir)) {
+      fs.mkdirSync(testDir, { recursive: true });
+    }
+
+    const testFile = path.join(testDir, ".writetest");
+    fs.writeFileSync(testFile, "test", "utf-8");
+    fs.unlinkSync(testFile);
+
+    console.log(`[Startup] Eval case logging directory is writable (version: ${config.extractionVersion})`);
+  } catch (error) {
+    console.warn("[Startup] WARNING: Eval case logging directory not writable:", error);
+    console.warn("[Startup] Review processing will continue, but eval cases won't be logged");
+  }
+}
 
 async function main() {
   console.log("Book Club Bot starting...");
@@ -12,6 +38,9 @@ async function main() {
     fs.mkdirSync(logDir, { recursive: true });
     console.log(`Created log directory: ${logDir}`);
   }
+
+  // Validate eval case logging directory
+  await validateEvalCaseLogging();
 
   // Create bot first (needed for notifications)
   const bot = createBot();

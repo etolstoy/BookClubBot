@@ -13,6 +13,7 @@ import { getRussianPluralReview } from "../../lib/string-utils.js";
 import { getBookDeepLink } from "../../lib/url-utils.js";
 import prisma from "../../lib/prisma.js";
 import type { BotContext } from "../types/bot-context.js";
+import { logOrphanedReviewCase } from "../../services/review-eval-case-logger.service.js";
 
 function getDisplayName(from: Message["from"]): string | null {
   if (!from) return null;
@@ -266,6 +267,16 @@ async function processReview(
         `[Review] Low/medium confidence or extraction failed - creating orphaned review`
       );
       bookId = null;
+
+      // Log case for evaluation (fire-and-forget, non-blocking)
+      logOrphanedReviewCase({
+        reviewText: messageText,
+        extractedTitle: extractedInfo?.title ?? null,
+        extractedAuthor: extractedInfo?.author ?? null,
+        extractionConfidence: extractedInfo?.confidence ?? null,
+      }).catch((error) => {
+        console.error("[Review] Failed to log eval case:", error);
+      });
     }
 
     // Step 5: Analyze sentiment

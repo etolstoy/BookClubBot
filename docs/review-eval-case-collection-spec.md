@@ -2,349 +2,415 @@
 
 ## Overview
 
-Automatically collect problematic book extraction and matching cases from production to build an evaluation dataset for improving the book extraction service quality.
+Automatically collect problematic book extraction cases from production to build an evaluation dataset for improving the book extraction service quality.
 
 ## Objectives
 
-1. Identify and store cases where book extraction or matching failed or had low confidence
-2. Enable periodic review of problematic cases to add to evaluation dataset
-3. Maintain user privacy through anonymization
-4. Operate transparently without impacting user experience
+1. Identify and log cases where book extraction failed or had insufficient confidence
+2. Collect cases at creation time (not waiting for user corrections)
+3. Store in simple log files for manual review and labeling later
+4. Maintain user privacy through anonymization
+5. Operate transparently without impacting user experience
+6. Enable easy removal or disabling of the feature
+
+## Architectural Isolation
+
+**Critical Design Principle**: This feature must be fully isolated from other code to enable easy disabling or removal.
+
+### Isolation Constraints
+
+1. **Single Entry Point**: Only one call site in `src/bot/handlers/review.ts`
+2. **No Database Dependencies**: File-based storage only, no Prisma/DB operations
+3. **Fire-and-Forget Pattern**: Non-blocking async calls, failures don't propagate
+4. **Minimal Service Dependencies**: Only notification service for alerting (acceptable coupling)
+5. **Self-Contained Logic**: All functionality in single service file
+
+### Disabling the Feature
+
+To disable: Comment out the `logOrphanedReviewCase()` call in `review.ts`. Single line change.
+
+### Removing the Feature
+
+To remove completely:
+1. Delete `src/services/review-eval-case-logger.service.ts`
+2. Remove import and call site from `review.ts`
+3. Delete `data/review-eval-cases/` directory (optional)
+
+## Versioning Strategy
+
+Track extraction algorithm versions to enable A/B testing and historical analysis.
+
+### Version Management
+
+**Environment Variable**: `EXTRACTION_VERSION` (default: `v1`)
+
+Cases are stored in version-specific subdirectories:
+```
+data/review-eval-cases/
+  v1/
+    2026-01.md
+    2026-02.md
+  v2/
+    2026-03.md
+```
+
+### When to Bump Versions
+
+Create a new version when making significant extraction algorithm changes:
+- Switching LLM providers (OpenAI → Anthropic)
+- Major prompt rewrites
+- Changing extraction logic (adding/removing fallback steps)
+- Model upgrades that change behavior significantly
+
+**Minor changes** (prompt tweaks, parameter tuning) don't require new versions.
+
+### Transition Process
+
+1. Set `EXTRACTION_VERSION=v2` in environment
+2. Deploy updated extraction code
+3. New cases automatically go to `v2/` subdirectory
+4. Old `v1/` cases remain for historical comparison
+
+## Current Review Import Flow (Context)
+
+### Automatic Import Based on Confidence
+
+1. **User submits review**: Posts message with `#рецензия` hashtag or uses `/review` command
+2. **Bot adds 👀 reaction**: Indicates processing has started
+3. **LLM extraction**: Extracts book info (title, author) with confidence score (high/medium/low)
+4. **Confidence-based branching**:
+   - **HIGH confidence**: Book enrichment, create review with book link
+   - **LOW/MEDIUM confidence OR extraction failed**: Create **orphaned review** (bookId = null) → **THIS IS THE COLLECTION TRIGGER**
+5. **Bot adds 👍 reaction**: Indicates success
 
 ## Collection Criteria
 
-The system will collect cases when **ANY** of the following conditions are met:
+### Single Collection Trigger: Orphaned Review Creation
 
-### 1. Manual Entry Flow
-- User rejected all suggested book matches
-- User chose "Enter book info manually" option
-- User completed manual entry (title → author) and created review
+Collect cases when a review is created **WITHOUT a book link** (bookId = null).
 
-### 2. ISBN Entry Flow
-- User rejected all suggested book matches
-- User chose "Enter ISBN" option
-- User completed ISBN lookup and created review
+**What this captures:**
+- Low/medium confidence extractions
+- Complete extraction failures (null title/author)
+- All cases where automatic extraction didn't work well enough
 
-### 3. Low Confidence Selection
-- Book extraction returned `confidence: 'low'`
-- User selected one of the matched books from enrichment results
-- Review was created successfully
+**Timing**: Immediately AFTER orphaned review is successfully created in database
 
-**Note:** Medium and high confidence cases are NOT collected, even if user selects a match.
-
-## When to Record
-
-- **Timing**: Record AFTER user makes final book selection and review is successfully created
-- **Completion Required**: Do NOT record if user:
-  - Cancels the confirmation flow
-  - Times out (15-minute timeout)
-  - Abandons before completing review
+**Non-blocking**: Fire-and-forget async logging - failures don't impact review creation
 
 ## Data Schema
 
-### Table Name: `ReviewEvalCase`
+### Storage Format: Markdown Log Files
 
-### Fields
+**Location**: `data/review-eval-cases/$EXTRACTION_VERSION/` (e.g., `data/review-eval-cases/v1/`)
 
-| Field | Type | Description | Constraints |
-|-------|------|-------------|-------------|
-| `id` | Int | Auto-increment primary key | Primary key |
-| `reviewText` | Text | Full review message text | Required |
-| `extractedTitle` | String? | Title extracted by LLM | Nullable (null if extraction failed) |
-| `extractedAuthor` | String? | Author extracted by LLM | Nullable (null if extraction failed) |
-| `extractionConfidence` | String? | Confidence level from extraction | Enum: 'high', 'medium', 'low', or null |
-| `collectionReason` | String | Why this case was collected | Enum: 'LOW_CONFIDENCE_SELECTION', 'MANUAL_ENTRY', 'ISBN_ENTRY' |
-| `selectedBookId` | Int | Foreign key to Book table | Required, references Book.id |
-| `createdAt` | DateTime | When case was collected | Auto-generated timestamp |
+**File naming**: `YYYY-MM.md` (e.g., `2026-01.md`)
 
-**User Anonymization**: All user identifiers (Telegram user ID, message ID, chat ID) are explicitly NOT stored to protect privacy.
+**Rotation**: Monthly (new file each month, automatically created on first write)
 
-**Deduplication Key**: `extractedTitle` + `extractedAuthor` (case-insensitive comparison)
+### Case Entry Format
 
-### Prisma Schema
+```markdown
+## Case #123 - 2026-01-15 14:32:18
 
-```prisma
-model ReviewEvalCase {
-  id                    Int      @id @default(autoincrement())
-  reviewText            String   // Full review message text
-  extractedTitle        String?  // Extracted by LLM, null if extraction failed
-  extractedAuthor       String?  // Extracted by LLM, null if extraction failed
-  extractionConfidence  String?  // 'high' | 'medium' | 'low' | null
-  collectionReason      String   // 'LOW_CONFIDENCE_SELECTION' | 'MANUAL_ENTRY' | 'ISBN_ENTRY'
-  selectedBookId        Int      // What book the user ultimately chose
-  selectedBook          Book     @relation(fields: [selectedBookId], references: [id])
-  createdAt             DateTime @default(now())
-
-  @@index([extractedTitle, extractedAuthor]) // For deduplication queries
-  @@index([createdAt]) // For time-based filtering
-  @@index([collectionReason]) // For filtering by issue type
-}
+**Review Text:**
+```
+[Full review text here, preserving original formatting]
 ```
 
-## Deduplication Logic
+**Extraction Results:**
+- **Title:** "Мастер и Маргарита" (or `null` if extraction failed)
+- **Author:** "М. А. Булгаков" (or `null` if extraction failed)
+- **Confidence:** low (or `medium`, or `null` for complete failure)
 
-### When to Skip Recording
+**Collected At:** 2026-01-15T14:32:18Z
 
-Before creating a new `ReviewEvalCase`, check if a record already exists with:
-- Same `extractedTitle` (case-insensitive, trimmed)
-- Same `extractedAuthor` (case-insensitive, trimmed)
-
-If match found: **Skip silently** (do not create duplicate record)
-
-**Rationale**: We want one example per unique extraction error, not multiple instances of the same issue.
-
-### Edge Cases
-
-- If `extractedTitle` or `extractedAuthor` is null → still check for duplicates using null values
-- Multiple users experiencing the same extraction issue → only first occurrence is stored
-- When extraction completely fails (returns null), store `null` values (not empty strings) for `extractedTitle` and `extractedAuthor`
-
-## Implementation Points
-
-### Service Layer
-
-Create new service: `src/services/review-eval-case.service.ts`
-
-```typescript
-class ReviewEvalCaseService {
-  /**
-   * Attempt to record a problematic case
-   * Returns true if recorded, false if skipped (duplicate/error)
-   */
-  async recordCase(params: {
-    reviewText: string;
-    extractedTitle: string | null;
-    extractedAuthor: string | null;
-    extractionConfidence: 'high' | 'medium' | 'low' | null;
-    collectionReason: 'LOW_CONFIDENCE_SELECTION' | 'MANUAL_ENTRY' | 'ISBN_ENTRY';
-    selectedBookId: number;
-  }): Promise<boolean>
-}
+---
 ```
 
-### Integration Points
+**Case ID Format**: `YYYY-MM#N` (e.g., `2026-01#123`) - month resets numbering
 
-Modify `src/bot/handlers/book-confirmation.ts` to call `ReviewEvalCaseService.recordCase()`:
+### What We Store
 
-1. **After Manual Entry Confirmation** (`CONFIRMING_MANUAL_BOOK` → review created)
-   - Reason: `MANUAL_ENTRY`
-   - Extract: extractedTitle, extractedAuthor, extractionConfidence from state
-   - Book: the manually entered book (created via Book service)
+| Field | Description | Example |
+|-------|-------------|---------|
+| Case Number | Sequential number within the month | `#123` |
+| Timestamp | When case was collected (ISO 8601, UTC) | `2026-01-15T14:32:18Z` |
+| Review Text | Full review message text | Full text block |
+| Extracted Title | Title extracted by LLM, or "null" | `"The Great Gatsby"` or `null` |
+| Extracted Author | Author extracted by LLM, or "null" | `"F. Scott Fitzgerald"` or `null` |
+| Extraction Confidence | Confidence level from LLM | `low`, `medium`, or `null` |
 
-2. **After ISBN Entry Confirmation** (`CONFIRMING_ISBN_BOOK` → review created)
-   - Reason: `ISBN_ENTRY`
-   - Extract: extractedTitle, extractedAuthor, extractionConfidence from state
-   - Book: the ISBN-looked-up book
+### What We DON'T Store (Privacy)
 
-3. **After Low Confidence Selection** (user clicks matched book with confidence='low')
-   - Reason: `LOW_CONFIDENCE_SELECTION`
-   - Extract: extractedTitle, extractedAuthor, extractionConfidence='low' from state
-   - Book: the selected book from enrichment results
+- ❌ Telegram user ID
+- ❌ Telegram username
+- ❌ Telegram display name
+- ❌ Message ID
+- ❌ Chat ID
+- ❌ Review ID (database ID)
+- ❌ Any user identifiers
 
-### Error Handling
+**Rationale**: Full anonymization. Review text is sufficient for evaluation. No way to correlate cases back to users, even if database is compromised.
 
-**Critical Requirement**: Recording must NEVER block review creation
+## Implementation
 
+### Service File Structure
+
+**File**: `src/services/review-eval-case-logger.service.ts`
+
+**Key Functions**:
+- `logOrphanedReviewCase()`: Main entry point (fire-and-forget async)
+- `getCurrentLogFilePath()`: Returns version-aware path based on `EXTRACTION_VERSION`
+- `getNextCaseNumber()`: Reads file, finds max case number (tolerates gaps/duplicates)
+- `formatCaseEntry()`: Formats markdown without escaping (trust user input)
+- `getLogStats()`: Returns file count and case count for monitoring
+
+### Implementation Details
+
+**Async Pattern**: Fire-and-forget (call without `await` in review.ts)
 ```typescript
-try {
-  await reviewEvalCaseService.recordCase({...});
-} catch (error) {
-  // Log error but continue
-  console.error('Failed to record eval case:', error);
-  // Do NOT throw - review creation must proceed
-}
+// In review.ts - don't await, failures are silent
+logOrphanedReviewCase({ ... }).catch(err =>
+  console.error('[Review] Failed to log eval case:', err)
+);
 ```
 
-### Deduplication Query
+**Concurrency**: Accept duplicate case numbers if concurrent writes occur (rare, tolerable)
+
+**Character Encoding**: Trust Node.js defaults (UTF-8), no explicit encoding
+
+**Markdown Escaping**: No escaping of review text (trust users, wrap in code fences)
+
+**Directory Creation**: Lazy initialization on first write (mkdirSync with recursive: true)
+
+### Startup Validation
+
+Add permission check at app startup to catch issues early:
 
 ```typescript
-// Check for existing case with same extraction
-// Note: null values are compared as null (extraction complete failures)
-const existingCase = await prisma.reviewEvalCase.findFirst({
-  where: {
-    extractedTitle: extractedTitle === null ? null : {
-      equals: extractedTitle,
-      mode: 'insensitive'
-    },
-    extractedAuthor: extractedAuthor === null ? null : {
-      equals: extractedAuthor,
-      mode: 'insensitive'
-    }
+// In src/index.ts or similar startup file
+async function validateEvalCaseLogging() {
+  try {
+    const testDir = path.join('data', 'review-eval-cases', process.env.EXTRACTION_VERSION || 'v1');
+    await fs.promises.mkdir(testDir, { recursive: true });
+    const testFile = path.join(testDir, '.writetest');
+    await fs.promises.writeFile(testFile, 'test', 'utf-8');
+    await fs.promises.unlink(testFile);
+    console.log('[Startup] Eval case logging directory is writable');
+  } catch (error) {
+    console.warn('[Startup] Eval case logging directory not writable:', error);
+    // Don't fail startup, just warn
   }
-});
-
-if (existingCase) {
-  return false; // Skip, duplicate found
 }
 ```
 
-## Data Access & Review Workflow
+### Integration with Review Handler
 
-### Primary Access Method
+**File**: `src/bot/handlers/review.ts`
 
-**Prisma Studio**: `npx prisma studio`
-
-Navigate to `ReviewEvalCase` table to browse, filter, and export cases.
-
-### Useful Queries
-
-```sql
--- Get all manual entry cases
-SELECT * FROM ReviewEvalCase WHERE collectionReason = 'MANUAL_ENTRY';
-
--- Get low confidence selections
-SELECT * FROM ReviewEvalCase WHERE collectionReason = 'LOW_CONFIDENCE_SELECTION';
-
--- Get cases from last 30 days
-SELECT * FROM ReviewEvalCase WHERE createdAt >= datetime('now', '-30 days');
-
--- Get cases with null extraction (complete failures)
-SELECT * FROM ReviewEvalCase WHERE extractedTitle IS NULL OR extractedAuthor IS NULL;
-
--- Count cases by reason
-SELECT collectionReason, COUNT(*) as count
-FROM ReviewEvalCase
-GROUP BY collectionReason;
-
--- Join with Book to see what users actually selected
-SELECT
-  rec.reviewText,
-  rec.extractedTitle,
-  rec.extractedAuthor,
-  b.title as selectedTitle,
-  b.author as selectedAuthor,
-  rec.collectionReason
-FROM ReviewEvalCase rec
-JOIN Book b ON rec.selectedBookId = b.id;
-```
-
-### Export for Evaluation Dataset
+**Integration Point** (after review creation):
 
 ```typescript
-// Export to JSON for eval tooling
-const cases = await prisma.reviewEvalCase.findMany({
-  include: { selectedBook: true },
-  orderBy: { createdAt: 'desc' }
-});
-
-// Transform to eval format
-const evalDataset = cases.map(c => ({
-  input: c.reviewText,
-  extracted: {
-    title: c.extractedTitle,
-    author: c.extractedAuthor,
-    confidence: c.extractionConfidence
-  },
-  expected: {
-    title: c.selectedBook.title,
-    author: c.selectedBook.author
-  },
-  reason: c.collectionReason
-}));
+// After review is created successfully
+if (bookId === null) {
+  // Fire-and-forget: don't await, catch errors
+  logOrphanedReviewCase({
+    reviewText: messageText,
+    extractedTitle: extractedInfo?.title ?? null,
+    extractedAuthor: extractedInfo?.author ?? null,
+    extractionConfidence: extractedInfo?.confidence ?? null,
+  }).catch(error => {
+    console.error('[Review] Failed to log eval case:', error);
+    // Don't throw - review creation already succeeded
+  });
+}
 ```
+
+## Failure Alerting
+
+Track persistent logging failures and alert admins via notification service.
+
+### Sliding Window Failure Tracking
+
+**In-memory tracking**: Array of failure timestamps, resets on app restart (acceptable)
+
+**Alert threshold**: 3+ failures within 60 minutes
+
+**Implementation**:
+```typescript
+const failureTimestamps: number[] = [];
+
+function trackFailure() {
+  const now = Date.now();
+  failureTimestamps.push(now);
+
+  // Keep only last 60 minutes
+  const oneHourAgo = now - 60 * 60 * 1000;
+  while (failureTimestamps.length > 0 && failureTimestamps[0] < oneHourAgo) {
+    failureTimestamps.shift();
+  }
+
+  // Alert if threshold exceeded
+  if (failureTimestamps.length >= 3) {
+    sendAdminNotification(
+      '⚠️ Eval Case Logging Failures',
+      `Logging failed ${failureTimestamps.length} times in the last hour.\n` +
+      `Last error: ${lastError?.message || 'Unknown'}`
+    );
+    // Reset to avoid spam
+    failureTimestamps.length = 0;
+  }
+}
+```
+
+**Error Diagnostics**: Include last N error messages in notification for debugging
+
+**Notification Integration**: Import and use existing `sendAdminNotification()` from notification service
 
 ## Configuration
 
-**No Configuration Required**
+**Required Environment Variables**: None (works with defaults)
 
-- Feature is always enabled
-- No environment variables
-- No feature flags
+**Optional Environment Variables**:
 
-**Rationale**: This is core functionality for continuous improvement. No reason to disable.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EXTRACTION_VERSION` | `v1` | Version subdirectory for case files |
+
+**Log Location**: `data/review-eval-cases/$EXTRACTION_VERSION/`
+
+**Rationale**: No configuration needed for core functionality. Version tracking is opt-in.
+
+## Data Access & Manual Labeling
+
+### Accessing Log Files
+
+```bash
+# View current month's cases
+cat data/review-eval-cases/v1/2026-01.md
+
+# Count cases
+grep -c "## Case #" data/review-eval-cases/v1/*.md
+
+# Search for terms
+grep -A 10 "Мастер" data/review-eval-cases/v1/*.md
+```
+
+### Manual Labeling Workflow
+
+1. Open monthly log file in editor
+2. Manually determine correct book for each case
+3. Export to structured format (JSON/CSV) for eval dataset
+4. Use labeled dataset to test and improve extraction algorithm
+
+**Export Implementation**: Out of scope (YAGNI - implement when needed)
+
+## Testing Strategy
+
+### Integration Tests Only
+
+**File**: `test/integration/review-eval-case.test.ts`
+
+Use real filesystem (temp directory) for realistic testing:
+
+```typescript
+describe('Review Eval Case Integration', () => {
+  test('orphaned review triggers case logging', async () => {
+    // Create orphaned review → verify log file exists with correct format
+  });
+
+  test('high confidence review does NOT trigger logging', async () => {
+    // Create high-confidence review → verify no log file created
+  });
+
+  test('review creation succeeds even if logging fails', async () => {
+    // Mock fs errors → verify review still created
+  });
+
+  test('multiple orphaned reviews get sequential case numbers', async () => {
+    // Create multiple orphaned reviews → verify numbering
+  });
+
+  test('monthly rotation creates separate files', async () => {
+    // Simulate month change → verify separate files
+  });
+
+  test('version subdirectories work correctly', async () => {
+    // Change EXTRACTION_VERSION → verify subdirectory usage
+  });
+});
+```
+
+**No unit tests**: File operations are simple, integration tests provide sufficient coverage
 
 ## Privacy & Data Protection
 
 ### Anonymization
 
-- **No** Telegram user IDs stored
-- **No** Telegram message IDs stored
-- **No** Telegram chat IDs stored
+**NOT stored**: User IDs, usernames, message IDs, chat IDs, review IDs
 
-This makes the data completely anonymous - cannot be linked back to specific users.
+**Stored**: Review text only (necessary for extraction evaluation)
 
-### Review Text Storage
+### Review Text Storage Justification
 
-Full review text IS stored because:
-- Necessary to understand extraction context
-- Helps improve extraction prompts
-- User reviews are already semi-public (posted in book club chat)
+- Necessary to improve extraction algorithm
+- Reviews are semi-public (posted in chat)
+- Content is about books, not personal matters
+- No user identifiers linked to text
 
-**Assumption**: Review text does not contain sensitive personal information (reviews are about books, not personal matters)
+### Export Anonymization
+
+When sharing cases: Only include review text and extraction results. No IDs.
 
 ## Data Retention
 
-**Keep Forever** - No automatic cleanup or retention limits
+**Keep Forever** - No automatic cleanup
 
 **Rationale**:
-- These are valuable training examples
-- Storage is cheap
-- Historical data helps track improvement over time
-- Can manually delete records if needed
-
-## Non-Functional Requirements
-
-### Performance
-- Recording must not add noticeable latency to review creation
-- Use async recording (don't wait for DB write to complete if possible)
-- Deduplication query should use indexed fields
-
-### Reliability
-- Recording failures must not break review creation
-- Log errors for monitoring but continue normal flow
-
-### Monitoring
-- Log when cases are recorded (info level)
-- Log when cases are skipped due to deduplication (debug level)
-- Log recording errors (error level)
-
-## Testing Strategy
-
-### Unit Tests
-- Test deduplication logic (case-insensitive, trimming)
-- Test null handling in deduplication
-- Test error handling (recording failures don't throw)
-
-### Integration Tests
-- Test recording after manual entry flow
-- Test recording after ISBN entry flow
-- Test recording after low confidence selection
-- Test that review creation succeeds even if recording fails
-
-### Manual Testing
-1. Submit review that triggers each collection reason
-2. Verify record appears in database with correct fields
-3. Submit duplicate (same extracted book) → verify not duplicated
-4. Verify user IDs are NOT stored (null)
-
-## Future Enhancements (Not in Scope)
-
-- Admin command to export cases via Telegram bot
-- API endpoint for programmatic access
-- Status tracking (reviewed, added to eval set)
-- Occurrence counter for duplicates
-- Web UI in Mini App for browsing cases
-- Automatic comparison of extraction vs. selected book (similarity metrics)
-
-## Migration Plan
-
-1. **Add Prisma Model**: Add `ReviewEvalCase` to `prisma/schema.prisma`
-2. **Generate Migration**: `npx prisma migrate dev --name add_review_eval_case_table`
-3. **Create Service**: Implement `src/services/review-eval-case.service.ts`
-4. **Integrate**: Add calls in `src/bot/handlers/book-confirmation.ts`
-5. **Test**: Manual testing in development environment
-6. **Deploy**: Deploy to production, monitor for errors
-7. **Verify**: Check Prisma Studio after a few days to see collected cases
+- Valuable training data
+- Storage is cheap (~100 KB/month)
+- Historical data enables improvement tracking
 
 ## Success Criteria
 
-- ✅ Cases are automatically collected based on defined criteria
-- ✅ No duplicates (same extracted book) in table
-- ✅ User IDs are not stored (anonymized)
-- ✅ Review creation never fails due to recording errors
-- ✅ Data is accessible via Prisma Studio
-- ✅ Can export cases to evaluation dataset format
+### Functional Requirements
+- ✅ Orphaned reviews logged to monthly markdown files
+- ✅ Case numbers increment within month (gaps tolerated)
+- ✅ Null extraction values handled correctly
+- ✅ Monthly rotation works
+- ✅ Review creation never fails due to logging
+- ✅ No user identifiers stored
+- ✅ Version subdirectories work correctly
 
-## Open Questions
+### Non-Functional Requirements
+- ✅ Non-blocking (fire-and-forget async)
+- ✅ Human-readable log format
+- ✅ Minimal storage (<1 MB/year)
+- ✅ Isolated from other code
 
-None - specification is complete.
+### Monitoring
+- ✅ Success logs: `[EvalCase] Logged orphaned review case #X`
+- ✅ Failure alerts to admin chat after 3+ failures/hour
+- ✅ Startup validation logs directory writeability
+
+## Key Design Decisions Summary
+
+1. **Architectural Isolation**: Single entry point, no DB dependencies, easy to remove
+2. **Storage**: File-based (not database) - simple, human-readable, no migrations
+3. **Privacy**: No user identifiers - full anonymization even for debugging
+4. **Versioning**: Environment variable for version subdirectories
+5. **Async Pattern**: Fire-and-forget - non-blocking, silent failures
+6. **Concurrency**: Accept duplicate case numbers - pragmatic simplicity
+7. **Error Handling**: Non-blocking + sliding window alerts
+8. **Testing**: Integration tests only - sufficient for file operations
+9. **Scope**: Collection only - labeling and eval loops are future work
+
+## Future Enhancements (Not in Scope)
+
+- Admin API endpoints for stats
+- Automated export to JSON
+- Web UI for labeling
+- Eval pipeline integration
+- Confidence calibration metrics
+- A/B testing framework
