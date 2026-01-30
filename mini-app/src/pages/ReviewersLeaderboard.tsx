@@ -9,6 +9,7 @@ import {
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
 import { useTranslation } from "../i18n/index.js";
+import { getRankEmoji } from "../lib/rankUtils";
 
 type Tab = "overall" | "last30days" | "last365days";
 
@@ -50,13 +51,6 @@ export default function ReviewersLeaderboard() {
 
     loadData();
   }, []);
-
-  const getMedal = (rank: number) => {
-    if (rank === 1) return "🥇";
-    if (rank === 2) return "🥈";
-    if (rank === 3) return "🥉";
-    return `${rank}.`;
-  };
 
   if (loading) return <Loading />;
   if (error) return <ErrorMessage message={error} />;
@@ -119,7 +113,7 @@ export default function ReviewersLeaderboard() {
               onClick={() => navigate(`/reviewer/${entry.telegramUserId}`)}
               className="flex items-center gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity cursor-pointer"
             >
-              <span className="w-8 text-center text-lg">{getMedal(entry.rank)}</span>
+              <span className="w-8 text-center text-lg">{getRankEmoji(entry.rank)}</span>
               <div className="flex-1">
                 <span className="font-medium text-tg-text">
                   {entry.displayName || entry.username || t("common.anonymous")}

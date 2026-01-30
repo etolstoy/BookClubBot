@@ -6,6 +6,11 @@ import { handleReviewMessage, handleReviewCommand } from "./handlers/review.js";
 import { handleStartCommand } from "./handlers/commands.js";
 import { initNotificationService, sendSuccessNotification } from "../services/notification.service.js";
 
+/**
+ * Global bot instance (set by startBot)
+ */
+export let botInstance: Telegraf | null = null;
+
 export function createBot() {
   const bot = new Telegraf(config.botToken);
 
@@ -34,6 +39,9 @@ export function createBot() {
 }
 
 export async function startBot(bot: Telegraf) {
+  // Set global bot instance
+  botInstance = bot;
+
   // Initialize notification service
   initNotificationService(bot);
 

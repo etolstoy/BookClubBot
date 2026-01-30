@@ -12,6 +12,7 @@ import BrowseBooks from "./pages/BrowseBooks";
 import FreshReviews from "./pages/FreshReviews";
 import PopularAuthors from "./pages/PopularAuthors.js";
 import AuthorBooks from "./pages/AuthorBooks.js";
+import VolunteerScreen from "./pages/VolunteerScreen";
 
 // Create context for config
 export const ConfigContext = createContext<Config | null>(null);
@@ -139,6 +140,7 @@ function AppContent() {
       <Route path="/top-authors" element={<Layout><PopularAuthors /></Layout>} />
       <Route path="/author/:author" element={<Layout><AuthorBooks /></Layout>} />
       <Route path="/fresh-reviews" element={<Layout><FreshReviews /></Layout>} />
+      <Route path="/volunteer" element={<Layout><VolunteerScreen /></Layout>} />
       {/* Legacy route for backward compatibility */}
       <Route path="/leaderboard" element={<Layout><Leaderboard /></Layout>} />
     </Routes>

@@ -1,13 +1,20 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
 import configRouter from "../../src/api/routes/config.js";
 import { config } from "../../src/lib/config.js";
+import { setOptionalAuthMiddleware } from "../../src/api/middleware/telegram-auth.js";
 
 describe("GET /api/config", () => {
   let app: express.Application;
 
   beforeEach(() => {
+    // Initialize the optional auth middleware with a no-op function
+    setOptionalAuthMiddleware((req, res, next) => {
+      // Don't set req.telegramUser - simulate unauthenticated request
+      next();
+    });
+
     app = express();
     app.use("/api/config", configRouter);
   });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getRecentReviews, getStats, type Review } from "../api/client";
+import { getRecentReviews, getStats, getVolunteerStats, getConfig, type Review, type VolunteerStats } from "../api/client";
 import SearchBar from "../components/SearchBar";
 import SentimentBadge from "../components/SentimentBadge";
 import Loading from "../components/Loading";
@@ -12,6 +12,8 @@ export default function Home() {
   const { t } = useTranslation();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [stats, setStats] = useState<{ booksCount: number; reviewsCount: number; reviewersCount: number } | null>(null);
+  const [volunteerStats, setVolunteerStats] = useState<VolunteerStats | null>(null);
+  const [isChatMember, setIsChatMember] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,13 +23,27 @@ export default function Home() {
       setError(null);
 
       try {
-        const [reviewsData, statsData] = await Promise.all([
+        // Load essential data that doesn't require auth
+        const [reviewsData, statsData, configData] = await Promise.all([
           getRecentReviews({ limit: 4 }),
           getStats(),
+          getConfig(),
         ]);
 
         setReviews(reviewsData.reviews);
         setStats(statsData);
+        setIsChatMember(configData.isChatMember || false);
+
+        // Load volunteer stats separately (only for chat members, may fail for unauthenticated users)
+        if (configData.isChatMember) {
+          try {
+            const volunteerData = await getVolunteerStats();
+            setVolunteerStats(volunteerData);
+          } catch (volunteerErr) {
+            console.warn("Failed to load volunteer stats:", volunteerErr);
+            // Don't block the page if volunteer stats fail
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : t("errors.loadData"));
       } finally {
@@ -59,13 +75,21 @@ export default function Home() {
         <>
           {/* Statistics */}
           {stats && (
-            <p className="text-sm text-tg-hint mb-8">
-              {t("home.statistics.text", {
-                booksCount: stats.booksCount,
-                reviewsCount: stats.reviewsCount,
-                reviewersCount: stats.reviewersCount
-              })}
-            </p>
+            <div className="mb-8">
+              <p className="text-sm text-tg-hint mb-2">
+                {t("home.statistics.text", {
+                  booksCount: stats.booksCount,
+                  reviewsCount: stats.reviewsCount,
+                  reviewersCount: stats.reviewersCount
+                })}
+              </p>
+              {isChatMember && volunteerStats &&
+               (volunteerStats.booksNeedingHelp > 0 || volunteerStats.reviewsNeedingHelp > 0) && (
+                <Link to="/volunteer" className="text-sm text-tg-button hover:underline">
+                  Помочь с модерацией
+                </Link>
+              )}
+            </div>
           )}
 
           {/* Recent Reviews Gallery */}

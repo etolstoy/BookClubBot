@@ -8,11 +8,12 @@ import {
 } from "../api/client";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
+import PaginationControl from "../components/PaginationControl";
 import { useTranslation } from "../i18n/index.js";
+import { usePagination } from "../hooks/usePagination";
+import { getRankEmoji } from "../lib/rankUtils";
 
 type Tab = "overall" | "last30days" | "last365days";
-
-const ITEMS_PER_PAGE = 20;
 
 export default function Leaderboard() {
   const navigate = useNavigate();
@@ -22,16 +23,12 @@ export default function Leaderboard() {
     const tabParam = searchParams.get("tab");
     return (tabParam === "last30days" || tabParam === "last365days") ? tabParam : "overall";
   });
+  const { page, hasMore, setHasMore, handlePrevPage, handleNextPage, itemsPerPage, resetToFirstPage } = usePagination({ additionalParams: { tab } });
   const [last30DaysData, setLast30DaysData] = useState<BookLeaderboardEntry[]>([]);
   const [last365DaysData, setLast365DaysData] = useState<BookLeaderboardEntry[]>([]);
   const [overallData, setOverallData] = useState<BookLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(() => {
-    const pageParam = searchParams.get("page");
-    return pageParam ? parseInt(pageParam, 10) : 1;
-  });
-  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     async function loadData() {
@@ -39,33 +36,33 @@ export default function Leaderboard() {
       setError(null);
 
       try {
-        const offset = (page - 1) * ITEMS_PER_PAGE;
+        const offset = (page - 1) * itemsPerPage;
         let data: BookLeaderboardEntry[];
 
         if (tab === "last30days") {
           const result = await getLast30DaysBookLeaderboard({
-            limit: ITEMS_PER_PAGE,
+            limit: itemsPerPage,
             offset
           });
           data = result.leaderboard;
           setLast30DaysData(data);
         } else if (tab === "last365days") {
           const result = await getLast365DaysBookLeaderboard({
-            limit: ITEMS_PER_PAGE,
+            limit: itemsPerPage,
             offset
           });
           data = result.leaderboard;
           setLast365DaysData(data);
         } else {
           const result = await getBookLeaderboard({
-            limit: ITEMS_PER_PAGE,
+            limit: itemsPerPage,
             offset
           });
           data = result.leaderboard;
           setOverallData(data);
         }
 
-        setHasMore(data.length === ITEMS_PER_PAGE);
+        setHasMore(data.length === itemsPerPage);
       } catch (err) {
         setError(err instanceof Error ? err.message : t("errors.loadLeaderboard"));
       } finally {
@@ -76,35 +73,10 @@ export default function Leaderboard() {
     loadData();
   }, [tab, page]);
 
-  const getMedal = (rank: number) => {
-    if (rank === 1) return "🥇";
-    if (rank === 2) return "🥈";
-    if (rank === 3) return "🥉";
-    return `${rank}.`;
-  };
-
   const handleTabChange = (newTab: Tab) => {
     setTab(newTab);
-    setPage(1);
+    resetToFirstPage();
     setSearchParams({ tab: newTab, page: "1" });
-  };
-
-  const handlePrevPage = () => {
-    if (page > 1) {
-      const newPage = page - 1;
-      setPage(newPage);
-      setSearchParams({ tab, page: newPage.toString() });
-      window.scrollTo(0, 0);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (hasMore) {
-      const newPage = page + 1;
-      setPage(newPage);
-      setSearchParams({ tab, page: newPage.toString() });
-      window.scrollTo(0, 0);
-    }
   };
 
   if (loading) return <Loading />;
@@ -159,7 +131,7 @@ export default function Leaderboard() {
               onClick={() => navigate(`/book/${entry.bookId}`)}
               className="flex items-center gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity cursor-pointer"
             >
-              <span className="w-8 text-center text-lg">{getMedal(entry.rank)}</span>
+              <span className="w-8 text-center text-lg">{getRankEmoji(entry.rank)}</span>
               {entry.coverUrl && (
                 <img
                   src={entry.coverUrl}
@@ -182,33 +154,12 @@ export default function Leaderboard() {
       </div>
 
       {currentData.length > 0 && (
-        <div className="flex items-center justify-between mt-6">
-          <button
-            onClick={handlePrevPage}
-            disabled={page === 1}
-            className={`px-5 py-2 rounded-full font-medium transition-colors ${
-              page === 1
-                ? "bg-tg-secondary text-tg-hint cursor-not-allowed"
-                : "bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black border-2 border-transparent"
-            }`}
-          >
-            ←
-          </button>
-
-          <span className="text-tg-hint">{t("common.page")} {page}</span>
-
-          <button
-            onClick={handleNextPage}
-            disabled={!hasMore}
-            className={`px-5 py-2 rounded-full font-medium transition-colors ${
-              !hasMore
-                ? "bg-tg-secondary text-tg-hint cursor-not-allowed"
-                : "bg-[#3D3D3D] text-white hover:bg-white hover:text-black hover:border-2 hover:border-black border-2 border-transparent"
-            }`}
-          >
-            →
-          </button>
-        </div>
+        <PaginationControl
+          page={page}
+          hasMore={hasMore}
+          onPrevPage={handlePrevPage}
+          onNextPage={handleNextPage}
+        />
       )}
     </div>
   );

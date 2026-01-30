@@ -1,13 +1,16 @@
 import { Link } from "react-router-dom";
 import type { Book } from "../api/client";
 import SentimentBadge from "./SentimentBadge";
+import MissingFieldsBadge from "./MissingFieldsBadge";
 import { useTranslation } from "../i18n/index.js";
 
 interface BookCardProps {
   book: Book;
+  missingFields?: string[];
+  onEdit?: () => void;
 }
 
-export default function BookCard({ book }: BookCardProps) {
+export default function BookCard({ book, missingFields, onEdit }: BookCardProps) {
   const { t, plural } = useTranslation();
   const totalSentiments =
     book.sentiments.positive + book.sentiments.negative + book.sentiments.neutral;
@@ -21,11 +24,8 @@ export default function BookCard({ book }: BookCardProps) {
         : "neutral"
       : null;
 
-  return (
-    <Link
-      to={`/book/${book.id}`}
-      className="flex gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity no-underline"
-    >
+  const cardContent = (
+    <>
       <div className="w-16 h-24 flex-shrink-0 rounded overflow-hidden bg-gray-200">
         {book.coverUrl ? (
           <img
@@ -51,19 +51,32 @@ export default function BookCard({ book }: BookCardProps) {
           </span>
           {dominantSentiment && <SentimentBadge sentiment={dominantSentiment} />}
         </div>
-        {book.genres.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {book.genres.slice(0, 2).map((genre) => (
-              <span
-                key={genre}
-                className="text-xs px-2 py-0.5 rounded-full bg-tg-bg text-tg-hint"
-              >
-                {genre}
-              </span>
-            ))}
-          </div>
-        )}
+        <MissingFieldsBadge
+          fields={missingFields}
+          labels={{ coverUrl: "Обложка", author: "Автор" }}
+          className="mt-2"
+        />
       </div>
+    </>
+  );
+
+  if (onEdit) {
+    return (
+      <div
+        onClick={onEdit}
+        className="flex gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity cursor-pointer"
+      >
+        {cardContent}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      to={`/book/${book.id}`}
+      className="flex gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity no-underline"
+    >
+      {cardContent}
     </Link>
   );
 }

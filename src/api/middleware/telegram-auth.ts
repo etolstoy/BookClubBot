@@ -1,12 +1,15 @@
 import crypto from "crypto";
 import { Request, Response, NextFunction } from "express";
+import { Telegraf } from "telegraf";
 import { config } from "../../lib/config.js";
+import { checkChatMembership } from "../../services/chat-membership.service.js";
 
 export interface TelegramUser {
   id: bigint;
   username?: string;
   first_name?: string;
   last_name?: string;
+  isChatMember?: boolean;
 }
 
 // Extend Express Request to include authenticated user
@@ -130,74 +133,153 @@ export function validateTelegramWebAppData(
 }
 
 /**
- * Express middleware to authenticate Telegram WebApp requests
+ * Factory function to create Telegram WebApp authentication middleware
  * Expects initData in Authorization header: "Bearer <initData>"
+ */
+export function createAuthenticateTelegramWebApp(bot: Telegraf) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // DEV ONLY: Allow testing without real Telegram auth
+    if (config.isDev && req.headers["x-dev-user-id"]) {
+      try {
+        const userId = BigInt(req.headers["x-dev-user-id"] as string);
+        const isChatMember = await checkChatMembership(
+          bot,
+          config.targetChatId,
+          userId
+        );
+        req.telegramUser = {
+          id: userId,
+          username: "devuser",
+          first_name: "Dev",
+          last_name: "User",
+          isChatMember,
+        };
+        next();
+        return;
+      } catch (error) {
+        console.error("[TelegramAuth] Invalid dev user ID:", error);
+        res.status(400).json({ error: "Invalid x-dev-user-id header" });
+        return;
+      }
+    }
+
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      res
+        .status(401)
+        .json({ error: "Missing or invalid Authorization header" });
+      return;
+    }
+
+    const initData = authHeader.substring(7); // Remove "Bearer " prefix
+    const user = validateTelegramWebAppData(initData);
+
+    if (!user) {
+      res
+        .status(401)
+        .json({ error: "Invalid Telegram WebApp authentication" });
+      return;
+    }
+
+    // Check chat membership
+    const isChatMember = await checkChatMembership(
+      bot,
+      config.targetChatId,
+      user.id
+    );
+
+    req.telegramUser = {
+      ...user,
+      isChatMember,
+    };
+    next();
+  };
+}
+
+/**
+ * Internal reference to the actual middleware (set by createServer)
+ */
+let _authMiddleware: ReturnType<typeof createAuthenticateTelegramWebApp> | null = null;
+
+/**
+ * Backward-compatible export - wrapper function that calls the actual middleware
  */
 export function authenticateTelegramWebApp(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  // DEV ONLY: Allow testing without real Telegram auth
-  if (config.isDev && req.headers["x-dev-user-id"]) {
-    try {
-      const userId = BigInt(req.headers["x-dev-user-id"] as string);
-      req.telegramUser = {
-        id: userId,
-        username: "devuser",
-        first_name: "Dev",
-        last_name: "User",
-      };
-      next();
-      return;
-    } catch (error) {
-      console.error("[TelegramAuth] Invalid dev user ID:", error);
-      res.status(400).json({ error: "Invalid x-dev-user-id header" });
-      return;
-    }
+  if (!_authMiddleware) {
+    throw new Error('Auth middleware not initialized. Call setAuthMiddleware first.');
   }
-
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    res
-      .status(401)
-      .json({ error: "Missing or invalid Authorization header" });
-    return;
-  }
-
-  const initData = authHeader.substring(7); // Remove "Bearer " prefix
-  const user = validateTelegramWebAppData(initData);
-
-  if (!user) {
-    res
-      .status(401)
-      .json({ error: "Invalid Telegram WebApp authentication" });
-    return;
-  }
-
-  req.telegramUser = user;
-  next();
+  return _authMiddleware(req, res, next);
 }
 
 /**
- * Optional middleware - allows unauthenticated requests but attaches user if present
+ * Sets the authentication middleware (called from createServer)
+ */
+export function setAuthMiddleware(
+  middleware: ReturnType<typeof createAuthenticateTelegramWebApp>
+) {
+  _authMiddleware = middleware;
+}
+
+/**
+ * Factory function to create optional Telegram auth middleware
+ * Allows unauthenticated requests but attaches user if present
+ */
+export function createOptionalTelegramAuth(bot: Telegraf) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const initData = authHeader.substring(7);
+      const user = validateTelegramWebAppData(initData);
+
+      if (user) {
+        // Check chat membership
+        const isChatMember = await checkChatMembership(
+          bot,
+          config.targetChatId,
+          user.id
+        );
+
+        req.telegramUser = {
+          ...user,
+          isChatMember,
+        };
+      }
+    }
+
+    next();
+  };
+}
+
+/**
+ * Internal reference to the optional auth middleware (set by createServer)
+ */
+let _optionalAuthMiddleware: ReturnType<typeof createOptionalTelegramAuth> | null = null;
+
+/**
+ * Backward-compatible export - wrapper function that calls the actual middleware
  */
 export function optionalTelegramAuth(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const authHeader = req.headers.authorization;
-
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    const initData = authHeader.substring(7);
-    const user = validateTelegramWebAppData(initData);
-
-    if (user) {
-      req.telegramUser = user;
-    }
+  if (!_optionalAuthMiddleware) {
+    throw new Error('Optional auth middleware not initialized. Call setOptionalAuthMiddleware first.');
   }
+  return _optionalAuthMiddleware(req, res, next);
+}
 
-  next();
+/**
+ * Sets the optional auth middleware (called from createServer)
+ */
+export function setOptionalAuthMiddleware(
+  middleware: ReturnType<typeof createOptionalTelegramAuth>
+) {
+  _optionalAuthMiddleware = middleware;
 }

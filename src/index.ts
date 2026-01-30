@@ -30,6 +30,11 @@ async function validateEvalCaseLogging(): Promise<void> {
 }
 
 async function main() {
+  // Increase max listeners for development mode (tsx watch creates multiple listeners)
+  if (config.isDev) {
+    process.setMaxListeners(20);
+  }
+
   console.log("Book Club Bot starting...");
 
   // Initialize required directories
@@ -42,11 +47,11 @@ async function main() {
   // Validate eval case logging directory
   await validateEvalCaseLogging();
 
-  // Create bot first (needed for notifications)
+  // Create bot first (needed for notifications and server)
   const bot = createBot();
 
-  // Create and start API server
-  const server = createServer();
+  // Create and start API server (pass bot for auth middleware)
+  const server = createServer(bot);
   await startServer(server);
 
   // Start bot (this will initialize notification service)
