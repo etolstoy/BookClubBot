@@ -1,5 +1,6 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import ShareButton from "./ShareButton.js";
+import Avatar from "./Avatar.js";
 
 interface HeaderProps {
   shareUrl?: string;
@@ -13,6 +14,9 @@ export default function Header({ shareUrl }: HeaderProps) {
 
   // Show back button on all screens except homepage
   const showBackButton = !isHomePage;
+
+  // Get current user from Telegram WebApp
+  const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
 
   const handleBack = () => {
     // Use browser history if available, otherwise go home
@@ -43,11 +47,23 @@ export default function Header({ shareUrl }: HeaderProps) {
           <span className="text-lg font-bold text-tg-text">Вастрик.Книги</span>
         </button>
       </div>
-      {shareUrl && (
-        <div className="flex items-center">
-          <ShareButton url={shareUrl} />
-        </div>
-      )}
+      <div className="flex items-center gap-3">
+        {shareUrl && <ShareButton url={shareUrl} />}
+        {tgUser && (
+          <Link
+            to={`/reviewer/${tgUser.id}`}
+            className="hover:opacity-80 transition-opacity"
+            aria-label="My profile"
+          >
+            <Avatar
+              userId={String(tgUser.id)}
+              firstName={tgUser.first_name || "U"}
+              lastName={tgUser.last_name}
+              size={32}
+            />
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

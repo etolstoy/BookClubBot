@@ -134,7 +134,7 @@ function AppContent() {
       <Route path="/browse" element={<Layout><BrowseBooks /></Layout>} />
       <Route path="/book/:id" element={<Book />} />
       <Route path="/review/:id" element={<Review />} />
-      <Route path="/reviewer/:userId" element={<Layout><Reviewer /></Layout>} />
+      <Route path="/reviewer/:userId" element={<Reviewer />} />
       <Route path="/top-books" element={<Layout><Leaderboard /></Layout>} />
       <Route path="/top-reviewers" element={<Layout><ReviewersLeaderboard /></Layout>} />
       <Route path="/top-authors" element={<Layout><PopularAuthors /></Layout>} />

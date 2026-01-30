@@ -23,6 +23,16 @@ export function getReviewDeepLink(botUsername: string, reviewId: number): string
 }
 
 /**
+ * Generate Telegram deep link for reviewer profile page
+ * @param botUsername - Bot username (without @ prefix)
+ * @param userId - Telegram user ID
+ * @returns Deep link to reviewer profile in Mini App
+ */
+export function getReviewerDeepLink(botUsername: string, userId: string): string {
+  return `https://t.me/${botUsername}?startapp=reviewer_${userId}`;
+}
+
+/**
  * Copy text to clipboard using Clipboard API
  * @param text - Text to copy
  * @throws Error if clipboard API is not available
