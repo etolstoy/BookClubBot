@@ -10,6 +10,7 @@ import { logGoogleBooksFailure } from "../../services/failure-logging.service.js
 import { sendErrorNotification } from "../../services/notification.service.js";
 import { createBook } from "../../services/book.service.js";
 import { getRussianPluralReview } from "../../lib/string-utils.js";
+import { getBookDeepLink } from "../../lib/url-utils.js";
 import prisma from "../../lib/prisma.js";
 import type { BotContext } from "../types/bot-context.js";
 
@@ -324,7 +325,7 @@ async function processReview(
             [
               Markup.button.url(
                 "📖 Смотреть в приложении",
-                `${config.miniAppUrl}?startapp=book_${bookId}`
+                getBookDeepLink(config.botUsername, bookId)
               ),
             ],
           ]),
