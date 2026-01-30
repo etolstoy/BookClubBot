@@ -12,7 +12,7 @@ import { authenticateTelegramWebApp } from "../middleware/telegram-auth.js";
 import { sendInfoNotification } from "../../services/notification.service.js";
 import { createBookDataClient } from "../../clients/book-data/factory.js";
 import type { BookSearchResult } from "../../lib/interfaces/index.js";
-import { getGoogleBooksUrl, generateGoodreadsUrl } from "../../lib/url-utils.js";
+import { getGoogleBooksUrl } from "../../lib/url-utils.js";
 import { detectISBN } from "../../lib/isbn-utils.js";
 import { config } from "../../lib/config.js";
 
@@ -235,7 +235,7 @@ router.get("/:id", async (req, res) => {
         isbn: book.isbn,
         pageCount: book.pageCount,
         googleBooksUrl: getGoogleBooksUrl(book.googleBooksId),
-        goodreadsUrl: book.goodreadsUrl || generateGoodreadsUrl(book.isbn, book.title, book.author),
+        goodreadsUrl: book.goodreadsUrl,
         reviewCount: book.reviews.length,
         sentiments,
       },
@@ -352,7 +352,7 @@ router.post("/", authenticateTelegramWebApp, async (req, res) => {
         isbn: book.isbn,
         pageCount: book.pageCount,
         googleBooksUrl: getGoogleBooksUrl(book.googleBooksId),
-        goodreadsUrl: generateGoodreadsUrl(book.isbn, book.title, book.author),
+        goodreadsUrl: book.goodreadsUrl,
         reviewCount: 0,
         sentiments: { positive: 0, negative: 0, neutral: 0 },
       },
@@ -528,7 +528,7 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
         isbn: updatedBook.isbn,
         pageCount: updatedBook.pageCount,
         googleBooksUrl: getGoogleBooksUrl(updatedBook.googleBooksId),
-        goodreadsUrl: updatedBook.goodreadsUrl || generateGoodreadsUrl(updatedBook.isbn, updatedBook.title, updatedBook.author),
+        goodreadsUrl: updatedBook.goodreadsUrl,
         reviewCount: bookWithReviews.reviews.length,
         sentiments,
       },
