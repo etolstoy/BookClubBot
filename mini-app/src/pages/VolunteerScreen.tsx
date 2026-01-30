@@ -13,6 +13,7 @@ import BookCard from "../components/BookCard";
 import ReviewCard from "../components/ReviewCard";
 import EditBookModal from "../components/EditBookModal";
 import EditReviewModal from "../components/EditReviewModal";
+import { useTranslation } from "../i18n/index.js";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -21,6 +22,7 @@ type VolunteerItem =
   | { type: "review"; data: Review; missingFields: string[] };
 
 export default function VolunteerScreen() {
+  const { plural } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<VolunteerItem[]>([]);
   const [totalBooksNeedingHelp, setTotalBooksNeedingHelp] = useState(0);
@@ -61,7 +63,6 @@ export default function VolunteerScreen() {
         const missingFields: string[] = [];
         if (!book.coverUrl) missingFields.push("coverUrl");
         if (!book.author) missingFields.push("author");
-        if (!book.goodreadsUrl) missingFields.push("goodreadsUrl");
         return { type: "book", data: book, missingFields };
       });
 
@@ -185,7 +186,7 @@ export default function VolunteerScreen() {
         Волонтёрская помощь
       </h1>
       <p className="text-sm text-tg-hint mb-6">
-        Нужна помощь: {totalBooksNeedingHelp} книг и {totalReviewsNeedingHelp} рецензий
+        Нужна помощь: {plural("plurals.books", totalBooksNeedingHelp)} и {plural("plurals.reviews", totalReviewsNeedingHelp)}
       </p>
 
       <div className="space-y-4">

@@ -59,7 +59,6 @@ export default function BookCard({ book, missingFields, onEdit }: BookCardProps)
               >
                 {field === "coverUrl" && "Обложка"}
                 {field === "author" && "Автор"}
-                {field === "goodreadsUrl" && "Goodreads"}
               </span>
             ))}
           </div>
