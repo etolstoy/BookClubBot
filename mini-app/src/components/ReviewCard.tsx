@@ -16,6 +16,8 @@ interface ReviewCardProps {
   showShareButton?: boolean;
   onReviewUpdated?: (updatedReview: Review) => void;
   onReviewDeleted?: () => void;
+  missingFields?: string[];
+  onEdit?: () => void;
 }
 
 export default function ReviewCard({
@@ -24,6 +26,8 @@ export default function ReviewCard({
   showShareButton = true,
   onReviewUpdated,
   onReviewDeleted,
+  missingFields,
+  onEdit,
 }: ReviewCardProps) {
   const { t } = useTranslation();
   const config = useContext(ConfigContext);
@@ -68,7 +72,10 @@ export default function ReviewCard({
 
   return (
     <>
-      <div className="p-4 rounded-lg bg-tg-secondary">
+      <div
+        className={`p-4 rounded-lg bg-tg-secondary ${onEdit ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+        onClick={onEdit}
+      >
         <div className="flex items-start justify-between mb-2">
           <Link
             to={`/reviewer/${currentReview.telegramUserId}`}
@@ -126,6 +133,19 @@ export default function ReviewCard({
         <p className="text-sm text-tg-text whitespace-pre-wrap">
           {currentReview.reviewText}
         </p>
+
+        {missingFields && missingFields.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {missingFields.map((field) => (
+              <span
+                key={field}
+                className="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded"
+              >
+                {field === "book" && "Книга"}
+              </span>
+            ))}
+          </div>
+        )}
 
         {showShareButton && config?.botUsername && (
           <button

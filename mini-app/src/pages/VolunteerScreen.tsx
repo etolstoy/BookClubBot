@@ -168,47 +168,22 @@ export default function VolunteerScreen() {
 
       <div className="space-y-4">
         {items.map((item, index) => (
-          <div key={`${item.type}-${index}`} className="relative">
+          <div key={`${item.type}-${index}`}>
             {item.type === "book" ? (
-              <div>
-                <BookCard book={item.data} />
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {item.missingFields.map((field) => (
-                    <span
-                      key={field}
-                      className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded"
-                    >
-                      {field === "coverUrl" && "Нет обложки"}
-                      {field === "author" && "Нет автора"}
-                      {field === "goodreadsUrl" && "Нет Goodreads"}
-                    </span>
-                  ))}
-                  <button
-                    onClick={async () => {
-                      const result = await getBook(item.data.id);
-                      setEditingBook(result.book);
-                    }}
-                    className="text-xs text-tg-button underline ml-auto"
-                  >
-                    Редактировать
-                  </button>
-                </div>
-              </div>
+              <BookCard
+                book={item.data}
+                missingFields={item.missingFields}
+                onEdit={async () => {
+                  const result = await getBook(item.data.id);
+                  setEditingBook(result.book);
+                }}
+              />
             ) : (
-              <div>
-                <ReviewCard review={item.data} />
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
-                    Нет книги
-                  </span>
-                  <button
-                    onClick={() => setEditingReview(item.data)}
-                    className="text-xs text-tg-button underline ml-auto"
-                  >
-                    Редактировать
-                  </button>
-                </div>
-              </div>
+              <ReviewCard
+                review={item.data}
+                missingFields={item.missingFields}
+                onEdit={() => setEditingReview(item.data)}
+              />
             )}
           </div>
         ))}
