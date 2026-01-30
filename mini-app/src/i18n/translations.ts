@@ -61,6 +61,7 @@ export const translations = {
     totalReviews: "Всего рецензий",
     reviewHistory: "История рецензий",
     noReviews: "Рецензий пока нет",
+    noReviewsOwn: "Ты еще не написал ни одной рецензии! Закидывай их в чат и помечай тегом #рецензия",
     notFound: "Клубень не найден",
   },
 
