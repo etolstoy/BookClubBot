@@ -13,6 +13,7 @@ const configSchema = z.object({
   ADMIN_USER_IDS: z.string().optional(),
   PORT: z.string().default("3001"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  EXTRACTION_VERSION: z.string().default("v1"),
 });
 
 const parsed = configSchema.safeParse(process.env);
@@ -47,6 +48,7 @@ export const config = {
   isDev: parsed.data.NODE_ENV === "development",
   isProd: parsed.data.NODE_ENV === "production",
   isTest: parsed.data.NODE_ENV === "test",
+  extractionVersion: parsed.data.EXTRACTION_VERSION,
 };
 
 export default config;
