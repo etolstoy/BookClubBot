@@ -123,7 +123,12 @@ jobs:
 
             # Pull the latest image
             echo "📥 Pulling latest image..."
-            docker-compose pull
+            if ! docker-compose pull; then
+              echo "❌ Failed to pull latest image"
+              exit 1
+            fi
+
+            echo "✓ Image pulled successfully"
 
             # WORKAROUND: 'KeyError: ContainerConfig' in docker-compose 1.29.2
             # Force remove the old container instead of letting compose recreate it
@@ -132,7 +137,31 @@ jobs:
 
             # Restart services
             echo "🔄 Restarting containers..."
-            docker-compose up -d
+            if ! docker-compose up -d; then
+              echo "❌ Failed to start containers"
+              exit 1
+            fi
+
+            echo "✓ Containers started successfully"
 
             # Cleanup old images to save space
             docker system prune -f
+
+            # Send success notification to Telegram
+            MESSAGE="✅ BookClubBot deployed successfully%0A%0ACommit: ${GITHUB_SHA:0:7}%0AMessage: $(echo '${{ github.event.head_commit.message }}' | head -1)"
+            curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendMessage" \
+              -d "chat_id=${{ secrets.ADMIN_CHAT_ID }}" \
+              -d "text=${MESSAGE}" \
+              -d "disable_notification=true" || echo "⚠ Failed to send Telegram notification"
+
+  notify-failure:
+    needs: [build-and-push, deploy]
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Send failure notification to Telegram
+        run: |
+          MESSAGE="❌ BookClubBot deployment FAILED%0A%0ACommit: ${{ github.sha }}%0AAuthor: ${{ github.actor }}%0A%0ACheck logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ADMIN_CHAT_ID }}" \
+            -d "text=${MESSAGE}"
