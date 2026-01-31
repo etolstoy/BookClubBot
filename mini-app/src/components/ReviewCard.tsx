@@ -135,7 +135,7 @@ export default function ReviewCard({
           </Link>
         )}
 
-        <p className="text-sm text-tg-text whitespace-pre-wrap">
+        <p className="text-sm text-tg-text whitespace-pre-wrap break-words">
           {currentReview.reviewText}
         </p>
 
