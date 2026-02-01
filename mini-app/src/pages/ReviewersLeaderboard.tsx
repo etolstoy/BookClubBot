@@ -58,7 +58,7 @@ export default function ReviewersLeaderboard() {
 
       <div className="flex gap-2 mb-6">
         <button
-          onClick={() => setSearchParams({ tab: "overall" })}
+          onClick={() => setSearchParams({ tab: "overall" }, { replace: true })}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "overall"
               ? "bg-[#3D3D3D] text-white"
@@ -68,7 +68,7 @@ export default function ReviewersLeaderboard() {
           {t("reviewersLeaderboard.tabs.overall")}
         </button>
         <button
-          onClick={() => setSearchParams({ tab: "last30days" })}
+          onClick={() => setSearchParams({ tab: "last30days" }, { replace: true })}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last30days"
               ? "bg-[#3D3D3D] text-white"
@@ -78,7 +78,7 @@ export default function ReviewersLeaderboard() {
           {t("reviewersLeaderboard.tabs.last30days")}
         </button>
         <button
-          onClick={() => setSearchParams({ tab: "last365days" })}
+          onClick={() => setSearchParams({ tab: "last365days" }, { replace: true })}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last365days"
               ? "bg-[#3D3D3D] text-white"

@@ -76,7 +76,7 @@ export default function Leaderboard() {
   const handleTabChange = (newTab: Tab) => {
     setTab(newTab);
     resetToFirstPage();
-    setSearchParams({ tab: newTab, page: "1" });
+    setSearchParams({ tab: newTab, page: "1" }, { replace: true });
   };
 
   if (loading) return <Loading />;

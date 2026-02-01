@@ -13,6 +13,7 @@ import FreshReviews from "./pages/FreshReviews";
 import PopularAuthors from "./pages/PopularAuthors.js";
 import AuthorBooks from "./pages/AuthorBooks.js";
 import VolunteerScreen from "./pages/VolunteerScreen";
+import { TABBED_ROUTES } from "./lib/routes.js";
 
 // Create context for config
 export const ConfigContext = createContext<Config | null>(null);
@@ -110,6 +111,12 @@ function AppContent() {
 
       // Handle back button click
       const handleBackClick = () => {
+        // If on tabbed screen, always go home
+        if (TABBED_ROUTES.includes(location.pathname as any)) {
+          navigate("/");
+          return;
+        }
+
         // If we're still on the initial deep link page, always go to home
         if (deepLinkPage.current && location.pathname === deepLinkPage.current) {
           navigate("/");

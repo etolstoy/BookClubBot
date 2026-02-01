@@ -1,6 +1,7 @@
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import ShareButton from "./ShareButton.js";
 import Avatar from "./Avatar.js";
+import { TABBED_ROUTES } from "../lib/routes.js";
 
 interface HeaderProps {
   shareUrl?: string;
@@ -19,6 +20,12 @@ export default function Header({ shareUrl }: HeaderProps) {
   const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
 
   const handleBack = () => {
+    // If on tabbed screen, always go home
+    if (TABBED_ROUTES.includes(location.pathname as any)) {
+      navigate("/");
+      return;
+    }
+
     // Use browser history if available, otherwise go home
     if (window.history.length > 1) {
       navigate(-1);
