@@ -14,6 +14,7 @@ import { getBookDeepLink } from "../../lib/url-utils.js";
 import prisma from "../../lib/prisma.js";
 import type { BotContext } from "../types/bot-context.js";
 import { logOrphanedReviewCase } from "../../services/review-eval-case-logger.service.js";
+import { notifySubscribersOfNewReview } from "../../services/review-notification.service.js";
 
 function getDisplayName(from: Message["from"]): string | null {
   if (!from) return null;
@@ -299,6 +300,11 @@ async function processReview(
     console.log(
       `[Review] Review created: id=${review.id}, bookId=${bookId || "null (orphaned)"}`
     );
+
+    // Fire-and-forget: notify subscribers of new review
+    notifySubscribersOfNewReview(review, ctx.telegram).catch((error) => {
+      console.error("[Review] Failed to notify subscribers:", error);
+    });
 
     // Step 7: Add 👌 reaction
     await addReaction(ctx.telegram, chatId, message.message_id, "👌");
