@@ -3,7 +3,12 @@ import { message } from "telegraf/filters";
 import { config } from "../lib/config.js";
 import { chatFilter, errorHandler } from "./middleware/auth.js";
 import { handleReviewMessage, handleReviewCommand } from "./handlers/review.js";
-import { handleStartCommand, handleMdigestCommand } from "./handlers/commands.js";
+import { handleStartCommand, handleMdigestCommand, handleScountCommand } from "./handlers/commands.js";
+import {
+  handleSubscribeCommand,
+  handleSubscriptionToggle,
+  TOGGLE_CALLBACK_DATA,
+} from "./handlers/subscription.js";
 import { initNotificationService, sendSuccessNotification } from "../services/notification.service.js";
 
 /**
@@ -22,6 +27,11 @@ export function createBot() {
   bot.command("start", handleStartCommand);
   bot.command("review", (ctx) => handleReviewCommand(ctx));
   bot.command("mdigest", handleMdigestCommand);
+  bot.command("scount", handleScountCommand);
+  bot.command("subscribe", handleSubscribeCommand);
+
+  // Callback handlers
+  bot.action(TOGGLE_CALLBACK_DATA, handleSubscriptionToggle);
 
   // Message handlers
   bot.on(message("text"), (ctx) => handleReviewMessage(ctx));
@@ -51,10 +61,20 @@ export async function startBot(bot: Telegraf) {
   process.once("SIGTERM", () => bot.stop("SIGTERM"));
 
   // Set bot commands for menu
+  // Default commands (shown in all chats)
   await bot.telegram.setMyCommands([
     { command: "start", description: "Запустить бота и увидеть приветствие" },
     { command: "review", description: "Отметить сообщение как рецензию" },
   ]);
+
+  // Private chat commands (include subscription)
+  await bot.telegram.setMyCommands(
+    [
+      { command: "start", description: "Запустить бота" },
+      { command: "subscribe", description: "Подписаться на уведомления о новых рецензиях" },
+    ],
+    { scope: { type: "all_private_chats" } }
+  );
 
   console.log("Starting bot...");
 

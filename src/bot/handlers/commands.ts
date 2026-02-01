@@ -3,6 +3,7 @@ import { Message } from "telegraf/types";
 import { config } from "../../lib/config.js";
 import { isAdmin } from "../../services/review.service.js";
 import { generateMonthlyDigest } from "../../services/digest.service.js";
+import { getSubscriberCount } from "../../services/subscription.service.js";
 
 export async function handleStartCommand(ctx: Context) {
   // Only work in private messages
@@ -17,6 +18,7 @@ export async function handleStartCommand(ctx: Context) {
 
 • Сохранять отзывы, помеченные тегом ${config.reviewHashtag}, либо с помощью команды /review
 • Показывать все книги, рецензии, популярных авторов и лидерборд самых читающих в миниаппе
+• Присылать уведомления о новых рецензиях прямо тебе в личку – подписка включается командой /subscribe
 
 Если есть идеи новых фичей, или что-то сломано – создавайте [issue на GitHub](https://github.com/etolstoy/BookClubBot)
 
@@ -70,6 +72,34 @@ export async function handleMdigestCommand(ctx: Context) {
     console.error("Error generating digest:", error);
     await ctx.reply(
       `Ошибка при генерации дайджеста: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
+}
+
+/**
+ * Handle /scount command - show subscriber count
+ * Admin only, works in private chat
+ */
+export async function handleScountCommand(ctx: Context) {
+  // Only work in private messages
+  if (ctx.chat?.type !== "private") {
+    return;
+  }
+
+  // Check if user is admin
+  const userId = ctx.from?.id;
+  if (!userId || !isAdmin(BigInt(userId))) {
+    await ctx.reply("Эта команда доступна только администраторам.");
+    return;
+  }
+
+  try {
+    const count = await getSubscriberCount();
+    await ctx.reply(`📊 Всего подписчиков: ${count}`);
+  } catch (error) {
+    console.error("Error getting subscriber count:", error);
+    await ctx.reply(
+      `Ошибка при получении количества подписчиков: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }

@@ -47,3 +47,13 @@ model Review {
   @@index([bookId])
   @@map("reviews")
 }
+
+model Subscription {
+  id             Int      @id @default(autoincrement())
+  telegramUserId BigInt   @unique @map("telegram_user_id")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
+}
