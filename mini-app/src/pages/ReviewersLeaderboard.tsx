@@ -17,31 +17,31 @@ export default function ReviewersLeaderboard() {
   const navigate = useNavigate();
   const { t, plural } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [tab, setTab] = useState<Tab>(() => {
-    const tabParam = searchParams.get("tab");
-    return (tabParam === "last30days" || tabParam === "last365days") ? tabParam : "overall";
-  });
-  const [overallData, setOverallData] = useState<LeaderboardEntry[]>([]);
-  const [last30DaysData, setLast30DaysData] = useState<LeaderboardEntry[]>([]);
-  const [last365DaysData, setLast365DaysData] = useState<LeaderboardEntry[]>([]);
+  const [data, setData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Get current tab from URL params
+  const tabParam = searchParams.get("tab");
+  const tab: Tab = (tabParam === "last30days" || tabParam === "last365days") ? tabParam : "overall";
+
+  // Fetch data whenever tab changes
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       setError(null);
 
       try {
-        const [overall, last30days, last365days] = await Promise.all([
-          getReviewersLeaderboard(20),
-          getLast30DaysReviewersLeaderboard(20),
-          getLast365DaysReviewersLeaderboard(20),
-        ]);
+        let response;
+        if (tab === "last30days") {
+          response = await getLast30DaysReviewersLeaderboard(20);
+        } else if (tab === "last365days") {
+          response = await getLast365DaysReviewersLeaderboard(20);
+        } else {
+          response = await getReviewersLeaderboard(20);
+        }
 
-        setOverallData(overall.leaderboard);
-        setLast30DaysData(last30days.leaderboard);
-        setLast365DaysData(last365days.leaderboard);
+        setData(response.leaderboard);
       } catch (err) {
         setError(err instanceof Error ? err.message : t("errors.loadLeaderboard"));
       } finally {
@@ -50,12 +50,7 @@ export default function ReviewersLeaderboard() {
     }
 
     loadData();
-  }, []);
-
-  if (loading) return <Loading />;
-  if (error) return <ErrorMessage message={error} />;
-
-  const currentData = tab === "overall" ? overallData : tab === "last30days" ? last30DaysData : last365DaysData;
+  }, [tab]); // Refetch when tab changes
 
   return (
     <div className="p-4">
@@ -63,10 +58,7 @@ export default function ReviewersLeaderboard() {
 
       <div className="flex gap-2 mb-6">
         <button
-          onClick={() => {
-            setTab("overall");
-            setSearchParams({ tab: "overall" });
-          }}
+          onClick={() => setSearchParams({ tab: "overall" })}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "overall"
               ? "bg-[#3D3D3D] text-white"
@@ -76,10 +68,7 @@ export default function ReviewersLeaderboard() {
           {t("reviewersLeaderboard.tabs.overall")}
         </button>
         <button
-          onClick={() => {
-            setTab("last30days");
-            setSearchParams({ tab: "last30days" });
-          }}
+          onClick={() => setSearchParams({ tab: "last30days" })}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last30days"
               ? "bg-[#3D3D3D] text-white"
@@ -89,10 +78,7 @@ export default function ReviewersLeaderboard() {
           {t("reviewersLeaderboard.tabs.last30days")}
         </button>
         <button
-          onClick={() => {
-            setTab("last365days");
-            setSearchParams({ tab: "last365days" });
-          }}
+          onClick={() => setSearchParams({ tab: "last365days" })}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             tab === "last365days"
               ? "bg-[#3D3D3D] text-white"
@@ -103,29 +89,35 @@ export default function ReviewersLeaderboard() {
         </button>
       </div>
 
-      <div className="flex flex-col gap-2">
-        {currentData.length === 0 ? (
-          <p className="text-center text-tg-hint py-4">{t("reviewersLeaderboard.noReviews")}</p>
-        ) : (
-          currentData.map((entry) => (
-            <div
-              key={entry.telegramUserId}
-              onClick={() => navigate(`/reviewer/${entry.telegramUserId}`)}
-              className="flex items-center gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity cursor-pointer"
-            >
-              <span className="w-8 text-center text-lg">{getRankEmoji(entry.rank)}</span>
-              <div className="flex-1">
-                <span className="font-medium text-tg-text">
-                  {entry.displayName || entry.username || t("common.anonymous")}
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <ErrorMessage message={error} />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {data.length === 0 ? (
+            <p className="text-center text-tg-hint py-4">{t("reviewersLeaderboard.noReviews")}</p>
+          ) : (
+            data.map((entry) => (
+              <div
+                key={entry.telegramUserId}
+                onClick={() => navigate(`/reviewer/${entry.telegramUserId}`)}
+                className="flex items-center gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity cursor-pointer"
+              >
+                <span className="w-8 text-center text-lg">{getRankEmoji(entry.rank)}</span>
+                <div className="flex-1">
+                  <span className="font-medium text-tg-text">
+                    {entry.displayName || entry.username || t("common.anonymous")}
+                  </span>
+                </div>
+                <span className="text-tg-hint">
+                  {plural("plurals.reviews", entry.reviewCount)}
                 </span>
               </div>
-              <span className="text-tg-hint">
-                {plural("plurals.reviews", entry.reviewCount)}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
