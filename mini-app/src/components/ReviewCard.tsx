@@ -16,6 +16,7 @@ interface ReviewCardProps {
   review: Review;
   showBook?: boolean;
   showShareButton?: boolean;
+  truncate?: boolean;
   onReviewUpdated?: (updatedReview: Review) => void;
   onReviewDeleted?: () => void;
   missingFields?: string[];
@@ -26,6 +27,7 @@ export default function ReviewCard({
   review,
   showBook = false,
   showShareButton = true,
+  truncate = false,
   onReviewUpdated,
   onReviewDeleted,
   missingFields,
@@ -135,7 +137,15 @@ export default function ReviewCard({
           </Link>
         )}
 
-        <p className="text-sm text-tg-text whitespace-pre-wrap break-words">
+        <p
+          className="text-sm text-tg-text whitespace-pre-wrap break-words"
+          style={truncate ? {
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden'
+          } : undefined}
+        >
           {currentReview.reviewText}
         </p>
 

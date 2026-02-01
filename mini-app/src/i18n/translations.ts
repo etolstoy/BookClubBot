@@ -109,6 +109,24 @@ export const translations = {
     noBooks: "Книг не найдено",
   },
 
+  search: {
+    tabs: {
+      all: "Все",
+      books: "Книги",
+      authors: "Авторы",
+      users: "Пользователи",
+      reviews: "Рецензии",
+    },
+    empty: {
+      all: "Ничего не найдено",
+      books: "Книг не найдено",
+      authors: "Авторов не найдено",
+      users: "Пользователей не найдено",
+      reviews: "Рецензий не найдено",
+    },
+    loadMore: "Показать ещё",
+  },
+
   errors: {
     loadData: "Не удалось загрузить данные",
     loadBook: "Не удалось загрузить книгу",

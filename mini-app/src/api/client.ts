@@ -532,3 +532,72 @@ export async function getReviewsNeedingHelp(params: {
   });
   return fetchApi(`/reviews/recent?${query}`);
 }
+
+// Unified Search API
+
+export type SearchTabType = "all" | "books" | "authors" | "users" | "reviews";
+
+export interface BookSearchResult {
+  id: number;
+  title: string;
+  author: string | null;
+  coverUrl: string | null;
+  reviewCount: number;
+  sentiments: {
+    positive: number;
+    negative: number;
+    neutral: number;
+  };
+}
+
+export interface AuthorSearchResult {
+  name: string;
+  bookCount: number;
+  reviewCount: number;
+}
+
+export interface UserSearchResult {
+  odId: string;
+  displayName: string | null;
+  username: string | null;
+  reviewCount: number;
+}
+
+export interface ReviewSearchResult {
+  id: number;
+  text: string;
+  sentiment: string | null;
+  bookId: number | null;
+  bookTitle: string | null;
+  bookAuthor: string | null;
+  bookCoverUrl: string | null;
+  reviewerName: string;
+  reviewerId: string;
+  reviewedAt: string;
+}
+
+export type SearchResult =
+  | { type: "book"; data: BookSearchResult }
+  | { type: "author"; data: AuthorSearchResult }
+  | { type: "user"; data: UserSearchResult }
+  | { type: "review"; data: ReviewSearchResult };
+
+export interface UnifiedSearchResponse {
+  results: SearchResult[];
+  hasMore: boolean;
+}
+
+export async function unifiedSearch(
+  query: string,
+  type: SearchTabType = "all",
+  limit = 20,
+  offset = 0
+): Promise<UnifiedSearchResponse> {
+  const params = new URLSearchParams({
+    q: query,
+    type,
+    limit: limit.toString(),
+    offset: offset.toString(),
+  });
+  return fetchApi(`/search?${params}`);
+}
