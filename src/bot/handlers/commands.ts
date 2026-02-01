@@ -60,7 +60,7 @@ export async function handleMdigestCommand(ctx: Context) {
     const digest = await generateMonthlyDigest();
 
     // Send digest to the target chat
-    await ctx.telegram.sendMessage(Number(config.targetChatId), digest, {
+    await ctx.telegram.sendMessage(config.targetChatId.toString(), digest, {
       parse_mode: "HTML",
       link_preview_options: { is_disabled: true },
     });
