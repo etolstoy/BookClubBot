@@ -3,7 +3,7 @@ import { message } from "telegraf/filters";
 import { config } from "../lib/config.js";
 import { chatFilter, errorHandler } from "./middleware/auth.js";
 import { handleReviewMessage, handleReviewCommand } from "./handlers/review.js";
-import { handleStartCommand } from "./handlers/commands.js";
+import { handleStartCommand, handleMdigestCommand } from "./handlers/commands.js";
 import { initNotificationService, sendSuccessNotification } from "../services/notification.service.js";
 
 /**
@@ -21,6 +21,7 @@ export function createBot() {
   // Commands
   bot.command("start", handleStartCommand);
   bot.command("review", (ctx) => handleReviewCommand(ctx));
+  bot.command("mdigest", handleMdigestCommand);
 
   // Message handlers
   bot.on(message("text"), (ctx) => handleReviewMessage(ctx));
