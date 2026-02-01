@@ -300,8 +300,8 @@ async function processReview(
       `[Review] Review created: id=${review.id}, bookId=${bookId || "null (orphaned)"}`
     );
 
-    // Step 7: Add 👍 reaction
-    await addReaction(ctx.telegram, chatId, message.message_id, "👍");
+    // Step 7: Add 👌 reaction
+    await addReaction(ctx.telegram, chatId, message.message_id, "👌");
 
     // Step 8: If 2+ reviews WITH book: post sentiment breakdown
     if (bookId) {
@@ -345,10 +345,10 @@ async function processReview(
       }
     }
   } catch (error) {
-    // Step 9: On error: add ❌ reaction + notify admin
+    // Step 9: On error: add 😱 reaction + notify admin
     console.error("[Review] Error processing review:", error);
 
-    await addReaction(ctx.telegram, chatId, message.message_id, "👎");
+    await addReaction(ctx.telegram, chatId, message.message_id, "😱");
 
     const errorObj = error instanceof Error ? error : new Error(String(error));
     await sendErrorNotification(errorObj, {

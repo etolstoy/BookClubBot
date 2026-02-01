@@ -5,7 +5,7 @@
 
 import { sendErrorNotification } from "./notification.service.js";
 
-export type ReactionEmoji = "👀" | "👍" | "👎";
+export type ReactionEmoji = "👀" | "👍" | "👎" | "👌" | "😱";
 
 /**
  * Add emoji reaction to a Telegram message
