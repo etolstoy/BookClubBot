@@ -89,6 +89,7 @@ export async function searchBooks(
        OR author LIKE ${"%" + variants[1] + "%"}
        OR author LIKE ${"%" + variants[2] + "%"}
        OR author LIKE ${"%" + variants[3] + "%"}
+    ORDER BY title ASC, id ASC
     LIMIT ${limit + 1}
     OFFSET ${offset}
   `;
@@ -153,7 +154,7 @@ export async function searchAuthors(
         OR author LIKE ${"%" + variants[3] + "%"}
       )
     GROUP BY author
-    ORDER BY book_count DESC
+    ORDER BY book_count DESC, author ASC
     LIMIT ${limit + 1}
     OFFSET ${offset}
   `;
@@ -215,7 +216,7 @@ export async function searchUsers(
       OR telegram_username LIKE ${"%" + variants[3] + "%"}
     )
     GROUP BY telegram_user_id
-    ORDER BY review_count DESC
+    ORDER BY review_count DESC, telegram_user_id ASC
     LIMIT ${limit + 1}
     OFFSET ${offset}
   `;
@@ -264,7 +265,7 @@ export async function searchReviews(
        OR review_text LIKE ${"%" + variants[1] + "%"}
        OR review_text LIKE ${"%" + variants[2] + "%"}
        OR review_text LIKE ${"%" + variants[3] + "%"}
-    ORDER BY reviewed_at DESC
+    ORDER BY reviewed_at DESC, id DESC
     LIMIT ${limit + 1}
     OFFSET ${offset}
   `;
