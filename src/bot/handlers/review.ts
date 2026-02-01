@@ -152,7 +152,8 @@ async function processReview(
   // Step 1: Check for duplicate
   const isDuplicate = await checkDuplicateReview(telegramUserId, messageId);
   if (isDuplicate) {
-    await ctx.reply("Эта рецензия уже сохранена!", {
+    const username = message.from.username ? `@${message.from.username}` : "Пользователь";
+    await ctx.reply(`${username}, эта рецензия уже была сохранена!`, {
       reply_parameters: { message_id: message.message_id },
     });
     return;
