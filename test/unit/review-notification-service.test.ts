@@ -37,7 +37,6 @@ import * as notificationService from "../../src/services/notification.service.js
 function createMockTelegram() {
   return {
     sendMessage: vi.fn().mockResolvedValue({}),
-    sendPhoto: vi.fn().mockResolvedValue({}),
   };
 }
 
@@ -94,10 +93,9 @@ describe("Review Notification Service", () => {
       await notifySubscribersOfNewReview(review, mockTelegram as any);
 
       expect(mockTelegram.sendMessage).not.toHaveBeenCalled();
-      expect(mockTelegram.sendPhoto).not.toHaveBeenCalled();
     });
 
-    it("should send photo message when book has cover", async () => {
+    it("should send text message when book has cover", async () => {
       vi.mocked(subscriptionService.getActiveSubscribers).mockResolvedValue([BigInt(222)]);
       vi.mocked(prisma.review.findMany).mockResolvedValue([
         { sentiment: "positive" },
@@ -107,11 +105,10 @@ describe("Review Notification Service", () => {
 
       await notifySubscribersOfNewReview(review, mockTelegram as any);
 
-      expect(mockTelegram.sendPhoto).toHaveBeenCalledWith(
+      expect(mockTelegram.sendMessage).toHaveBeenCalledWith(
         "222",
-        "https://example.com/cover.jpg",
+        expect.stringContaining("Test Book"),
         expect.objectContaining({
-          caption: expect.stringContaining("Test Book"),
           parse_mode: "HTML",
         })
       );
@@ -152,7 +149,6 @@ describe("Review Notification Service", () => {
           parse_mode: "HTML",
         })
       );
-      expect(mockTelegram.sendPhoto).not.toHaveBeenCalled();
     });
 
     it("should send text message for orphaned review (no book)", async () => {
@@ -167,7 +163,7 @@ describe("Review Notification Service", () => {
 
       expect(mockTelegram.sendMessage).toHaveBeenCalledWith(
         "222",
-        expect.stringContaining("Книга не определена"),
+        expect.stringContaining("Test User"),
         expect.objectContaining({
           parse_mode: "HTML",
         })
@@ -187,19 +183,15 @@ describe("Review Notification Service", () => {
 
       await notifySubscribersOfNewReview(review, mockTelegram as any);
 
-      expect(mockTelegram.sendPhoto).toHaveBeenCalledWith(
+      expect(mockTelegram.sendMessage).toHaveBeenCalledWith(
         expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          caption: expect.stringContaining("John Doe"),
-        })
+        expect.stringContaining("John Doe"),
+        expect.any(Object)
       );
-      expect(mockTelegram.sendPhoto).toHaveBeenCalledWith(
+      expect(mockTelegram.sendMessage).toHaveBeenCalledWith(
         expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          caption: expect.stringContaining("@johndoe"),
-        })
+        expect.stringContaining("@johndoe"),
+        expect.any(Object)
       );
     });
 
@@ -216,12 +208,10 @@ describe("Review Notification Service", () => {
 
       await notifySubscribersOfNewReview(review, mockTelegram as any);
 
-      expect(mockTelegram.sendPhoto).toHaveBeenCalledWith(
+      expect(mockTelegram.sendMessage).toHaveBeenCalledWith(
         expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          caption: expect.stringContaining("Аноним"),
-        })
+        expect.stringContaining("Аноним"),
+        expect.any(Object)
       );
     });
 
@@ -238,10 +228,10 @@ describe("Review Notification Service", () => {
 
       await notifySubscribersOfNewReview(review, mockTelegram as any);
 
-      const captionArg = mockTelegram.sendPhoto.mock.calls[0][2].caption;
-      expect(captionArg).toContain("&lt;script&gt;");
-      expect(captionArg).toContain("&amp;");
-      expect(captionArg).not.toContain("<script>");
+      const textArg = mockTelegram.sendMessage.mock.calls[0][1];
+      expect(textArg).toContain("&lt;script&gt;");
+      expect(textArg).toContain("&amp;");
+      expect(textArg).not.toContain("<script>");
     });
 
     it("should send to multiple subscribers", async () => {
@@ -258,10 +248,10 @@ describe("Review Notification Service", () => {
 
       await notifySubscribersOfNewReview(review, mockTelegram as any);
 
-      expect(mockTelegram.sendPhoto).toHaveBeenCalledTimes(3);
-      expect(mockTelegram.sendPhoto).toHaveBeenCalledWith("111", expect.any(String), expect.any(Object));
-      expect(mockTelegram.sendPhoto).toHaveBeenCalledWith("222", expect.any(String), expect.any(Object));
-      expect(mockTelegram.sendPhoto).toHaveBeenCalledWith("333", expect.any(String), expect.any(Object));
+      expect(mockTelegram.sendMessage).toHaveBeenCalledTimes(3);
+      expect(mockTelegram.sendMessage).toHaveBeenCalledWith("111", expect.any(String), expect.any(Object));
+      expect(mockTelegram.sendMessage).toHaveBeenCalledWith("222", expect.any(String), expect.any(Object));
+      expect(mockTelegram.sendMessage).toHaveBeenCalledWith("333", expect.any(String), expect.any(Object));
     });
 
     it("should auto-deactivate subscription when bot is blocked (403)", async () => {
@@ -270,7 +260,7 @@ describe("Review Notification Service", () => {
         { sentiment: "positive" },
       ] as any);
       const mockTelegram = createMockTelegram();
-      mockTelegram.sendPhoto.mockRejectedValue(new Error("403: Forbidden: bot was blocked by the user"));
+      mockTelegram.sendMessage.mockRejectedValue(new Error("403: Forbidden: bot was blocked by the user"));
       const review = createMockReview();
 
       await notifySubscribersOfNewReview(review, mockTelegram as any);
@@ -284,7 +274,7 @@ describe("Review Notification Service", () => {
         { sentiment: "positive" },
       ] as any);
       const mockTelegram = createMockTelegram();
-      mockTelegram.sendPhoto.mockRejectedValue(new Error("Network error"));
+      mockTelegram.sendMessage.mockRejectedValue(new Error("Network error"));
       const review = createMockReview();
 
       // Should not throw - fire-and-forget behavior
@@ -304,11 +294,11 @@ describe("Review Notification Service", () => {
 
       await notifySubscribersOfNewReview(review, mockTelegram as any);
 
-      const captionArg = mockTelegram.sendPhoto.mock.calls[0][2].caption;
-      expect(captionArg).toMatch(/👍 2/);
-      expect(captionArg).toMatch(/😐 1/);
-      expect(captionArg).toMatch(/👎 1/);
-      expect(captionArg).toContain("4 рецензии");
+      const textArg = mockTelegram.sendMessage.mock.calls[0][1];
+      expect(textArg).toMatch(/👍 2/);
+      expect(textArg).toMatch(/😐 1/);
+      expect(textArg).toMatch(/👎 1/);
+      expect(textArg).toContain("4 рецензии");
     });
 
     it("should include deep link button when book exists", async () => {
@@ -321,7 +311,7 @@ describe("Review Notification Service", () => {
 
       await notifySubscribersOfNewReview(review, mockTelegram as any);
 
-      expect(mockTelegram.sendPhoto).toHaveBeenCalledWith(
+      expect(mockTelegram.sendMessage).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
         expect.objectContaining({

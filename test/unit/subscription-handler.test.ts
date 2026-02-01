@@ -154,7 +154,7 @@ describe("Subscription Handler", () => {
       );
     });
 
-    it("should show subscriber count for admin users", async () => {
+    it("should not show subscriber count for admin users", async () => {
       vi.mocked(subscriptionService.getSubscription).mockResolvedValue({
         id: 1,
         telegramUserId: BigInt(999),
@@ -162,16 +162,15 @@ describe("Subscription Handler", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      vi.mocked(subscriptionService.getSubscriberCount).mockResolvedValue(42);
       const ctx = createMockContext({
         from: { id: 999 }, // Admin user
       });
 
       await handleSubscribeCommand(ctx as any);
 
-      expect(subscriptionService.getSubscriberCount).toHaveBeenCalled();
+      expect(subscriptionService.getSubscriberCount).not.toHaveBeenCalled();
       expect(ctx.reply).toHaveBeenCalledWith(
-        expect.stringContaining("Всего подписчиков: 42"),
+        expect.not.stringContaining("Всего подписчиков"),
         expect.any(Object)
       );
     });
@@ -291,9 +290,8 @@ describe("Subscription Handler", () => {
       await expect(handleSubscriptionToggle(ctx as any)).resolves.toBeUndefined();
     });
 
-    it("should show admin count when admin toggles", async () => {
+    it("should not show admin count when admin toggles", async () => {
       vi.mocked(subscriptionService.toggleSubscription).mockResolvedValue({ isActive: true });
-      vi.mocked(subscriptionService.getSubscriberCount).mockResolvedValue(100);
       const ctx = createMockContext({
         callbackQuery: { id: "123", data: "toggle_subscription" },
         from: { id: 999 }, // Admin
@@ -301,9 +299,9 @@ describe("Subscription Handler", () => {
 
       await handleSubscriptionToggle(ctx as any);
 
-      expect(subscriptionService.getSubscriberCount).toHaveBeenCalled();
+      expect(subscriptionService.getSubscriberCount).not.toHaveBeenCalled();
       expect(ctx.editMessageText).toHaveBeenCalledWith(
-        expect.stringContaining("Всего подписчиков: 100"),
+        expect.not.stringContaining("Всего подписчиков"),
         expect.any(Object)
       );
     });

@@ -197,20 +197,11 @@ async function sendNotificationToSubscriber(
   const chatId = userId.toString();
 
   try {
-    // If book has cover, send as photo message
-    if (review.book?.coverUrl) {
-      await telegram.sendPhoto(chatId, review.book.coverUrl, {
-        caption,
-        parse_mode: "HTML",
-        ...keyboard,
-      });
-    } else {
-      // Text-only message for books without covers or orphaned reviews
-      await telegram.sendMessage(chatId, caption, {
-        parse_mode: "HTML",
-        ...keyboard,
-      });
-    }
+    // Send as text message to avoid Telegram caption length limits (1024 chars)
+    await telegram.sendMessage(chatId, caption, {
+      parse_mode: "HTML",
+      ...keyboard,
+    });
   } catch (error) {
     if (isBotBlockedError(error)) {
       // Auto-deactivate subscription for users who blocked the bot
