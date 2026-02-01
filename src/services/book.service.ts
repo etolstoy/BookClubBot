@@ -356,6 +356,7 @@ export async function getAllBooks(options?: {
     where.OR = [
       { coverUrl: null },
       { author: null },
+      { goodreadsUrl: null },
     ];
   }
 

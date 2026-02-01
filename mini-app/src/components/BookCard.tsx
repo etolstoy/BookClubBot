@@ -53,7 +53,7 @@ export default function BookCard({ book, missingFields, onEdit }: BookCardProps)
         </div>
         <MissingFieldsBadge
           fields={missingFields}
-          labels={{ coverUrl: "Обложка", author: "Автор" }}
+          labels={{ coverUrl: "Обложка", author: "Автор", goodreadsUrl: "Goodreads URL" }}
           className="mt-2"
         />
       </div>

@@ -58,6 +58,7 @@ export default function VolunteerScreen() {
         const missingFields: string[] = [];
         if (!book.coverUrl) missingFields.push("coverUrl");
         if (!book.author) missingFields.push("author");
+        if (!book.goodreadsUrl) missingFields.push("goodreadsUrl");
         return { type: "book", data: book, missingFields };
       });
 

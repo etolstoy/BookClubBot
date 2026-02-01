@@ -18,6 +18,7 @@ router.get("/stats", authenticateTelegramWebApp, async (req, res) => {
           OR: [
             { coverUrl: null },
             { author: null },
+            { goodreadsUrl: null },
           ],
         },
       }),
