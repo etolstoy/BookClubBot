@@ -31,12 +31,6 @@ async function buildSubscriptionMessage(
     text = "🔕 Уведомления о новых рецензиях: отключены";
   }
 
-  // Add subscriber count for admins
-  if (isAdmin(userId)) {
-    const count = await getSubscriberCount();
-    text += `\n📊 Всего подписчиков: ${count}`;
-  }
-
   const buttonText = isActive ? "Отключить" : "Включить";
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback(buttonText, TOGGLE_CALLBACK_DATA)],

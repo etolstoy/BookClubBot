@@ -116,16 +116,17 @@ async function formatNotificationText(
 ): Promise<string> {
   const lines: string[] = [];
 
-  // Book info (escape user-generated content)
+  // Header
+  lines.push("<b>Новая рецензия в чате Вастрик.Книги:</b>");
+  lines.push(""); // Empty line
+
+  // Book info (escape user-generated content) - only if book exists
   if (review.book) {
     const title = escapeHtml(review.book.title);
     const author = review.book.author ? ` — ${escapeHtml(review.book.author)}` : "";
     lines.push(`📚 «${title}»${author}`);
-  } else {
-    lines.push("📚 Книга не определена");
+    lines.push(""); // Empty line
   }
-
-  lines.push(""); // Empty line
 
   // Reviewer info (escape user-generated content)
   const displayName = review.telegramDisplayName ? escapeHtml(review.telegramDisplayName) : null;
