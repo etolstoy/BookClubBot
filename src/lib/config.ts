@@ -14,6 +14,7 @@ const configSchema = z.object({
   PORT: z.string().default("3001"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   EXTRACTION_VERSION: z.string().default("v1"),
+  DIGEST_CRON_SECRET: z.string().optional(),
 });
 
 const parsed = configSchema.safeParse(process.env);
@@ -49,6 +50,7 @@ export const config = {
   isProd: parsed.data.NODE_ENV === "production",
   isTest: parsed.data.NODE_ENV === "test",
   extractionVersion: parsed.data.EXTRACTION_VERSION,
+  digestCronSecret: parsed.data.DIGEST_CRON_SECRET,
 };
 
 export default config;

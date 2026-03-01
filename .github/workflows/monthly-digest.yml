@@ -1,0 +1,43 @@
+name: Monthly Digest
+
+on:
+  schedule:
+    # 14:00 UTC on the 1st of every month
+    # = 2pm London GMT (winter) / 3pm London BST (summer)
+    - cron: "0 14 1 * *"
+  workflow_dispatch: {}
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger digest via API
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+              http://localhost:3001/api/digest/trigger \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${{ secrets.DIGEST_CRON_SECRET }}")
+
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | head -n -1)
+
+            echo "HTTP Status: $HTTP_CODE"
+            echo "Response: $BODY"
+
+            if [ "$HTTP_CODE" != "200" ]; then
+              echo "Digest trigger failed with status $HTTP_CODE"
+              exit 1
+            fi
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          MESSAGE="❌ Monthly digest failed to send%0A%0ACheck logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ADMIN_CHAT_ID }}" \
+            -d "text=${MESSAGE}"
