@@ -91,6 +91,7 @@ jobs:
                   - DATABASE_URL=file:/app/data/bookclub.db
                   - MINI_APP_URL=${{ secrets.MINI_APP_URL }}
                   - PORT=3001
+                  - DIGEST_CRON_SECRET=${{ secrets.DIGEST_CRON_SECRET }}
                   - GOOGLE_BOOKS_DELAY_MS=200
                   - GOOGLE_BOOKS_MAX_RETRIES=3
                 volumes:

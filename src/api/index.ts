@@ -7,6 +7,7 @@ import configRouter from "./routes/config.js";
 import authorsRouter from "./routes/authors.js";
 import volunteerRouter from "./routes/volunteer.js";
 import searchRouter from "./routes/search.js";
+import digestRouter from "./routes/digest.js";
 import { getStats } from "../services/review.service.js";
 
 const router = Router();
@@ -19,6 +20,7 @@ router.use("/config", configRouter);
 router.use("/authors", authorsRouter);
 router.use("/volunteer", volunteerRouter);
 router.use("/search", searchRouter);
+router.use("/digest", digestRouter);
 
 // Health check
 router.get("/health", (req, res) => {
