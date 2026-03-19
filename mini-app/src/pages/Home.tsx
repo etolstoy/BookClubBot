@@ -9,7 +9,7 @@ import { useTranslation } from "../i18n/index.js";
 
 export default function Home() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, plural } = useTranslation();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [stats, setStats] = useState<{ booksCount: number; reviewsCount: number; reviewersCount: number } | null>(null);
   const [volunteerStats, setVolunteerStats] = useState<VolunteerStats | null>(null);
@@ -77,11 +77,7 @@ export default function Home() {
           {stats && (
             <div className="mb-8">
               <p className="text-sm text-tg-hint mb-2">
-                {t("home.statistics.text", {
-                  booksCount: stats.booksCount,
-                  reviewsCount: stats.reviewsCount,
-                  reviewersCount: stats.reviewersCount
-                })}
+                {`У нас ${plural("plurals.books", stats.booksCount)}, ${plural("plurals.reviews", stats.reviewsCount)} и ${plural("plurals.reviewers", stats.reviewersCount)}`}
               </p>
               {isChatMember && volunteerStats &&
                (volunteerStats.booksNeedingHelp > 0 || volunteerStats.reviewsNeedingHelp > 0) && (
