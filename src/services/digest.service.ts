@@ -114,7 +114,7 @@ export async function getTopReviewersLast30Days(
   startDate.setDate(startDate.getDate() - 30);
 
   const results = await prisma.review.groupBy({
-    by: ["telegramUserId", "telegramUsername", "telegramDisplayName"],
+    by: ["telegramUserId"],
     where: {
       reviewedAt: { gte: startDate },
     },
@@ -123,15 +123,26 @@ export async function getTopReviewersLast30Days(
     take: limit,
   });
 
-  return results.map((r: {
-    telegramUserId: bigint;
-    telegramUsername: string | null;
-    telegramDisplayName: string | null;
-    _count: { id: number };
-  }) => ({
+  const profiles = await Promise.all(
+    results.map((r) =>
+      prisma.review.findFirst({
+        where: {
+          telegramUserId: r.telegramUserId,
+          reviewedAt: { gte: startDate },
+        },
+        select: {
+          telegramUsername: true,
+          telegramDisplayName: true,
+        },
+        orderBy: [{ reviewedAt: "desc" }, { id: "desc" }],
+      })
+    )
+  );
+
+  return results.map((r, index) => ({
     telegramUserId: r.telegramUserId.toString(),
-    username: r.telegramUsername,
-    displayName: r.telegramDisplayName,
+    username: profiles[index]?.telegramUsername ?? null,
+    displayName: profiles[index]?.telegramDisplayName ?? null,
     reviewCount: r._count.id,
   }));
 }

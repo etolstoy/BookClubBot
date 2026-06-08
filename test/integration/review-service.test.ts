@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createReview, checkDuplicateReview } from "../../src/services/review.service.js";
+import {
+  createReview,
+  checkDuplicateReview,
+  getOverallLeaderboard,
+} from "../../src/services/review.service.js";
 import { createBook } from "../../src/services/book.service.js";
 import { clearTestData } from "../helpers/test-db.js";
 import prisma from "../../src/lib/prisma.js";
@@ -116,6 +120,61 @@ describe.sequential("Review Service Integration", () => {
       where: { bookId: book2.id },
     });
     expect(book2ReviewCount).toBe(1);
+  });
+
+  it("Reviewer leaderboard groups changed usernames by Telegram user ID", async () => {
+    const book = await createBook({
+      title: "Leaderboard Book",
+      author: "Leaderboard Author",
+    });
+
+    const userId = BigInt(12350);
+
+    await createReview({
+      bookId: book.id,
+      telegramUserId: userId,
+      telegramUsername: null,
+      telegramDisplayName: "Leaderboard User",
+      reviewText: "First review #рецензия",
+      messageId: BigInt(106),
+      chatId: BigInt(1),
+      reviewedAt: new Date("2026-01-01T10:00:00Z"),
+      sentiment: "positive",
+    });
+
+    await createReview({
+      bookId: book.id,
+      telegramUserId: userId,
+      telegramUsername: "leaderboard_user",
+      telegramDisplayName: "Leaderboard User",
+      reviewText: "Second review #рецензия",
+      messageId: BigInt(107),
+      chatId: BigInt(1),
+      reviewedAt: new Date("2026-01-02T10:00:00Z"),
+      sentiment: "positive",
+    });
+
+    await createReview({
+      bookId: book.id,
+      telegramUserId: BigInt(12351),
+      telegramUsername: "other_user",
+      telegramDisplayName: "Other User",
+      reviewText: "Other review #рецензия",
+      messageId: BigInt(108),
+      chatId: BigInt(1),
+      reviewedAt: new Date("2026-01-03T10:00:00Z"),
+      sentiment: "neutral",
+    });
+
+    const leaderboard = await getOverallLeaderboard(10);
+
+    expect(leaderboard).toHaveLength(2);
+    expect(leaderboard[0]).toMatchObject({
+      telegramUserId: userId.toString(),
+      username: "leaderboard_user",
+      displayName: "Leaderboard User",
+      reviewCount: 2,
+    });
   });
 
   it("Duplicate detection (same user + messageId) → blocked", async () => {

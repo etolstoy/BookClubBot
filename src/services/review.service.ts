@@ -3,6 +3,7 @@ import { config } from "../lib/config.js";
 import { analyzeSentiment, type Sentiment } from "./sentiment.js";
 import { processReviewText } from "./book.service.js";
 import type { ExtractedBookInfo } from "../lib/interfaces/llm-client.interface.js";
+import type { Prisma } from "@prisma/client";
 
 export interface CreateReviewInput {
   bookId?: number | null;
@@ -252,33 +253,55 @@ async function getReviewerLeaderboard(
   dateRange: DateRange,
   limit: number
 ): Promise<ReviewerLeaderboardEntry[]> {
-  const whereClause: Record<string, unknown> = {};
+  const whereClause: Prisma.ReviewWhereInput = {};
 
   if (dateRange.startDate || dateRange.endDate) {
-    whereClause.reviewedAt = {};
+    const reviewedAt: Prisma.DateTimeFilter = {};
     if (dateRange.startDate) {
-      (whereClause.reviewedAt as Record<string, Date>).gte = dateRange.startDate;
+      reviewedAt.gte = dateRange.startDate;
     }
     if (dateRange.endDate) {
-      (whereClause.reviewedAt as Record<string, Date>).lt = dateRange.endDate;
+      reviewedAt.lt = dateRange.endDate;
     }
+    whereClause.reviewedAt = reviewedAt;
   }
 
   const results = await prisma.review.groupBy({
-    by: ["telegramUserId", "telegramUsername", "telegramDisplayName"],
+    by: ["telegramUserId"],
     where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
     _count: { id: true },
     orderBy: { _count: { id: "desc" } },
     take: limit,
   });
 
-  return results.map((r, index) => ({
-    rank: index + 1,
-    telegramUserId: r.telegramUserId.toString(),
-    username: r.telegramUsername,
-    displayName: r.telegramDisplayName,
-    reviewCount: r._count.id,
-  }));
+  const profiles = await Promise.all(
+    results.map((r) =>
+      prisma.review.findFirst({
+        where: {
+          ...whereClause,
+          telegramUserId: r.telegramUserId,
+        },
+        select: {
+          telegramUserId: true,
+          telegramUsername: true,
+          telegramDisplayName: true,
+        },
+        orderBy: [{ reviewedAt: "desc" }, { id: "desc" }],
+      })
+    )
+  );
+
+  return results.map((r, index) => {
+    const profile = profiles[index];
+
+    return {
+      rank: index + 1,
+      telegramUserId: r.telegramUserId.toString(),
+      username: profile?.telegramUsername ?? null,
+      displayName: profile?.telegramDisplayName ?? null,
+      reviewCount: r._count.id,
+    };
+  });
 }
 
 export function getMonthlyLeaderboard(
