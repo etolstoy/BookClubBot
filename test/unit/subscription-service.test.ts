@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   getSubscription,
   createSubscription,
+  activateSubscription,
   toggleSubscription,
   getActiveSubscribers,
   getSubscriberCount,
@@ -19,6 +20,7 @@ vi.mock("../../src/lib/prisma.js", () => ({
       findUnique: vi.fn(),
       findMany: vi.fn(),
       create: vi.fn(),
+      upsert: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
       count: vi.fn(),
@@ -76,6 +78,46 @@ describe("Subscription Service", () => {
       expect(result).toEqual({ isActive: true });
       expect(prisma.subscription.create).toHaveBeenCalledWith({
         data: { telegramUserId: BigInt(123456) },
+      });
+    });
+  });
+
+  describe("activateSubscription", () => {
+    it("should create missing subscription as active", async () => {
+      vi.mocked(prisma.subscription.upsert).mockResolvedValue({
+        id: 1,
+        telegramUserId: BigInt(123456),
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await activateSubscription(BigInt(123456));
+
+      expect(result).toEqual({ isActive: true });
+      expect(prisma.subscription.upsert).toHaveBeenCalledWith({
+        where: { telegramUserId: BigInt(123456) },
+        create: { telegramUserId: BigInt(123456) },
+        update: { isActive: true },
+      });
+    });
+
+    it("should reactivate inactive subscription without toggling off", async () => {
+      vi.mocked(prisma.subscription.upsert).mockResolvedValue({
+        id: 1,
+        telegramUserId: BigInt(123456),
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await activateSubscription(BigInt(123456));
+
+      expect(result).toEqual({ isActive: true });
+      expect(prisma.subscription.upsert).toHaveBeenCalledWith({
+        where: { telegramUserId: BigInt(123456) },
+        create: { telegramUserId: BigInt(123456) },
+        update: { isActive: true },
       });
     });
   });

@@ -13,6 +13,7 @@ import FreshReviews from "./pages/FreshReviews";
 import PopularAuthors from "./pages/PopularAuthors.js";
 import AuthorBooks from "./pages/AuthorBooks.js";
 import VolunteerScreen from "./pages/VolunteerScreen";
+import Subscribe from "./pages/Subscribe";
 import { TABBED_ROUTES } from "./lib/routes.js";
 
 // Create context for config
@@ -148,6 +149,7 @@ function AppContent() {
       <Route path="/author/:author" element={<Layout><AuthorBooks /></Layout>} />
       <Route path="/fresh-reviews" element={<Layout><FreshReviews /></Layout>} />
       <Route path="/volunteer" element={<Layout><VolunteerScreen /></Layout>} />
+      <Route path="/subscribe" element={<Layout><Subscribe /></Layout>} />
       {/* Legacy route for backward compatibility */}
       <Route path="/leaderboard" element={<Layout><Leaderboard /></Layout>} />
     </Routes>

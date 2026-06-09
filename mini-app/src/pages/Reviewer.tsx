@@ -73,16 +73,16 @@ export default function Reviewer() {
     }
   };
 
-  if (loading) return <Loading />;
-  if (error) return <ErrorMessage message={error} />;
-  if (!reviewer) return <ErrorMessage message={t("reviewer.notFound")} />;
-
-  const displayName = reviewer.displayName || reviewer.username || t("common.anonymous");
-  const { positive, negative, neutral } = reviewer.sentiments;
-
   const shareUrl = config?.botUsername && userId
     ? getReviewerDeepLink(config.botUsername, userId)
     : undefined;
+
+  if (loading) return <Layout shareUrl={shareUrl}><Loading /></Layout>;
+  if (error) return <Layout shareUrl={shareUrl}><ErrorMessage message={error} /></Layout>;
+  if (!reviewer) return <Layout shareUrl={shareUrl}><ErrorMessage message={t("reviewer.notFound")} /></Layout>;
+
+  const displayName = reviewer.displayName || reviewer.username || t("common.anonymous");
+  const { positive, negative, neutral } = reviewer.sentiments;
 
   return (
     <Layout shareUrl={shareUrl}>

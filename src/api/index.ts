@@ -8,34 +8,39 @@ import authorsRouter from "./routes/authors.js";
 import volunteerRouter from "./routes/volunteer.js";
 import searchRouter from "./routes/search.js";
 import digestRouter from "./routes/digest.js";
+import { createSubscriptionsRouter } from "./routes/subscriptions.js";
 import { getStats } from "../services/review.service.js";
+import type { Telegraf } from "telegraf";
 
-const router = Router();
+export function createApiRouter(bot: Telegraf) {
+  const router = Router();
 
-router.use("/books", booksRouter);
-router.use("/reviewers", reviewersRouter);
-router.use("/reviews", reviewsRouter);
-router.use("/leaderboard", leaderboardRouter);
-router.use("/config", configRouter);
-router.use("/authors", authorsRouter);
-router.use("/volunteer", volunteerRouter);
-router.use("/search", searchRouter);
-router.use("/digest", digestRouter);
+  router.use("/books", booksRouter);
+  router.use("/reviewers", reviewersRouter);
+  router.use("/reviews", reviewsRouter);
+  router.use("/leaderboard", leaderboardRouter);
+  router.use("/config", configRouter);
+  router.use("/authors", authorsRouter);
+  router.use("/volunteer", volunteerRouter);
+  router.use("/search", searchRouter);
+  router.use("/digest", digestRouter);
+  router.use("/subscriptions", createSubscriptionsRouter(bot));
 
-// Health check
-router.get("/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+  // Health check
+  router.get("/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
 
-// Stats endpoint
-router.get("/stats", async (req, res) => {
-  try {
-    const stats = await getStats();
-    res.json(stats);
-  } catch (error) {
-    console.error("Error fetching stats:", error);
-    res.status(500).json({ error: "Failed to fetch stats" });
-  }
-});
+  // Stats endpoint
+  router.get("/stats", async (req, res) => {
+    try {
+      const stats = await getStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
 
-export default router;
+  return router;
+}
