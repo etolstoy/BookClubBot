@@ -1,7 +1,7 @@
 import { Context, Markup } from "telegraf";
 import { Message } from "telegraf/types";
 import { config } from "../../lib/config.js";
-import { checkDuplicateReview, createReview } from "../../services/review.service.js";
+import { createReview } from "../../services/review.service.js";
 import { extractBookInfo } from "../../services/book-extraction.service.js";
 import { enrichBookInfo } from "../../services/book-enrichment.service.js";
 import { analyzeSentiment } from "../../services/sentiment.js";
@@ -15,6 +15,7 @@ import prisma from "../../lib/prisma.js";
 import type { BotContext } from "../types/bot-context.js";
 import { logOrphanedReviewCase } from "../../services/review-eval-case-logger.service.js";
 import { notifySubscribersOfNewReview } from "../../services/review-notification.service.js";
+import { splitReviewText } from "../../services/review-splitting.service.js";
 
 function getDisplayName(from: Message["from"]): string | null {
   if (!from) return null;
@@ -22,6 +23,47 @@ function getDisplayName(from: Message["from"]): string | null {
     return `${from.first_name} ${from.last_name}`;
   }
   return from.first_name || from.username || null;
+}
+
+async function replyDuplicateReview(ctx: Context, message: Message) {
+  if (!message.from) {
+    return;
+  }
+
+  const username = message.from.username ? `@${message.from.username}` : "Пользователь";
+  await ctx.reply(`${username}, эта рецензия уже была сохранена!`, {
+    reply_parameters: { message_id: message.message_id },
+  });
+}
+
+function filterAlreadySavedParts(
+  reviewParts: string[],
+  existingReviewTexts: string[]
+): { pendingParts: string[]; skippedCount: number } {
+  const existingCounts = new Map<string, number>();
+  for (const text of existingReviewTexts) {
+    existingCounts.set(text, (existingCounts.get(text) || 0) + 1);
+  }
+
+  const pendingParts: string[] = [];
+  let skippedCount = 0;
+
+  for (const part of reviewParts) {
+    const remainingExistingCount = existingCounts.get(part) || 0;
+    if (remainingExistingCount > 0) {
+      skippedCount++;
+      if (remainingExistingCount === 1) {
+        existingCounts.delete(part);
+      } else {
+        existingCounts.set(part, remainingExistingCount - 1);
+      }
+      continue;
+    }
+
+    pendingParts.push(part);
+  }
+
+  return { pendingParts, skippedCount };
 }
 
 /**
@@ -151,21 +193,87 @@ async function processReview(
   const chatId = BigInt(message.chat.id);
 
   // Step 1: Check for duplicate
-  const isDuplicate = await checkDuplicateReview(telegramUserId, messageId);
-  if (isDuplicate) {
-    const username = message.from.username ? `@${message.from.username}` : "Пользователь";
-    await ctx.reply(`${username}, эта рецензия уже была сохранена!`, {
-      reply_parameters: { message_id: message.message_id },
-    });
+  const existingReviews = await prisma.review.findMany({
+    where: {
+      telegramUserId,
+      messageId,
+    },
+    select: {
+      reviewText: true,
+    },
+    orderBy: {
+      id: "asc",
+    },
+  });
+
+  if (existingReviews.some((review) => review.reviewText === messageText)) {
+    await replyDuplicateReview(ctx, message);
+    return;
+  }
+
+  const reviewParts = await splitReviewText(messageText, botContext?.llmClient);
+  const { pendingParts: reviewPartsToProcess, skippedCount } = filterAlreadySavedParts(
+    reviewParts,
+    existingReviews.map((review) => review.reviewText)
+  );
+
+  if (existingReviews.length > 0 && skippedCount === 0) {
+    console.warn(
+      "[Review] Existing split reviews found, but current split did not match any saved parts"
+    );
+    await replyDuplicateReview(ctx, message);
+    return;
+  }
+
+  if (reviewPartsToProcess.length === 0) {
+    await replyDuplicateReview(ctx, message);
     return;
   }
 
   // Step 2: Add 👀 reaction (non-blocking)
   await addReaction(ctx.telegram, chatId, message.message_id, "👀");
 
+  let hadError = false;
+
+  for (let index = 0; index < reviewPartsToProcess.length; index++) {
+    try {
+      await processReviewPart(ctx, message, reviewPartsToProcess[index], botContext);
+    } catch (error) {
+      hadError = true;
+      console.error(
+        `[Review] Error processing review part ${index + 1}/${reviewPartsToProcess.length}:`,
+        error
+      );
+
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      await sendErrorNotification(errorObj, {
+        userId: BigInt(message.from.id),
+        messageId: BigInt(message.message_id),
+        additionalInfo: `chatId: ${message.chat.id}, part: ${index + 1}/${reviewPartsToProcess.length}`,
+      });
+    }
+  }
+
+  await addReaction(ctx.telegram, chatId, message.message_id, hadError ? "😱" : "👌");
+}
+
+async function processReviewPart(
+  ctx: Context,
+  message: Message,
+  reviewText: string,
+  botContext?: BotContext
+) {
+  if (!message.from || !message.chat) {
+    return;
+  }
+
+  const telegramUserId = BigInt(message.from.id);
+  const messageId = BigInt(message.message_id);
+  const chatId = BigInt(message.chat.id);
+
   try {
     // Step 3: Extract book info with LLM (no commandParams)
-    const extractedInfo = await extractBookInfo(messageText, botContext?.llmClient);
+    const extractedInfo = await extractBookInfo(reviewText, botContext?.llmClient);
 
     let bookId: number | null = null;
 
@@ -272,7 +380,7 @@ async function processReview(
 
       // Log case for evaluation (fire-and-forget, non-blocking)
       logOrphanedReviewCase({
-        reviewText: messageText,
+        reviewText,
         extractedTitle: extractedInfo?.title ?? null,
         extractedAuthor: extractedInfo?.author ?? null,
         extractionConfidence: extractedInfo?.confidence ?? null,
@@ -282,7 +390,7 @@ async function processReview(
     }
 
     // Step 5: Analyze sentiment
-    const sentiment = await analyzeSentiment(messageText, botContext?.llmClient);
+    const sentiment = await analyzeSentiment(reviewText, botContext?.llmClient);
 
     // Step 6: Create review (with or without book)
     const review = await createReview({
@@ -290,7 +398,7 @@ async function processReview(
       telegramUserId,
       telegramUsername: message.from.username || null,
       telegramDisplayName: getDisplayName(message.from),
-      reviewText: messageText,
+      reviewText,
       sentiment: sentiment || "neutral",
       messageId,
       chatId,
@@ -306,10 +414,7 @@ async function processReview(
       console.error("[Review] Failed to notify subscribers:", error);
     });
 
-    // Step 7: Add 👌 reaction
-    await addReaction(ctx.telegram, chatId, message.message_id, "👌");
-
-    // Step 8: If 2+ reviews WITH book: post sentiment breakdown
+    // Step 7: If 2+ reviews WITH book: post sentiment breakdown
     if (bookId) {
       const reviewCount = await prisma.review.count({ where: { bookId } });
 
@@ -351,16 +456,6 @@ async function processReview(
       }
     }
   } catch (error) {
-    // Step 9: On error: add 😱 reaction + notify admin
-    console.error("[Review] Error processing review:", error);
-
-    await addReaction(ctx.telegram, chatId, message.message_id, "😱");
-
-    const errorObj = error instanceof Error ? error : new Error(String(error));
-    await sendErrorNotification(errorObj, {
-      userId: BigInt(message.from.id),
-      messageId: BigInt(message.message_id),
-      additionalInfo: `chatId: ${message.chat.id}`,
-    });
+    throw error;
   }
 }

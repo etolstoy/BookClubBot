@@ -15,7 +15,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "test:accuracy": "tsx scripts/run-accuracy-test.ts"
+    "test:accuracy": "tsx scripts/run-accuracy-test.ts",
+    "test:splitting-accuracy": "RUN_REVIEW_SPLITTING_ACCURACY=1 vitest run test/integration/review-splitting-accuracy.test.ts"
   },
   "keywords": [
     "telegram",

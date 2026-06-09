@@ -8,6 +8,7 @@ import type {
   ExtractedBookInfo,
   Sentiment,
   LLMCompletionOptions,
+  ReviewStructureClassification,
 } from "../../lib/interfaces/index.js";
 
 /**
@@ -28,6 +29,7 @@ export type MockLLMBehavior =
 export interface MockLLMResponse {
   extractedInfo?: ExtractedBookInfo | null;
   sentiment?: Sentiment | null;
+  reviewStructure?: ReviewStructureClassification | null;
   completionText?: string | null;
   shouldThrow?: boolean;
   error?: Error;
@@ -150,6 +152,40 @@ export class MockLLMClient implements ILLMClient {
     }
 
     return this.getDefaultSentiment(this.defaultBehavior);
+  }
+
+  /**
+   * Classify review structure (mock implementation)
+   */
+  async classifyReviewStructure(
+    reviewText: string
+  ): Promise<ReviewStructureClassification | null> {
+    this.callLog.push({
+      method: "classifyReviewStructure",
+      args: [reviewText],
+      timestamp: new Date(),
+    });
+
+    const mockResponse = this.responses.get(reviewText);
+    if (mockResponse) {
+      if (mockResponse.shouldThrow) {
+        throw mockResponse.error || new Error("Mock error");
+      }
+      if ("reviewStructure" in mockResponse) {
+        return mockResponse.reviewStructure ?? null;
+      }
+      return {
+        kind: "single",
+        parts: [reviewText],
+        partStartMarkers: [],
+      };
+    }
+
+    return {
+      kind: "single",
+      parts: [reviewText],
+      partStartMarkers: [],
+    };
   }
 
   /**

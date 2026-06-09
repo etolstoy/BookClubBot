@@ -12,6 +12,7 @@ import type {
   Sentiment,
   LLMCompletionOptions,
   LLMConfidence,
+  ReviewStructureClassification,
 } from "../../lib/interfaces/index.js";
 
 // ============================================================================
@@ -84,6 +85,20 @@ Normalization:
 Output:
 - Return ONLY the author string (one or more names separated by comma), or null. No extra text.`;
 
+const REVIEW_STRUCTURE_PROMPT = `Classify whether this Telegram message contains one book review or several clearly concatenated independent book reviews.
+
+Rules:
+- Return "concatenated" only when there are explicit independent sections with clear boundaries, such as "BOOK 1", "BOOK 2", "КНИГА 1", "КНИГА 2", or repeated standalone numbered book review blocks.
+- Also treat repeated standalone book-heading lines as clear boundaries when each heading introduces its own review block.
+- Book-heading lines can be title-only ("The Great Gatsby"), author + title ("F. Scott Fitzgerald — The Great Gatsby", "Фицджеральд — Великий Гэтсби"), title + author ("The Great Gatsby — F. Scott Fitzgerald"), or include extra metadata such as a rating, stars, year, genre, or format ("Автор — Название 4/5", "Title — Author, audiobook").
+- Real messages are inconsistent; use judgment to identify repeated heading-like boundaries even when the title/author order or metadata format varies.
+- Do not split comparative reviews, ranked lists, casual mentions of multiple books, or ambiguous text.
+- Do not split from book mentions alone unless they function as repeated section headings for independent review blocks.
+- If kind is "single", return empty arrays for parts and partStartMarkers.
+- If kind is "concatenated", return partStartMarkers as the exact first line or shortest exact start substring of each independent review block, copied from the original text in order.
+- For concatenated messages, leave parts empty. Do not copy full review bodies.
+- Do not rewrite, normalize, summarize, translate, or remove text from partStartMarkers.`;
+
 // ============================================================================
 // SCHEMAS - JSON Schema definitions for structured outputs
 // ============================================================================
@@ -128,6 +143,28 @@ const sentimentAnalysisSchema = {
       sentiment: { type: "string", enum: ["positive", "negative", "neutral"] },
     },
     required: ["sentiment"],
+    additionalProperties: false,
+  },
+};
+
+const reviewStructureSchema = {
+  type: "json_schema" as const,
+  name: "review_structure",
+  strict: true,
+  schema: {
+    type: "object",
+    properties: {
+      kind: { type: "string", enum: ["single", "concatenated"] },
+      parts: {
+        type: "array",
+        items: { type: "string" },
+      },
+      partStartMarkers: {
+        type: "array",
+        items: { type: "string" },
+      },
+    },
+    required: ["kind", "parts", "partStartMarkers"],
     additionalProperties: false,
   },
 };
@@ -410,6 +447,48 @@ Guidelines:
     } catch (error) {
       console.error("[Cascading Client] Error analyzing sentiment:", error);
       // Sentiment failures are not critical, return null without notification
+      return null;
+    }
+  }
+
+  async classifyReviewStructure(
+    reviewText: string
+  ): Promise<ReviewStructureClassification | null> {
+    try {
+      const response = await this.client.responses.create({
+        model: this.NANO_MODEL,
+        instructions: REVIEW_STRUCTURE_PROMPT,
+        input: reviewText,
+        text: { format: reviewStructureSchema },
+      });
+
+      this.trackUsage(response);
+      const content = this.extractTextFromResponse(response);
+      if (!content) {
+        console.warn("[Cascading Client] No content in review structure response");
+        return null;
+      }
+
+      const parsed = JSON.parse(content);
+      if (
+        (parsed.kind === "single" || parsed.kind === "concatenated") &&
+        Array.isArray(parsed.parts) &&
+        parsed.parts.every((part: unknown) => typeof part === "string") &&
+        Array.isArray(parsed.partStartMarkers) &&
+        parsed.partStartMarkers.every((marker: unknown) => typeof marker === "string")
+      ) {
+        return {
+          kind: parsed.kind,
+          parts: parsed.parts,
+          partStartMarkers: parsed.partStartMarkers,
+        };
+      }
+
+      console.warn("[Cascading Client] Invalid review structure response");
+      return null;
+    } catch (error) {
+      console.error("[Cascading Client] Error classifying review structure:", error);
+      await this.handleError(error as Error, "Review Structure Classification");
       return null;
     }
   }
