@@ -13,6 +13,7 @@ const configSchema = z.object({
   ADMIN_USER_IDS: z.string().optional(),
   PORT: z.string().default("3001"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  BOT_HANDLER_TIMEOUT_MS: z.coerce.number().int().positive().default(300000),
   EXTRACTION_VERSION: z.string().default("v1"),
   DIGEST_CRON_SECRET: z.string().optional(),
 });
@@ -49,6 +50,7 @@ export const config = {
   isDev: parsed.data.NODE_ENV === "development",
   isProd: parsed.data.NODE_ENV === "production",
   isTest: parsed.data.NODE_ENV === "test",
+  botHandlerTimeoutMs: parsed.data.BOT_HANDLER_TIMEOUT_MS,
   extractionVersion: parsed.data.EXTRACTION_VERSION,
   digestCronSecret: parsed.data.DIGEST_CRON_SECRET,
 };

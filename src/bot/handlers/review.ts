@@ -16,6 +16,7 @@ import type { BotContext } from "../types/bot-context.js";
 import { logOrphanedReviewCase } from "../../services/review-eval-case-logger.service.js";
 import { notifySubscribersOfNewReview } from "../../services/review-notification.service.js";
 import { splitReviewText } from "../../services/review-splitting.service.js";
+import type { EnrichedBook } from "../../lib/types/book-types.js";
 
 function getDisplayName(from: Message["from"]): string | null {
   if (!from) return null;
@@ -94,6 +95,12 @@ function getMessageAuthor(message: Message): Message["from"] | undefined {
   // For messages forwarded from channels (no 'from' field),
   // we can't get the original author, so this message can't be processed
   return undefined;
+}
+
+interface PreparedReviewPart {
+  reviewText: string;
+  bookId: number | null;
+  sentiment: Awaited<ReturnType<typeof analyzeSentiment>>;
 }
 
 export async function handleReviewMessage(ctx: Context, botContext?: BotContext) {
@@ -191,6 +198,7 @@ async function processReview(
   const telegramUserId = BigInt(message.from.id);
   const messageId = BigInt(message.message_id);
   const chatId = BigInt(message.chat.id);
+  const messageFrom = message.from;
 
   // Step 1: Check for duplicate
   const existingReviews = await prisma.review.findMany({
@@ -233,35 +241,199 @@ async function processReview(
   // Step 2: Add 👀 reaction (non-blocking)
   await addReaction(ctx.telegram, chatId, message.message_id, "👀");
 
-  let hadError = false;
+  async function notifyReviewPartError(error: unknown, index: number, phase: string) {
+    console.error(
+      `[Review] Error ${phase} review part ${index + 1}/${reviewPartsToProcess.length}:`,
+      error
+    );
 
-  for (let index = 0; index < reviewPartsToProcess.length; index++) {
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    await sendErrorNotification(errorObj, {
+      userId: BigInt(messageFrom.id),
+      messageId: BigInt(message.message_id),
+      additionalInfo: `chatId: ${message.chat.id}, part: ${index + 1}/${reviewPartsToProcess.length}, phase: ${phase}`,
+    });
+  }
+
+  const partResults = await Promise.all(reviewPartsToProcess.map(async (reviewPart, index) => {
     try {
-      await processReviewPart(ctx, message, reviewPartsToProcess[index], botContext);
+      const prepared = await prepareReviewPart(reviewPart, botContext);
+      return { ok: true as const, prepared };
+    } catch (error) {
+      await notifyReviewPartError(error, index, "preparing");
+      return { ok: false as const };
+    }
+  }));
+
+  let hadError = partResults.some((result) => !result.ok);
+  for (let index = 0; index < partResults.length; index++) {
+    const result = partResults[index];
+    if (!result.ok) {
+      continue;
+    }
+
+    try {
+      await savePreparedReviewPart(ctx, message, result.prepared);
     } catch (error) {
       hadError = true;
-      console.error(
-        `[Review] Error processing review part ${index + 1}/${reviewPartsToProcess.length}:`,
-        error
-      );
-
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      await sendErrorNotification(errorObj, {
-        userId: BigInt(message.from.id),
-        messageId: BigInt(message.message_id),
-        additionalInfo: `chatId: ${message.chat.id}, part: ${index + 1}/${reviewPartsToProcess.length}`,
-      });
+      await notifyReviewPartError(error, index, "saving");
     }
   }
 
   await addReaction(ctx.telegram, chatId, message.message_id, hadError ? "😱" : "👌");
 }
 
-async function processReviewPart(
-  ctx: Context,
-  message: Message,
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2002"
+  );
+}
+
+async function createOrReuseBookFromMatch(match: EnrichedBook): Promise<number> {
+  if (match.source === "local" && match.id) {
+    return match.id;
+  }
+
+  if (match.googleBooksId) {
+    const existingBook = await prisma.book.findUnique({
+      where: { googleBooksId: match.googleBooksId },
+    });
+
+    if (existingBook) {
+      console.log(
+        `[Review] Found existing book with googleBooksId: ${match.googleBooksId}`
+      );
+      return existingBook.id;
+    }
+  }
+
+  try {
+    const book = await createBook({
+      title: match.title,
+      author: match.author,
+      isbn: match.isbn,
+      coverUrl: match.coverUrl,
+      googleBooksId: match.googleBooksId,
+    });
+    return book.id;
+  } catch (error) {
+    if (match.googleBooksId && isUniqueConstraintError(error)) {
+      const existingBook = await prisma.book.findUnique({
+        where: { googleBooksId: match.googleBooksId },
+      });
+
+      if (existingBook) {
+        console.log(
+          `[Review] Reusing concurrently created book with googleBooksId: ${match.googleBooksId}`
+        );
+        return existingBook.id;
+      }
+    }
+
+    throw error;
+  }
+}
+
+async function prepareReviewPart(
   reviewText: string,
   botContext?: BotContext
+): Promise<PreparedReviewPart> {
+  // Step 3: Extract book info with LLM (no commandParams)
+  const extractedInfo = await extractBookInfo(reviewText, botContext?.llmClient);
+  const sentimentPromise = analyzeSentiment(reviewText, botContext?.llmClient);
+
+  let bookId: number | null = null;
+
+  // Step 4: Determine enrichment path based on confidence
+  if (extractedInfo && extractedInfo.confidence === "high") {
+    console.log(
+      `[Review] HIGH confidence: ${extractedInfo.title} by ${extractedInfo.author}`
+    );
+
+    try {
+      // HIGH CONFIDENCE: Try enrichment with 95% threshold
+      const enrichmentResults = await enrichBookInfo(
+        extractedInfo,
+        undefined,
+        botContext?.bookDataClient
+      );
+
+      if (enrichmentResults.matches.length > 0) {
+        // Match found → create/reuse book
+        const match = enrichmentResults.matches[0];
+        console.log(
+          `[Review] Google Books match found: ${match.title} (source: ${match.source})`
+        );
+        bookId = await createOrReuseBookFromMatch(match);
+      } else {
+        // No match → create book with just title/author
+        console.log(
+          `[Review] No Google Books match, creating book with title/author only`
+        );
+        const book = await createBook({
+          title: extractedInfo.title,
+          author: extractedInfo.author,
+        });
+        bookId = book.id;
+
+        // Log failure for monitoring
+        await logGoogleBooksFailure(
+          "data/google-books-failures",
+          extractedInfo.title,
+          extractedInfo.author
+        );
+      }
+    } catch (error) {
+      // Enrichment failed → create book with just title/author
+      console.error("[Review] Enrichment error:", error);
+      const book = await createBook({
+        title: extractedInfo.title,
+        author: extractedInfo.author,
+      });
+      bookId = book.id;
+
+      // Log failure
+      await logGoogleBooksFailure(
+        "data/google-books-failures",
+        extractedInfo.title,
+        extractedInfo.author
+      );
+    }
+  } else {
+    // LOW/MEDIUM confidence OR extraction failed → orphaned review
+    console.log(
+      `[Review] Low/medium confidence or extraction failed - creating orphaned review`
+    );
+    bookId = null;
+
+    // Log case for evaluation (fire-and-forget, non-blocking)
+    logOrphanedReviewCase({
+      reviewText,
+      extractedTitle: extractedInfo?.title ?? null,
+      extractedAuthor: extractedInfo?.author ?? null,
+      extractionConfidence: extractedInfo?.confidence ?? null,
+    }).catch((error) => {
+      console.error("[Review] Failed to log eval case:", error);
+    });
+  }
+
+  // Step 5: Analyze sentiment
+  const sentiment = await sentimentPromise;
+
+  return {
+    reviewText,
+    bookId,
+    sentiment,
+  };
+}
+
+async function savePreparedReviewPart(
+  ctx: Context,
+  message: Message,
+  prepared: PreparedReviewPart
 ) {
   if (!message.from || !message.chat) {
     return;
@@ -271,191 +443,67 @@ async function processReviewPart(
   const messageId = BigInt(message.message_id);
   const chatId = BigInt(message.chat.id);
 
-  try {
-    // Step 3: Extract book info with LLM (no commandParams)
-    const extractedInfo = await extractBookInfo(reviewText, botContext?.llmClient);
+  // Step 6: Create review (with or without book)
+  const review = await createReview({
+    bookId: prepared.bookId,
+    telegramUserId,
+    telegramUsername: message.from.username || null,
+    telegramDisplayName: getDisplayName(message.from),
+    reviewText: prepared.reviewText,
+    sentiment: prepared.sentiment || "neutral",
+    messageId,
+    chatId,
+    reviewedAt: new Date(message.date * 1000),
+  });
 
-    let bookId: number | null = null;
+  console.log(
+    `[Review] Review created: id=${review.id}, bookId=${prepared.bookId || "null (orphaned)"}`
+  );
 
-    // Step 4: Determine enrichment path based on confidence
-    if (extractedInfo && extractedInfo.confidence === "high") {
-      console.log(
-        `[Review] HIGH confidence: ${extractedInfo.title} by ${extractedInfo.author}`
-      );
+  // Fire-and-forget: notify subscribers of new review
+  notifySubscribersOfNewReview(review, ctx.telegram).catch((error) => {
+    console.error("[Review] Failed to notify subscribers:", error);
+  });
 
-      try {
-        // HIGH CONFIDENCE: Try enrichment with 95% threshold
-        const enrichmentResults = await enrichBookInfo(
-          extractedInfo,
-          undefined,
-          botContext?.bookDataClient
-        );
+  // Step 7: If 2+ reviews WITH book: post sentiment breakdown
+  if (prepared.bookId) {
+    const reviewCount = await prisma.review.count({ where: { bookId: prepared.bookId } });
 
-        if (enrichmentResults.matches.length > 0) {
-          // Match found → create/reuse book
-          const match = enrichmentResults.matches[0];
-          console.log(
-            `[Review] Google Books match found: ${match.title} (source: ${match.source})`
-          );
+    if (reviewCount >= 2) {
+      // Get book details and sentiment breakdown
+      const book = await prisma.book.findUnique({ where: { id: prepared.bookId } });
+      const reviews = await prisma.review.findMany({ where: { bookId: prepared.bookId } });
 
-          if (match.source === "local" && match.id) {
-            // Reuse existing local book
-            bookId = match.id;
-          } else {
-            // Check if book with this googleBooksId already exists
-            if (match.googleBooksId) {
-              const existingBook = await prisma.book.findUnique({
-                where: { googleBooksId: match.googleBooksId },
-              });
+      const sentiments = reviews.reduce((acc, r) => {
+        const sent = r.sentiment || "neutral";
+        acc[sent] = (acc[sent] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
 
-              if (existingBook) {
-                // Reuse existing book with same googleBooksId
-                console.log(
-                  `[Review] Found existing book with googleBooksId: ${match.googleBooksId}`
-                );
-                bookId = existingBook.id;
-              } else {
-                // Create book from Google Books data
-                const book = await createBook({
-                  title: match.title,
-                  author: match.author,
-                  isbn: match.isbn,
-                  coverUrl: match.coverUrl,
-                  googleBooksId: match.googleBooksId,
-                });
-                bookId = book.id;
-              }
-            } else {
-              // No googleBooksId, create book directly
-              const book = await createBook({
-                title: match.title,
-                author: match.author,
-                isbn: match.isbn,
-                coverUrl: match.coverUrl,
-                googleBooksId: match.googleBooksId,
-              });
-              bookId = book.id;
-            }
-          }
-        } else {
-          // No match → create book with just title/author
-          console.log(
-            `[Review] No Google Books match, creating book with title/author only`
-          );
-          const book = await createBook({
-            title: extractedInfo.title,
-            author: extractedInfo.author,
-          });
-          bookId = book.id;
+      const sentimentText = [
+        sentiments.positive ? `👍 ${sentiments.positive}` : null,
+        sentiments.neutral ? `😐 ${sentiments.neutral}` : null,
+        sentiments.negative ? `👎 ${sentiments.negative}` : null,
+      ]
+        .filter(Boolean)
+        .join(" / ");
 
-          // Log failure for monitoring
-          await logGoogleBooksFailure(
-            "data/google-books-failures",
-            extractedInfo.title,
-            extractedInfo.author
-          );
-        }
-      } catch (error) {
-        // Enrichment failed → create book with just title/author
-        console.error("[Review] Enrichment error:", error);
-        const book = await createBook({
-          title: extractedInfo.title,
-          author: extractedInfo.author,
-        });
-        bookId = book.id;
+      const reviewWord = getRussianPluralReview(reviewCount);
 
-        // Log failure
-        await logGoogleBooksFailure(
-          "data/google-books-failures",
-          extractedInfo.title,
-          extractedInfo.author
-        );
-      }
-    } else {
-      // LOW/MEDIUM confidence OR extraction failed → orphaned review
-      console.log(
-        `[Review] Low/medium confidence or extraction failed - creating orphaned review`
-      );
-      bookId = null;
+      const text = `Теперь на книгу «${book?.title}» написано ${reviewCount} ${reviewWord} (${sentimentText}).`;
 
-      // Log case for evaluation (fire-and-forget, non-blocking)
-      logOrphanedReviewCase({
-        reviewText,
-        extractedTitle: extractedInfo?.title ?? null,
-        extractedAuthor: extractedInfo?.author ?? null,
-        extractionConfidence: extractedInfo?.confidence ?? null,
-      }).catch((error) => {
-        console.error("[Review] Failed to log eval case:", error);
+      // Send message with deep link to book page in Mini App
+      await ctx.reply(text, {
+        reply_parameters: { message_id: message.message_id },
+        ...Markup.inlineKeyboard([
+          [
+            Markup.button.url(
+              "📖 Смотреть в приложении",
+              getBookDeepLink(config.botUsername, prepared.bookId)
+            ),
+          ],
+        ]),
       });
     }
-
-    // Step 5: Analyze sentiment
-    const sentiment = await analyzeSentiment(reviewText, botContext?.llmClient);
-
-    // Step 6: Create review (with or without book)
-    const review = await createReview({
-      bookId,
-      telegramUserId,
-      telegramUsername: message.from.username || null,
-      telegramDisplayName: getDisplayName(message.from),
-      reviewText,
-      sentiment: sentiment || "neutral",
-      messageId,
-      chatId,
-      reviewedAt: new Date(message.date * 1000),
-    });
-
-    console.log(
-      `[Review] Review created: id=${review.id}, bookId=${bookId || "null (orphaned)"}`
-    );
-
-    // Fire-and-forget: notify subscribers of new review
-    notifySubscribersOfNewReview(review, ctx.telegram).catch((error) => {
-      console.error("[Review] Failed to notify subscribers:", error);
-    });
-
-    // Step 7: If 2+ reviews WITH book: post sentiment breakdown
-    if (bookId) {
-      const reviewCount = await prisma.review.count({ where: { bookId } });
-
-      if (reviewCount >= 2) {
-        // Get book details and sentiment breakdown
-        const book = await prisma.book.findUnique({ where: { id: bookId } });
-        const reviews = await prisma.review.findMany({ where: { bookId } });
-
-        const sentiments = reviews.reduce((acc, r) => {
-          const sent = r.sentiment || "neutral";
-          acc[sent] = (acc[sent] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
-
-        const sentimentText = [
-          sentiments.positive ? `👍 ${sentiments.positive}` : null,
-          sentiments.neutral ? `😐 ${sentiments.neutral}` : null,
-          sentiments.negative ? `👎 ${sentiments.negative}` : null,
-        ]
-          .filter(Boolean)
-          .join(" / ");
-
-        const reviewWord = getRussianPluralReview(reviewCount);
-
-        const text = `Теперь на книгу «${book?.title}» написано ${reviewCount} ${reviewWord} (${sentimentText}).`;
-
-        // Send message with deep link to book page in Mini App
-        await ctx.reply(text, {
-          reply_parameters: { message_id: message.message_id },
-          ...Markup.inlineKeyboard([
-            [
-              Markup.button.url(
-                "📖 Смотреть в приложении",
-                getBookDeepLink(config.botUsername, bookId)
-              ),
-            ],
-          ]),
-        });
-      }
-    }
-  } catch (error) {
-    throw error;
   }
 }

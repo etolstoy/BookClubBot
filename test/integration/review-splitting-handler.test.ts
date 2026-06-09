@@ -63,6 +63,50 @@ function createBotContext(
   };
 }
 
+function delay(ms: number): Promise<false> {
+  return new Promise((resolve) => setTimeout(() => resolve(false), ms));
+}
+
+class BlockingExtractionLLMClient extends MockLLMClient {
+  private readonly gatedTexts: Set<string>;
+  private readonly allStartedPromise: Promise<true>;
+  private resolveAllStarted!: (value: true) => void;
+  private releaseExtractions!: () => void;
+  private extractionGate: Promise<void>;
+  public extractionStartedTexts: string[] = [];
+
+  constructor(gatedTexts: string[]) {
+    super();
+    this.gatedTexts = new Set(gatedTexts);
+    this.allStartedPromise = new Promise((resolve) => {
+      this.resolveAllStarted = resolve;
+    });
+    this.extractionGate = new Promise((resolve) => {
+      this.releaseExtractions = resolve;
+    });
+  }
+
+  async extractBookInfo(reviewText: string, commandParams?: string) {
+    if (this.gatedTexts.has(reviewText)) {
+      this.extractionStartedTexts.push(reviewText);
+      if (this.extractionStartedTexts.length === this.gatedTexts.size) {
+        this.resolveAllStarted(true);
+      }
+      await this.extractionGate;
+    }
+
+    return super.extractBookInfo(reviewText, commandParams);
+  }
+
+  waitForAllExtractionsStarted(): Promise<true> {
+    return this.allStartedPromise;
+  }
+
+  release(): void {
+    this.releaseExtractions();
+  }
+}
+
 function seedBookData(mockBookDataClient: MockBookDataClient) {
   mockBookDataClient.seedBooks([
     loadBookFixture("great-gatsby"),
@@ -278,6 +322,62 @@ describe.sequential("Review splitting handler integration", () => {
     expect(reviews[0].book?.title).toBe("1984");
     expect(mockLLMClient.getCallCount("extractBookInfo")).toBe(2);
     expect(mockLLMClient.getCallCount("analyzeSentiment")).toBe(1);
+  });
+
+  it("starts split part extraction in parallel", async () => {
+    const parts = [
+      "BOOK 1\nLoved \"The Great Gatsby\" by F. Scott Fitzgerald.",
+      "BOOK 2\n\"1984\" by George Orwell was bleak and excellent.",
+      "BOOK 3\n«Война и мир» Льва Толстого took a while but paid off. #рецензия",
+    ];
+    const reviewText = parts.join("\n\n");
+    const ctx = createReviewContext(reviewText, 905);
+    const blockingLLMClient = new BlockingExtractionLLMClient(parts);
+    botContext = createBotContext(blockingLLMClient, mockBookDataClient);
+
+    blockingLLMClient.mockResponse(reviewText, {
+      reviewStructure: {
+        kind: "concatenated",
+        parts,
+      },
+    });
+    blockingLLMClient.mockResponse(parts[0], {
+      extractedInfo: {
+        title: "The Great Gatsby",
+        author: "F. Scott Fitzgerald",
+        confidence: "high",
+      },
+      sentiment: "positive",
+    });
+    blockingLLMClient.mockResponse(parts[1], {
+      extractedInfo: {
+        title: "1984",
+        author: "George Orwell",
+        confidence: "high",
+      },
+      sentiment: "positive",
+    });
+    blockingLLMClient.mockResponse(parts[2], {
+      extractedInfo: {
+        title: "Война и мир",
+        author: "Лев Толстой",
+        confidence: "high",
+      },
+      sentiment: "positive",
+    });
+
+    const handlePromise = handleReviewMessage(ctx, botContext);
+    const allExtractionsStartedBeforeRelease = await Promise.race([
+      blockingLLMClient.waitForAllExtractionsStarted(),
+      delay(50),
+    ]);
+
+    blockingLLMClient.release();
+    await handlePromise;
+
+    expect(allExtractionsStartedBeforeRelease).toBe(true);
+    expect(blockingLLMClient.extractionStartedTexts).toEqual(parts);
+    expect(blockingLLMClient.getCallCount("extractBookInfo")).toBe(3);
   });
 
   it("retries only missing parts for a partially saved split source message", async () => {
