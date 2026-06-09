@@ -17,7 +17,9 @@ import { initNotificationService, sendSuccessNotification } from "../services/no
 export let botInstance: Telegraf | null = null;
 
 export function createBot() {
-  const bot = new Telegraf(config.botToken);
+  const bot = new Telegraf(config.botToken, {
+    handlerTimeout: config.botHandlerTimeoutMs,
+  });
 
   // Middleware
   bot.use(errorHandler);

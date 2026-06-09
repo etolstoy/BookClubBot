@@ -8,6 +8,7 @@ export type {
   LLMClientConfig,
   ExtractedBookInfo,
   Sentiment,
+  ReviewStructureClassification,
   LLMConfidence,
   LLMCompletionOptions,
 } from "./llm-client.interface.js";

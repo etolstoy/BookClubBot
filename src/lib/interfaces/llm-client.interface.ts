@@ -23,6 +23,16 @@ export interface ExtractedBookInfo {
 export type Sentiment = "positive" | "negative" | "neutral";
 
 /**
+ * Classification of whether one Telegram review message contains one review
+ * or clearly separated independent reviews.
+ */
+export interface ReviewStructureClassification {
+  kind: "single" | "concatenated";
+  parts: string[];
+  partStartMarkers?: string[];
+}
+
+/**
  * Options for generic LLM completion requests
  */
 export interface LLMCompletionOptions {
@@ -66,6 +76,16 @@ export interface ILLMClient {
    * @returns Sentiment classification or null if analysis fails
    */
   analyzeSentiment(reviewText: string): Promise<Sentiment | null>;
+
+  /**
+   * Classify whether a review message should be processed as one review or
+   * split into clearly separated independent review texts.
+   * @param reviewText - The original Telegram review text
+   * @returns Classification with exact original substrings as parts
+   */
+  classifyReviewStructure(
+    reviewText: string
+  ): Promise<ReviewStructureClassification | null>;
 
   /**
    * Generic completion method for custom prompts (for future extensibility)
