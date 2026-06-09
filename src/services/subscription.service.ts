@@ -22,6 +22,21 @@ export async function createSubscription(
 }
 
 /**
+ * Activate a user's subscription without toggling active subscriptions off
+ */
+export async function activateSubscription(
+  telegramUserId: bigint
+): Promise<{ isActive: true }> {
+  await prisma.subscription.upsert({
+    where: { telegramUserId },
+    create: { telegramUserId },
+    update: { isActive: true },
+  });
+
+  return { isActive: true };
+}
+
+/**
  * Toggle a user's subscription status
  * Creates subscription if it doesn't exist, otherwise toggles isActive
  * Returns the new subscription state

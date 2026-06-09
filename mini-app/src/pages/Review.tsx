@@ -41,9 +41,9 @@ export default function Review() {
     ? getReviewDeepLink(config.botUsername, review.id)
     : undefined;
 
-  if (loading) return <Loading />;
-  if (error) return <ErrorMessage message={error} />;
-  if (!review) return <ErrorMessage message="Рецензия не найдена" />;
+  if (loading) return <Layout shareUrl={shareUrl}><Loading /></Layout>;
+  if (error) return <Layout shareUrl={shareUrl}><ErrorMessage message={error} /></Layout>;
+  if (!review) return <Layout shareUrl={shareUrl}><ErrorMessage message="Рецензия не найдена" /></Layout>;
 
   return (
     <Layout shareUrl={shareUrl}>

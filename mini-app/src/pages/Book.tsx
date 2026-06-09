@@ -101,19 +101,19 @@ export default function Book() {
     navigate("/browse");
   };
 
-  if (loading) return <Loading />;
-  if (error) return <ErrorMessage message={error} />;
-  if (!book) return <ErrorMessage message={t("book.notFound")} />;
+  const shareUrl = config?.botUsername && book
+    ? getBookDeepLink(config.botUsername, book.id)
+    : undefined;
+
+  if (loading) return <Layout shareUrl={shareUrl}><Loading /></Layout>;
+  if (error) return <Layout shareUrl={shareUrl}><ErrorMessage message={error} /></Layout>;
+  if (!book) return <Layout shareUrl={shareUrl}><ErrorMessage message={t("book.notFound")} /></Layout>;
 
   const filteredReviews = sentimentFilter
     ? reviews.filter((r) => r.sentiment === sentimentFilter)
     : reviews;
 
   const { positive, negative, neutral } = book.sentiments;
-
-  const shareUrl = config?.botUsername && book
-    ? getBookDeepLink(config.botUsername, book.id)
-    : undefined;
 
   return (
     <Layout shareUrl={shareUrl}>

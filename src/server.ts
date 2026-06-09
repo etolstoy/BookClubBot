@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { Telegraf } from "telegraf";
 import { config } from "./lib/config.js";
-import apiRouter from "./api/index.js";
+import { createApiRouter } from "./api/index.js";
 import {
   createAuthenticateTelegramWebApp,
   setAuthMiddleware,
@@ -38,7 +38,7 @@ export function createServer(bot: Telegraf) {
   }
 
   // API routes
-  app.use("/api", apiRouter);
+  app.use("/api", createApiRouter(bot));
 
   // Serve mini-app static files in production
   if (!config.isDev) {

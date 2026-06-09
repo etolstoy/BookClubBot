@@ -484,6 +484,12 @@ export async function getConfig(): Promise<Config> {
   return fetchApi("/config");
 }
 
+export async function activateSubscription(): Promise<{ isActive: true }> {
+  return fetchApi("/subscriptions/activate", {
+    method: "POST",
+  });
+}
+
 export function isCurrentUserAdmin(adminUserIds: string[]): boolean {
   const userId = getCurrentUserId();
   if (!userId) return false;
