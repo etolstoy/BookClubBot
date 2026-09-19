@@ -17,6 +17,7 @@ import { logOrphanedReviewCase } from "../../services/review-eval-case-logger.se
 import { notifySubscribersOfNewReview } from "../../services/review-notification.service.js";
 import { splitReviewText } from "../../services/review-splitting.service.js";
 import type { EnrichedBook } from "../../lib/types/book-types.js";
+import { getMessageText } from "../../lib/message-text.js";
 
 function getDisplayName(from: Message["from"]): string | null {
   if (!from) return null;
@@ -68,20 +69,6 @@ function filterAlreadySavedParts(
 }
 
 /**
- * Extracts text content from a message, supporting both regular text messages
- * and media messages with captions (photos, videos, documents, etc.)
- */
-function getMessageText(message: Message): string | undefined {
-  if ("text" in message) {
-    return message.text;
-  }
-  if ("caption" in message) {
-    return message.caption;
-  }
-  return undefined;
-}
-
-/**
  * Gets the author of a message, handling forwarded channel messages.
  * For forwarded channel messages (which don't have a 'from' field),
  * returns the forwarder's identity instead.
@@ -110,7 +97,7 @@ export async function handleReviewMessage(ctx: Context, botContext?: BotContext)
     return;
   }
 
-  // Extract text from either text message or media caption
+  // Extract visible text from plain, media-caption, or rich messages.
   const messageText = getMessageText(message);
 
   if (!messageText || !message.from) {
@@ -159,12 +146,12 @@ export async function handleReviewCommand(ctx: Context, botContext?: BotContext)
 
   const replyMessage = message.reply_to_message;
 
-  // Extract text from replied message (supports both text and media with captions)
+  // Use the same text extraction for replied-to reviews.
   const replyText = getMessageText(replyMessage);
 
   if (!replyText) {
     await ctx.reply(
-      "Я не могу прочитать это сообщение. Убедитесь, что сообщение содержит текст или подпись к медиа."
+      "Я не могу прочитать это сообщение. Убедитесь, что сообщение содержит текст, подпись к медиа или форматированный текст."
     );
     return;
   }
@@ -189,7 +176,7 @@ async function processReview(
     return;
   }
 
-  // Extract text from message (supports both text and media captions)
+  // Use the same text that was checked by the hashtag or command handler.
   const messageText = getMessageText(message);
   if (!messageText) {
     return;

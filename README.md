@@ -4,12 +4,17 @@ A Telegram bot and mini-app for tracking book reviews with sentiment analysis, a
 
 ## Features
 
-- **Smart Review Processing**: Submit reviews via special hashtag or `/review` command
+- **Smart Review Processing**: Submit reviews via special hashtag or `/review` command, including text messages, media captions, and Telegram Rich Messages
 - **AI Book Extraction**: GPT-4o automatically extracts book information from review text
 - **Interactive Confirmation**: Choose from matched books, enter ISBN, or add manually
 - **Sentiment Analysis**: Automatic positive/negative/neutral classification
 - **Mini App Frontend**: Browse books, view reviews, explore leaderboards
 - **Book Enrichment**: Automatic metadata fetching from Google Books API
+
+Rich Messages are read from their structured blocks and stored as plain review text,
+preserving paragraphs, quotations, lists, tables, and media captions. Media files
+themselves are not read or transcribed. The bot handles incoming rich blocks locally
+because the published Telegraf types do not yet expose `rich_message`.
 
 ## Architecture
 

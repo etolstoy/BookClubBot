@@ -1,17 +1,26 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { execSync } from "child_process";
-import type { Context } from "telegraf";
+import { Context } from "telegraf";
 import type { Message } from "telegraf/types";
 import prisma from "../../src/lib/prisma.js";
-import { handleReviewMessage } from "../../src/bot/handlers/review.js";
+import { handleReviewMessage, handleReviewCommand } from "../../src/bot/handlers/review.js";
+import * as reviewHandlers from "../../src/bot/handlers/review.js";
+import { createBot } from "../../src/bot/index.js";
 import { MockLLMClient } from "../../src/clients/llm/mock-llm-client.js";
 import { MockBookDataClient } from "../../src/clients/book-data/mock-book-data-client.js";
 import type { BotContext } from "../../src/bot/types/bot-context.js";
+import type * as ConfigModule from "../../src/lib/config.js";
 import { clearTestData } from "../helpers/test-db.js";
 import {
   loadBookFixture,
   loadReviewFixture,
 } from "../fixtures/helpers/fixture-loader.js";
+
+vi.mock("../../src/lib/config.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof ConfigModule>();
+  const config = { ...actual.config, targetChatId: -1001234567890n };
+  return { ...actual, config, default: config };
+});
 
 vi.mock("../../src/services/notification.service.js", () => ({
   sendErrorNotification: vi.fn(),
@@ -138,8 +147,73 @@ describe.sequential("Review splitting handler integration", () => {
 
   afterEach(async () => {
     await clearTestData(prisma);
+    vi.restoreAllMocks();
   });
 
+  function richReviewMessage(hashtag = true) {
+    const { text, ...message } = createReviewContext("", 910).message! as Message.TextMessage;
+    return {
+      ...message,
+      rich_message: {
+        blocks: [
+          { type: "photo", photo: [] },
+          { type: "heading", size: 2, text: "1984 — George Orwell" },
+          { type: "paragraph", text: ["A ", { type: "bold", text: "powerful" }, " book."] },
+          { type: "blockquote", blocks: [{ type: "paragraph", text: "Big Brother is watching you." }] },
+          ...(hashtag ? [{ type: "paragraph", text: { type: "hashtag", text: "#рецензия", hashtag: "рецензия" } }] : []),
+        ],
+      },
+    };
+  }
+
+  function seedRichReview(text: string) {
+    mockLLMClient.mockResponse(text, {
+      reviewStructure: { kind: "single", parts: [text] },
+      extractedInfo: { title: "1984", author: "George Orwell", confidence: "high" },
+      sentiment: "positive",
+    });
+  }
+
+  it("ingests a rich hashtag update through the bot dispatcher", async () => {
+    const message = richReviewMessage();
+    const expected = "1984 — George Orwell\n\nA powerful book.\n\nBig Brother is watching you.\n\n#рецензия";
+    seedRichReview(expected);
+    const originalHandler = reviewHandlers.handleReviewMessage;
+    vi.spyOn(reviewHandlers, "handleReviewMessage").mockImplementation(
+      (ctx) => originalHandler(ctx, botContext)
+    );
+    const bot = createBot();
+    const ctx = new Context(
+      { update_id: 910, message },
+      createReviewContext("").telegram,
+      { id: 1, is_bot: true, first_name: "Bot", username: "test_bot",
+        can_join_groups: true, can_read_all_group_messages: true, supports_inline_queries: false }
+    );
+    await bot.middleware()(ctx, async () => {});
+    const reviews = await prisma.review.findMany({ include: { book: true } });
+    expect(reviews).toHaveLength(1);
+    expect(reviews[0].reviewText).toBe(expected);
+    expect(reviews[0].book?.title).toBe("1984");
+    expect(reviews[0].messageId).toBe(910n);
+  });
+
+  it("saves a rich-message reply via /review without requiring a hashtag", async () => {
+    const message = richReviewMessage(false);
+    const expected = "1984 — George Orwell\n\nA powerful book.\n\nBig Brother is watching you.";
+    seedRichReview(expected);
+    const base = createReviewContext("/review", 911);
+    const ctx = {
+      ...base,
+      message: { ...base.message, reply_to_message: message },
+      deleteMessage: vi.fn().mockResolvedValue(true),
+    } as unknown as Context;
+    await handleReviewCommand(ctx, botContext);
+    const reviews = await prisma.review.findMany();
+    expect(reviews).toHaveLength(1);
+    expect(reviews[0].reviewText).toBe(expected);
+    expect(reviews[0].messageId).toBe(910n);
+    expect(reviews[0].telegramUserId).toBe(BigInt(message.from!.id));
+  });
   it("creates one review per clear concatenated part", async () => {
     const parts = [
       "BOOK 1\nLoved \"The Great Gatsby\" by F. Scott Fitzgerald.",

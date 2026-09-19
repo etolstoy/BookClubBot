@@ -1,5 +1,4 @@
 import { Telegraf } from "telegraf";
-import { message } from "telegraf/filters";
 import { config } from "../lib/config.js";
 import { chatFilter, errorHandler } from "./middleware/auth.js";
 import { handleReviewMessage, handleReviewCommand } from "./handlers/review.js";
@@ -37,18 +36,9 @@ export function createBot() {
   // Callback handlers
   bot.action(TOGGLE_CALLBACK_DATA, handleSubscriptionToggle);
 
-  // Message handlers
-  bot.on(message("text"), (ctx) => handleReviewMessage(ctx));
-
-  // Also handle media messages with captions (photo, video, document, etc.)
-  // These can contain review hashtags in their captions
-  bot.on(message("photo"), (ctx) => handleReviewMessage(ctx));
-  bot.on(message("video"), (ctx) => handleReviewMessage(ctx));
-  bot.on(message("document"), (ctx) => handleReviewMessage(ctx));
-  bot.on(message("animation"), (ctx) => handleReviewMessage(ctx));
-  bot.on(message("audio"), (ctx) => handleReviewMessage(ctx));
-  bot.on(message("voice"), (ctx) => handleReviewMessage(ctx));
-  bot.on(message("video_note"), (ctx) => handleReviewMessage(ctx));
+  // Inspect all incoming messages; the handler ignores those without review text.
+  // This also admits rich_message updates not yet covered by Telegraf's types.
+  bot.on("message", (ctx) => handleReviewMessage(ctx));
 
   return bot;
 }
