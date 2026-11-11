@@ -16,6 +16,12 @@ preserving paragraphs, quotations, lists, tables, and media captions. Media file
 themselves are not read or transcribed. The bot handles incoming rich blocks locally
 because the published Telegraf types do not yet expose `rich_message`.
 
+Private review notifications preserve Telegram text formatting, including spoilers,
+from text messages, media captions, and Rich Messages. Formatting is carried from
+the incoming message into each notification, including when a message is split
+into multiple reviews. Link previews are disabled to avoid exposing spoiler links.
+Stored reviews remain plain text; no database migration is needed.
+
 ## Architecture
 
 The system consists of three main components:

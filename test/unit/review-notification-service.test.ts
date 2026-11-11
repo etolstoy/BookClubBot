@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { MessageEntity } from "telegraf/types";
 import { notifySubscribersOfNewReview, type ReviewWithBook } from "../../src/services/review-notification.service.js";
 
 // Mock dependencies
@@ -109,7 +110,7 @@ describe("Review Notification Service", () => {
         "222",
         expect.stringContaining("Test Book"),
         expect.objectContaining({
-          parse_mode: "HTML",
+          entities: expect.arrayContaining([expect.objectContaining({ type: "bold", offset: 0 })]),
         })
       );
     });
@@ -146,7 +147,7 @@ describe("Review Notification Service", () => {
         "222",
         expect.stringContaining("Test Book"),
         expect.objectContaining({
-          parse_mode: "HTML",
+          entities: expect.arrayContaining([expect.objectContaining({ type: "bold", offset: 0 })]),
         })
       );
     });
@@ -165,7 +166,7 @@ describe("Review Notification Service", () => {
         "222",
         expect.stringContaining("Test User"),
         expect.objectContaining({
-          parse_mode: "HTML",
+          entities: expect.arrayContaining([expect.objectContaining({ type: "bold", offset: 0 })]),
         })
       );
     });
@@ -215,7 +216,7 @@ describe("Review Notification Service", () => {
       );
     });
 
-    it("should escape HTML in user-generated content", async () => {
+    it("should send user-generated markup literally without parsing it", async () => {
       vi.mocked(subscriptionService.getActiveSubscribers).mockResolvedValue([BigInt(222)]);
       vi.mocked(prisma.review.findMany).mockResolvedValue([
         { sentiment: "positive" },
@@ -229,9 +230,59 @@ describe("Review Notification Service", () => {
       await notifySubscribersOfNewReview(review, mockTelegram as any);
 
       const textArg = mockTelegram.sendMessage.mock.calls[0][1];
-      expect(textArg).toContain("&lt;script&gt;");
-      expect(textArg).toContain("&amp;");
-      expect(textArg).not.toContain("<script>");
+      expect(textArg).toContain(review.reviewText);
+      expect(textArg).toContain("User & Friend");
+      expect(mockTelegram.sendMessage.mock.calls[0][2]).not.toHaveProperty("parse_mode");
+    });
+
+    it.each([true, false])("should preserve nested spoilers and entity metadata (book: %s)", async (hasBook) => {
+      vi.mocked(subscriptionService.getActiveSubscribers).mockResolvedValue([222n, 333n]);
+      vi.mocked(prisma.review.findMany).mockResolvedValue([{ sentiment: "positive" }] as any);
+      const mockTelegram = createMockTelegram();
+      const review = createMockReview({
+        reviewText: "📚 Review <&> the hero dies. Read more",
+        telegramDisplayName: "Reader 📖 <&>",
+        ...(hasBook ? {} : { bookId: null, book: null }),
+      });
+      const spoilerOffset = review.reviewText.indexOf("the hero dies");
+      const entities: MessageEntity[] = [
+        { type: "spoiler", offset: spoilerOffset, length: 13 },
+        { type: "bold", offset: spoilerOffset, length: 8 },
+        { type: "text_link", offset: review.reviewText.indexOf("Read more"), length: 9, url: "https://example.com/ending" },
+      ];
+      const originalEntities = structuredClone(entities);
+
+      await notifySubscribersOfNewReview(review, mockTelegram as any, entities);
+
+      expect(mockTelegram.sendMessage).toHaveBeenCalledTimes(2);
+      for (const [, text, options] of mockTelegram.sendMessage.mock.calls) {
+        const reviewOffset = text.indexOf(review.reviewText);
+        expect(options.entities).toEqual([
+          { type: "bold", offset: 0, length: "Новая рецензия в чате Вастрик.Книги:".length },
+          ...entities.map(entity => ({ ...entity, offset: entity.offset + reviewOffset })),
+        ]);
+        const spoiler = options.entities.find((entity: MessageEntity) => entity.type === "spoiler");
+        expect(text.slice(spoiler.offset, spoiler.offset + spoiler.length)).toBe("the hero dies");
+        expect(options.link_preview_options).toEqual({ is_disabled: true });
+        expect(options).not.toHaveProperty("parse_mode");
+      }
+      expect(entities).toEqual(originalEntities);
+    });
+
+    it("should never retry without spoiler formatting when Telegram rejects a message", async () => {
+      vi.mocked(subscriptionService.getActiveSubscribers).mockResolvedValue([222n]);
+      const mockTelegram = createMockTelegram();
+      mockTelegram.sendMessage.mockRejectedValue(new Error("400: Bad Request: can't parse entities"));
+      const review = createMockReview({ bookId: null, book: null, reviewText: "Hidden ending" });
+
+      await notifySubscribersOfNewReview(review, mockTelegram as any, [
+        { type: "spoiler", offset: 0, length: review.reviewText.length },
+      ]);
+
+      expect(mockTelegram.sendMessage).toHaveBeenCalledTimes(1);
+      expect(mockTelegram.sendMessage.mock.calls[0][2].entities).toEqual(
+        expect.arrayContaining([expect.objectContaining({ type: "spoiler" })]),
+      );
     });
 
     it("should send to multiple subscribers", async () => {

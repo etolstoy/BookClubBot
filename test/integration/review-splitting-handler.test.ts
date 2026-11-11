@@ -8,6 +8,7 @@ import * as reviewHandlers from "../../src/bot/handlers/review.js";
 import { createBot } from "../../src/bot/index.js";
 import { MockLLMClient } from "../../src/clients/llm/mock-llm-client.js";
 import { MockBookDataClient } from "../../src/clients/book-data/mock-book-data-client.js";
+import { notifySubscribersOfNewReview } from "../../src/services/review-notification.service.js";
 import type { BotContext } from "../../src/bot/types/bot-context.js";
 import type * as ConfigModule from "../../src/lib/config.js";
 import { clearTestData } from "../helpers/test-db.js";
@@ -174,6 +175,35 @@ describe.sequential("Review splitting handler integration", () => {
     });
   }
 
+  it.each(["text", "caption", "command", "rich"])("passes source spoilers to notifications for a %s review", async (kind) => {
+    const text = "1984 #рецензия 📖 secret";
+    const spoiler = { type: "spoiler", offset: text.indexOf("secret"), length: 6 };
+    seedRichReview(text);
+    const base = createReviewContext(text, 912);
+    const { text: _, ...source } = base.message! as Message.TextMessage;
+    const reviewMessage = kind === "rich"
+      ? { ...source, rich_message: { blocks: [{ type: "paragraph", text: [
+        "1984 #рецензия 📖 ", { type: "spoiler", text: "secret" },
+      ] }] } }
+      : kind === "caption"
+        ? { ...source, photo: [], caption: text, caption_entities: [spoiler] }
+        : { ...source, text, entities: [spoiler] };
+    const ctx = {
+      ...base,
+      message: kind === "command"
+        ? { ...base.message, text: "/review", entities: [], reply_to_message: reviewMessage }
+        : reviewMessage,
+      deleteMessage: vi.fn().mockResolvedValue(true),
+    } as unknown as Context;
+
+    if (kind === "command") await handleReviewCommand(ctx, botContext);
+    else await handleReviewMessage(ctx, botContext);
+
+    expect(notifySubscribersOfNewReview).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewText: text }), ctx.telegram, [spoiler],
+    );
+  });
+
   it("ingests a rich hashtag update through the bot dispatcher", async () => {
     const message = richReviewMessage();
     const expected = "1984 — George Orwell\n\nA powerful book.\n\nBig Brother is watching you.\n\n#рецензия";
@@ -222,6 +252,12 @@ describe.sequential("Review splitting handler integration", () => {
     ];
     const reviewText = parts.join("\n\n");
     const ctx = createReviewContext(reviewText);
+    // One spoiler spans the end of the first review and the start of the second.
+    const hiddenStart = reviewText.indexOf("F. Scott Fitzgerald.");
+    const hiddenEnd = reviewText.indexOf(" by George Orwell");
+    (ctx.message as Message.TextMessage).entities = [
+      { type: "spoiler", offset: hiddenStart, length: hiddenEnd - hiddenStart },
+    ];
 
     mockLLMClient.mockResponse(reviewText, {
       reviewStructure: {
@@ -276,6 +312,11 @@ describe.sequential("Review splitting handler integration", () => {
     expect(mockLLMClient.getCallCount("classifyReviewStructure")).toBe(1);
     expect(mockLLMClient.getCallCount("extractBookInfo")).toBe(3);
     expect(mockLLMClient.getCallCount("analyzeSentiment")).toBe(3);
+    expect(vi.mocked(notifySubscribersOfNewReview).mock.calls.map(call => call[2])).toEqual([
+      [{ type: "spoiler", offset: hiddenStart, length: parts[0].length - hiddenStart }],
+      [{ type: "spoiler", offset: 0, length: parts[1].indexOf(" by George Orwell") }],
+      [],
+    ]);
   });
 
   it("keeps comparative multi-book mentions as one review", async () => {
@@ -522,5 +563,33 @@ describe.sequential("Review splitting handler integration", () => {
       "@testuser, эта рецензия уже была сохранена!",
       { reply_parameters: { message_id: 904 } }
     );
+  });
+
+  it("keeps the later occurrence's spoiler when retrying repeated review text", async () => {
+    const repeated = "1984 — a secret ending.";
+    const parts = [repeated, repeated, "Another review. #рецензия"];
+    const reviewText = parts.join("\n\n");
+    const ctx = createReviewContext(reviewText, 913);
+    const secondStart = repeated.length + 2;
+    (ctx.message as Message.TextMessage).entities = [
+      { type: "spoiler", offset: secondStart + repeated.indexOf("secret"), length: 6 },
+    ];
+    mockLLMClient.mockResponse(reviewText, { reviewStructure: { kind: "concatenated", parts } });
+    seedRichReview(repeated);
+    seedRichReview(parts[2]);
+    await prisma.review.create({ data: {
+      reviewText: repeated,
+      telegramUserId: BigInt(ctx.message!.from!.id),
+      messageId: 913n,
+      reviewedAt: new Date(),
+    } });
+
+    await handleReviewMessage(ctx, botContext);
+
+    expect(vi.mocked(notifySubscribersOfNewReview).mock.calls.map(call => call[2])).toEqual([
+      [{ type: "spoiler", offset: repeated.indexOf("secret"), length: 6 }],
+      [],
+    ]);
+    expect(await prisma.review.count()).toBe(3);
   });
 });

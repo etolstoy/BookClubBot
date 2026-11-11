@@ -1,5 +1,5 @@
 import { Context, Markup } from "telegraf";
-import { Message } from "telegraf/types";
+import type { Message } from "telegraf/types";
 import { config } from "../../lib/config.js";
 import { createReview } from "../../services/review.service.js";
 import { extractBookInfo } from "../../services/book-extraction.service.js";
@@ -17,7 +17,9 @@ import { logOrphanedReviewCase } from "../../services/review-eval-case-logger.se
 import { notifySubscribersOfNewReview } from "../../services/review-notification.service.js";
 import { splitReviewText } from "../../services/review-splitting.service.js";
 import type { EnrichedBook } from "../../lib/types/book-types.js";
-import { getMessageText } from "../../lib/message-text.js";
+import {
+  getMessageText, getMessageTextWithEntities, sliceMessageText, type FormattedMessageText,
+} from "../../lib/message-text.js";
 
 function getDisplayName(from: Message["from"]): string | null {
   if (!from) return null;
@@ -39,25 +41,25 @@ async function replyDuplicateReview(ctx: Context, message: Message) {
 }
 
 function filterAlreadySavedParts(
-  reviewParts: string[],
+  reviewParts: FormattedMessageText[],
   existingReviewTexts: string[]
-): { pendingParts: string[]; skippedCount: number } {
+): { pendingParts: FormattedMessageText[]; skippedCount: number } {
   const existingCounts = new Map<string, number>();
   for (const text of existingReviewTexts) {
     existingCounts.set(text, (existingCounts.get(text) || 0) + 1);
   }
 
-  const pendingParts: string[] = [];
+  const pendingParts: FormattedMessageText[] = [];
   let skippedCount = 0;
 
   for (const part of reviewParts) {
-    const remainingExistingCount = existingCounts.get(part) || 0;
+    const remainingExistingCount = existingCounts.get(part.text) || 0;
     if (remainingExistingCount > 0) {
       skippedCount++;
       if (remainingExistingCount === 1) {
-        existingCounts.delete(part);
+        existingCounts.delete(part.text);
       } else {
-        existingCounts.set(part, remainingExistingCount - 1);
+        existingCounts.set(part.text, remainingExistingCount - 1);
       }
       continue;
     }
@@ -86,6 +88,7 @@ function getMessageAuthor(message: Message): Message["from"] | undefined {
 
 interface PreparedReviewPart {
   reviewText: string;
+  entities: FormattedMessageText["entities"];
   bookId: number | null;
   sentiment: Awaited<ReturnType<typeof analyzeSentiment>>;
 }
@@ -177,10 +180,11 @@ async function processReview(
   }
 
   // Use the same text that was checked by the hashtag or command handler.
-  const messageText = getMessageText(message);
-  if (!messageText) {
+  const formattedMessage = getMessageTextWithEntities(message);
+  if (!formattedMessage?.text) {
     return;
   }
+  const messageText = formattedMessage.text;
 
   const telegramUserId = BigInt(message.from.id);
   const messageId = BigInt(message.message_id);
@@ -207,8 +211,16 @@ async function processReview(
   }
 
   const reviewParts = await splitReviewText(messageText, botContext?.llmClient);
+  let searchFrom = 0;
+  const formattedParts = reviewParts.map(part => {
+    // Walk all parts before filtering duplicates so repeated text keeps its own formatting.
+    const start = messageText.indexOf(part, searchFrom);
+    if (start < 0) throw new Error("Review part does not match the source message");
+    searchFrom = start + part.length;
+    return sliceMessageText(formattedMessage, start, searchFrom);
+  });
   const { pendingParts: reviewPartsToProcess, skippedCount } = filterAlreadySavedParts(
-    reviewParts,
+    formattedParts,
     existingReviews.map((review) => review.reviewText)
   );
 
@@ -325,9 +337,10 @@ async function createOrReuseBookFromMatch(match: EnrichedBook): Promise<number> 
 }
 
 async function prepareReviewPart(
-  reviewText: string,
+  reviewPart: FormattedMessageText,
   botContext?: BotContext
 ): Promise<PreparedReviewPart> {
+  const reviewText = reviewPart.text;
   // Step 3: Extract book info with LLM (no commandParams)
   const extractedInfo = await extractBookInfo(reviewText, botContext?.llmClient);
   const sentimentPromise = analyzeSentiment(reviewText, botContext?.llmClient);
@@ -412,6 +425,7 @@ async function prepareReviewPart(
 
   return {
     reviewText,
+    entities: reviewPart.entities,
     bookId,
     sentiment,
   };
@@ -448,7 +462,7 @@ async function savePreparedReviewPart(
   );
 
   // Fire-and-forget: notify subscribers of new review
-  notifySubscribersOfNewReview(review, ctx.telegram).catch((error) => {
+  notifySubscribersOfNewReview(review, ctx.telegram, prepared.entities).catch((error) => {
     console.error("[Review] Failed to notify subscribers:", error);
   });
 
