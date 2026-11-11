@@ -1,4 +1,5 @@
 import type { Telegram } from "telegraf";
+import type { MessageEntity } from "telegraf/types";
 import { Markup } from "telegraf";
 import type { Book, Review } from "@prisma/client";
 import prisma from "../lib/prisma.js";
@@ -7,20 +8,11 @@ import { getBookDeepLink } from "../lib/url-utils.js";
 import { getRussianPluralReview } from "../lib/string-utils.js";
 import { getActiveSubscribers, deactivateSubscription } from "./subscription.service.js";
 import { sendWarningNotification } from "./notification.service.js";
+import type { FormattedMessageText } from "../lib/message-text.js";
 
 // Rate limiting: Telegram allows ~30 messages/second to different users
 const BATCH_SIZE = 25;
 const BATCH_DELAY_MS = 1000;
-
-/**
- * Escape HTML special characters for Telegram HTML parse mode
- */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
 
 export type ReviewWithBook = Review & { book: Book | null };
 
@@ -112,31 +104,30 @@ function formatReviewerInfo(
  * Format the notification caption/text
  */
 async function formatNotificationText(
-  review: ReviewWithBook
-): Promise<string> {
+  review: ReviewWithBook,
+  reviewEntities: MessageEntity[],
+): Promise<FormattedMessageText> {
   const lines: string[] = [];
 
   // Header
-  lines.push("<b>Новая рецензия в чате Вастрик.Книги:</b>");
+  const header = "Новая рецензия в чате Вастрик.Книги:";
+  lines.push(header);
   lines.push(""); // Empty line
 
-  // Book info (escape user-generated content) - only if book exists
+  // Content is sent literally, with formatting supplied separately as entities.
   if (review.book) {
-    const title = escapeHtml(review.book.title);
-    const author = review.book.author ? ` — ${escapeHtml(review.book.author)}` : "";
+    const title = review.book.title;
+    const author = review.book.author ? ` — ${review.book.author}` : "";
     lines.push(`📚 «${title}»${author}`);
     lines.push(""); // Empty line
   }
 
-  // Reviewer info (escape user-generated content)
-  const displayName = review.telegramDisplayName ? escapeHtml(review.telegramDisplayName) : null;
-  const username = review.telegramUsername ? escapeHtml(review.telegramUsername) : null;
-  lines.push(formatReviewerInfo(displayName, username));
+  lines.push(formatReviewerInfo(review.telegramDisplayName, review.telegramUsername));
 
   lines.push(""); // Empty line
 
-  // Full review text (escape user-generated content)
-  lines.push(escapeHtml(review.reviewText));
+  const reviewOffset = lines.join("\n").length + 1;
+  lines.push(review.reviewText);
 
   // Sentiment breakdown (only if book exists)
   if (review.book) {
@@ -162,7 +153,13 @@ async function formatNotificationText(
     lines.push(`${sentimentText} — всего ${totalReviews} ${reviewWord}`);
   }
 
-  return lines.join("\n");
+  return {
+    text: lines.join("\n"),
+    entities: [
+      { type: "bold", offset: 0, length: header.length },
+      ...reviewEntities.map(entity => ({ ...entity, offset: entity.offset + reviewOffset })),
+    ],
+  };
 }
 
 /**
@@ -190,7 +187,7 @@ async function sendNotificationToSubscriber(
   telegram: Telegram,
   userId: bigint,
   review: ReviewWithBook,
-  caption: string
+  caption: FormattedMessageText
 ): Promise<void> {
   const keyboard = buildNotificationKeyboard(review.bookId);
   // Use string to avoid BigInt precision loss with large Telegram IDs
@@ -198,8 +195,10 @@ async function sendNotificationToSubscriber(
 
   try {
     // Send as text message to avoid Telegram caption length limits (1024 chars)
-    await telegram.sendMessage(chatId, caption, {
-      parse_mode: "HTML",
+    await telegram.sendMessage(chatId, caption.text, {
+      entities: caption.entities,
+      // A preview for a link inside a spoiler could reveal the hidden content.
+      link_preview_options: { is_disabled: true },
       ...keyboard,
     });
   } catch (error) {
@@ -230,7 +229,8 @@ function sleep(ms: number): Promise<void> {
  */
 export async function notifySubscribersOfNewReview(
   review: ReviewWithBook,
-  telegram: Telegram
+  telegram: Telegram,
+  reviewEntities: MessageEntity[] = [],
 ): Promise<void> {
   try {
     const subscribers = await getActiveSubscribers();
@@ -244,7 +244,7 @@ export async function notifySubscribersOfNewReview(
       `[ReviewNotification] Sending notifications to ${subscribers.length} subscribers`
     );
 
-    const caption = await formatNotificationText(review);
+    const caption = await formatNotificationText(review, reviewEntities);
 
     // Send in batches to respect Telegram rate limits
     for (let i = 0; i < subscribers.length; i += BATCH_SIZE) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Message } from "telegraf/types";
-import { getMessageText } from "../../src/lib/message-text.js";
+import { getMessageText, getMessageTextWithEntities, sliceMessageText } from "../../src/lib/message-text.js";
 function message(value: Record<string, unknown>): Message {
   return value as unknown as Message;
 }
@@ -141,5 +141,58 @@ describe("getMessageText", () => {
     expect(getMessageText(message({ rich_message: { blocks: [] } }))).toBeUndefined();
     expect(getMessageText(message({ rich_message: { blocks: [{ type: "anchor", name: "only-metadata" }] } }))).toBeUndefined();
     expect(getMessageText(message({ rich_message: { blocks: [{ type: "unknown", text: "not visible" }] } }))).toBeUndefined();
+  });
+});
+
+describe("message formatting", () => {
+  it("takes entities from the selected text or caption without mutating them", () => {
+    const entities = [{ type: "spoiler", offset: 3, length: 6 }];
+    const captionEntities = [{ type: "italic", offset: 0, length: 7 }];
+    expect(getMessageTextWithEntities(message({
+      text: "📚 secret", entities, caption: "caption", caption_entities: captionEntities,
+    }))).toEqual({ text: "📚 secret", entities });
+    expect(getMessageTextWithEntities(message({
+      caption: "caption", caption_entities: captionEntities,
+    }))).toEqual({ text: "caption", entities: captionEntities });
+    expect(getMessageTextWithEntities(message({ text: "plain" }))).toEqual({ text: "plain", entities: [] });
+  });
+
+  it("preserves rich spoilers and nested formatting across blocks, captions, and empty table cells", () => {
+    const result = getMessageTextWithEntities(message({ rich_message: { blocks: [
+      { type: "paragraph", text: ["📚 ", { type: "spoiler", text: ["the ", { type: "bold", text: "ending" }] }] },
+      { type: "photo", caption: { text: { type: "spoiler", text: "caption secret" } } },
+      { type: "table", cells: [[{ text: "" }, {}, { text: { type: "spoiler", text: "table secret" } }]] },
+      { type: "paragraph", text: { type: "url", text: "Read more", url: "https://example.com" } },
+    ] } }))!;
+
+    expect(result.text).toBe("📚 the ending\n\ncaption secret\n\n\t\ttable secret\n\nRead more");
+    expect(result.entities).toEqual([
+      { type: "spoiler", offset: result.text.indexOf("the ending"), length: 10 },
+      { type: "bold", offset: result.text.indexOf("ending"), length: 6 },
+      { type: "spoiler", offset: result.text.indexOf("caption secret"), length: 14 },
+      { type: "spoiler", offset: result.text.indexOf("table secret"), length: 12 },
+      { type: "text_link", offset: result.text.indexOf("Read more"), length: 9, url: "https://example.com" },
+    ]);
+  });
+
+  it("clips spoilers spanning review parts and excludes formatting outside each part", () => {
+    const source = getMessageTextWithEntities(message({
+      text: "📚 first\n\nsecond 📖",
+      entities: [
+        { type: "spoiler", offset: 3, length: "first\n\nsecond".length },
+        { type: "italic", offset: 10, length: 6 },
+      ],
+    }))!;
+    const original = structuredClone(source);
+    expect(sliceMessageText(source, 0, 8)).toEqual({
+      text: "📚 first", entities: [{ type: "spoiler", offset: 3, length: 5 }],
+    });
+    expect(sliceMessageText(source, 10, source.text.length)).toEqual({
+      text: "second 📖", entities: [
+        { type: "spoiler", offset: 0, length: 6 },
+        { type: "italic", offset: 0, length: 6 },
+      ],
+    });
+    expect(source).toEqual(original);
   });
 });
