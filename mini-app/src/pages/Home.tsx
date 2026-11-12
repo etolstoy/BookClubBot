@@ -5,6 +5,7 @@ import SearchBar from "../components/SearchBar";
 import SentimentBadge from "../components/SentimentBadge";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
+import CollectionsSection from "../components/CollectionsSection";
 import { useTranslation } from "../i18n/index.js";
 
 export default function Home() {
@@ -161,6 +162,8 @@ export default function Home() {
               </div>
             )}
           </section>
+
+          <CollectionsSection />
 
           {/* Navigation Buttons */}
           <section className="mb-4">

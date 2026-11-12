@@ -15,6 +15,7 @@ import type { BookSearchResult } from "../../lib/interfaces/index.js";
 import { getGoogleBooksUrl } from "../../lib/url-utils.js";
 import { detectISBN } from "../../lib/isbn-utils.js";
 import { config } from "../../lib/config.js";
+import { getBookCollections, getCorrectedCollectionAuthor } from "../../services/collection.service.js";
 
 const router = Router();
 
@@ -227,7 +228,7 @@ router.get("/:id", async (req, res) => {
       book: {
         id: book.id,
         title: book.title,
-        author: book.author,
+        author: await getCorrectedCollectionAuthor(book),
         description: book.description,
         coverUrl: book.coverUrl,
         genres,
@@ -240,6 +241,7 @@ router.get("/:id", async (req, res) => {
         sentiments,
       },
       reviews,
+      collections:await getBookCollections(book),
     });
   } catch (error) {
     console.error("Error fetching book:", error);

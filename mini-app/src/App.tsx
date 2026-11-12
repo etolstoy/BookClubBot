@@ -14,6 +14,9 @@ import PopularAuthors from "./pages/PopularAuthors.js";
 import AuthorBooks from "./pages/AuthorBooks.js";
 import VolunteerScreen from "./pages/VolunteerScreen";
 import Subscribe from "./pages/Subscribe";
+import Collection from "./pages/Collection";
+import Collections from "./pages/Collections";
+import CollectionBook from "./pages/CollectionBook";
 import { TABBED_ROUTES } from "./lib/routes.js";
 
 // Create context for config
@@ -150,6 +153,9 @@ function AppContent() {
       <Route path="/fresh-reviews" element={<Layout><FreshReviews /></Layout>} />
       <Route path="/volunteer" element={<Layout><VolunteerScreen /></Layout>} />
       <Route path="/subscribe" element={<Layout><Subscribe /></Layout>} />
+      <Route path="/collections" element={<Layout><Collections /></Layout>} />
+      <Route path="/collections/:slug" element={<Layout><Collection /></Layout>} />
+      <Route path="/collections/:slug/books/:bookId" element={<CollectionBook />} />
       {/* Legacy route for backward compatibility */}
       <Route path="/leaderboard" element={<Layout><Leaderboard /></Layout>} />
     </Routes>

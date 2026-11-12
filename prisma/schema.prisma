@@ -25,6 +25,7 @@ model Book {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   reviews         Review[]
+  collectionWorks CollectionWork[]
 
   @@map("books")
 }
@@ -56,4 +57,62 @@ model Subscription {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("subscriptions")
+}
+
+model BookCollection {
+  slug             String            @id
+  tileTitle        String            @map("tile_title")
+  title            String
+  description      String
+  color            String            @default("#e3e8ea")
+  intent           String            @default("recommendations")
+  sourceId         String?           @map("source_id")
+  sourceUrl        String?           @map("source_url")
+  sourceTitle      String?           @map("source_title")
+  sourceSnapshotAt DateTime?         @map("source_snapshot_at")
+  sortOrder        Int               @default(0) @map("sort_order")
+  entries          CollectionEntry[]
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  @@index([sortOrder])
+  @@map("book_collections")
+}
+
+model CollectionWork {
+  id             String            @id
+  bookId         Int?              @map("book_id")
+  book           Book?             @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  title          String
+  author         String
+  isbn           String
+  coverUrl       String            @map("cover_url")
+  goodreadsUrl   String            @map("goodreads_url")
+  titleAliases   String            @default("[]") @map("title_aliases")
+  authorAliases  String            @default("[]") @map("author_aliases")
+  catalogAliases String            @default("[]") @map("catalog_aliases")
+  entries        CollectionEntry[]
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  @@index([bookId])
+  @@map("collection_works")
+}
+
+model CollectionEntry {
+  collectionSlug String         @map("collection_slug")
+  collection     BookCollection @relation(fields: [collectionSlug], references: [slug], onDelete: Cascade)
+  workId         String         @map("work_id")
+  work           CollectionWork @relation(fields: [workId], references: [id], onDelete: Cascade)
+  rank           Int
+  mentions       Int            @default(0)
+  allMentions    Int            @default(0) @map("all_mentions")
+  votes          Int            @default(0)
+  weightedVotes  Float          @default(0) @map("weighted_votes")
+  score          Float          @default(0)
+
+  @@id([collectionSlug, workId])
+  @@unique([collectionSlug, rank])
+  @@index([workId])
+  @@map("collection_entries")
 }

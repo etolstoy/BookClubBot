@@ -9,6 +9,7 @@ A Telegram bot and mini-app for tracking book reviews with sentiment analysis, a
 - **Interactive Confirmation**: Choose from matched books, enter ISBN, or add manually
 - **Sentiment Analysis**: Automatic positive/negative/neutral classification
 - **Mini App Frontend**: Browse books, view reviews, explore leaderboards
+- **Book Collections**: Database-managed themed reading lists, initially 15–20 books per category, with persistent catalogue links and live review counts
 - **Book Enrichment**: Automatic metadata fetching from Google Books API
 
 Rich Messages are read from their structured blocks and stored as plain review text,

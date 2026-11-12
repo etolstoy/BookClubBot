@@ -1,5 +1,64 @@
 const API_BASE = "/api";
 
+export interface CollectionSummary {
+  slug: string;
+  tileTitle: string;
+  title: string;
+  description: string;
+  color: string;
+  intent: 'recommendations' | 'anti_recommendations';
+  bookCount: number;
+  coverUrls: string[];
+}
+
+export interface CollectionBook {
+  id: string;
+  rank: number;
+  title: string;
+  author: string;
+  isbn: string;
+  coverUrl: string;
+  goodreadsUrl: string;
+  mentions: number;
+  allMentions: number;
+  votes: number;
+  weightedVotes: number;
+  score: number;
+  popularity: number;
+  reviewCount: number;
+  bookId: number | null;
+}
+
+export interface BookCollectionMembership {
+  slug: string;
+  title: string;
+  tileTitle: string;
+  color: string;
+}
+
+export type BookPageDetail = Omit<BookDetail, 'id'> & {id:number|null};
+
+export function getCollectionBook(slug: string, workId: string): Promise<{
+  bookId:number|null; book:BookPageDetail; reviews:Review[]; collections:BookCollectionMembership[];
+}> {
+  return fetchApi(`/collections/${encodeURIComponent(slug)}/books/${encodeURIComponent(workId)}`);
+}
+
+export interface BookCollection extends CollectionSummary {
+  sourceUrl: string | null;
+  sourceTitle: string | null;
+  sourceSnapshotAt: string | null;
+  books: CollectionBook[];
+}
+
+export function getCollections(): Promise<{collections: CollectionSummary[]}> {
+  return fetchApi('/collections');
+}
+
+export function getCollection(slug: string): Promise<{collection: BookCollection}> {
+  return fetchApi(`/collections/${encodeURIComponent(slug)}`);
+}
+
 function getTelegramInitData(): string | null {
   if (typeof window === "undefined") return null;
 
@@ -161,7 +220,7 @@ export async function getBooks(options?: {
   return fetchApi(`/books${query ? `?${query}` : ""}`);
 }
 
-export async function getBook(id: number): Promise<{ book: BookDetail; reviews: Review[] }> {
+export async function getBook(id: number): Promise<{ book: BookDetail; reviews: Review[]; collections?:BookCollectionMembership[] }> {
   return fetchApi(`/books/${id}`);
 }
 
