@@ -42,9 +42,12 @@ docker-compose.yml
 docker-compose.override.yml
 Caddyfile
 
-# Database
-data/*.db
-data/*.db-journal
+# Local databases, caches and review exports
+data/
 
 # Misc
 .DS_Store
+
+# Local research exports; collection seeds are imported by migrations
+reports/
+tmp/

@@ -8,6 +8,8 @@ mini-app/dist/
 
 # Database
 data/
+!scripts/data/
+!scripts/data/book-collections-seed.json
 *.db
 *.db-journal
 
@@ -30,6 +32,9 @@ Thumbs.db
 logs/
 *.log
 npm-debug.log*
+
+# Local research reports and discussion exports
+reports/
 
 # Prisma
 prisma/*.db

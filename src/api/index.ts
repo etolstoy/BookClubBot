@@ -8,6 +8,7 @@ import authorsRouter from "./routes/authors.js";
 import volunteerRouter from "./routes/volunteer.js";
 import searchRouter from "./routes/search.js";
 import digestRouter from "./routes/digest.js";
+import collectionsRouter from "./routes/collections.js";
 import { createSubscriptionsRouter } from "./routes/subscriptions.js";
 import { getStats } from "../services/review.service.js";
 import type { Telegraf } from "telegraf";
@@ -24,6 +25,7 @@ export function createApiRouter(bot: Telegraf) {
   router.use("/volunteer", volunteerRouter);
   router.use("/search", searchRouter);
   router.use("/digest", digestRouter);
+  router.use("/collections", collectionsRouter);
   router.use("/subscriptions", createSubscriptionsRouter(bot));
 
   // Health check

@@ -12,6 +12,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "typecheck": "tsc --noEmit",
+    "collections:build": "tsx scripts/build-book-collections.ts",
+    "collections:link": "tsx src/cli/link-collection-books.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",

@@ -5,27 +5,40 @@ import MissingFieldsBadge from "./MissingFieldsBadge";
 import { useTranslation } from "../i18n/index.js";
 
 interface BookCardProps {
-  book: Book;
+  book: Pick<Book, "title" | "author" | "coverUrl" | "reviewCount"> & Omit<Partial<Book>, "id"> & {
+    id: number | string;
+  };
+  to?: string;
+  rank?: number;
   missingFields?: string[];
   onEdit?: () => void;
 }
 
-export default function BookCard({ book, missingFields, onEdit }: BookCardProps) {
+export default function BookCard({ book, to, rank, missingFields, onEdit }: BookCardProps) {
   const { t, plural } = useTranslation();
+  const sentiments = book.sentiments ?? {positive:0,negative:0,neutral:0};
   const totalSentiments =
-    book.sentiments.positive + book.sentiments.negative + book.sentiments.neutral;
+    sentiments.positive + sentiments.negative + sentiments.neutral;
   const dominantSentiment =
     totalSentiments > 0
-      ? book.sentiments.positive >= book.sentiments.negative &&
-        book.sentiments.positive >= book.sentiments.neutral
+      ? sentiments.positive >= sentiments.negative &&
+        sentiments.positive >= sentiments.neutral
         ? "positive"
-        : book.sentiments.negative >= book.sentiments.neutral
+        : sentiments.negative >= sentiments.neutral
         ? "negative"
         : "neutral"
       : null;
 
   const cardContent = (
     <>
+      {rank !== undefined && (
+        <span
+          className="w-10 self-center flex-shrink-0 text-center text-3xl font-bold leading-none tabular-nums text-tg-text"
+          aria-label={`${t("collections.rank")} ${rank}`}
+        >
+          {rank}
+        </span>
+      )}
       <div className="w-16 h-24 flex-shrink-0 rounded overflow-hidden bg-gray-200">
         {book.coverUrl ? (
           <img
@@ -73,7 +86,7 @@ export default function BookCard({ book, missingFields, onEdit }: BookCardProps)
 
   return (
     <Link
-      to={`/book/${book.id}`}
+      to={to ?? `/book/${book.id}`}
       className="flex gap-3 p-3 rounded-lg bg-tg-secondary hover:opacity-80 transition-opacity no-underline"
     >
       {cardContent}

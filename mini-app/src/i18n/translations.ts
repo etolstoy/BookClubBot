@@ -52,6 +52,21 @@ export const translations = {
     noReviews: "Рецензий не найдено",
   },
 
+  collections: {
+    title: 'Подборки',
+    allList: 'Все подборки',
+    empty: 'Подборок пока нет',
+    label: 'Подборка клуба',
+    antiLabel: 'Антирекомендации',
+    loadError: 'Не удалось загрузить подборки',
+    notFound: 'Подборка не найдена',
+    retry: 'Попробовать ещё раз',
+    booksList: 'Книги в подборке',
+    rank: 'Место',
+    originalTopic: 'Исходный пост',
+    bookMemberships: 'В подборках',
+  },
+
   review: {
     edit: "Редактировать",
     notFound: "Рецензия не найдена",
@@ -140,6 +155,11 @@ export const translations = {
   },
 
   plurals: {
+    collections: {
+      one: '{{count}} подборка',
+      few: '{{count}} подборки',
+      many: '{{count}} подборок',
+    },
     reviews: {
       one: "{{count}} рецензия",
       few: "{{count}} рецензии",

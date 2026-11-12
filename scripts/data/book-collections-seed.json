@@ -1,0 +1,3570 @@
+{
+  "version": 1,
+  "sourceSnapshotAt": "2026-11-11T23:21:08.282Z",
+  "ranking": {
+    "formula": "mentions + 0.2 * log2(1 + weightedVotes)",
+    "voteWeight": 0.2,
+    "votes": "Голоса комментария делятся между всеми названными в нём произведениями; голоса за основной пост исключены.",
+    "mentions": "Разные сообщения с положительной оценкой; для антирекомендаций — с отрицательной. Повторения внутри сообщения считаются один раз.",
+    "eligibility": "Только книги с подтверждёнными названием, автором, ISBN и обложкой.",
+    "selection": {
+      "baseLimit": 15,
+      "maxLimit": 20,
+      "minExtensionSpread": 0.1,
+      "minCutoffGap": 0.05
+    }
+  },
+  "collections": [
+    {
+      "sourceId": "post-2389",
+      "slug": "life-changing",
+      "tileTitle": "Меняют жизнь",
+      "title": "Книги, которые меняют жизнь",
+      "description": "Книги, разделившие жизнь на до и после: клубчане рассказывают, что вынесли из них и как это изменило их взгляд на себя и мир.",
+      "color": "#e9e5f4",
+      "intent": "recommendations",
+      "sourceUrl": "https://vas3k.club/post/2389/",
+      "sourceTitle": "Книги, которые разделили мою жизнь на до и после",
+      "books": [
+        {
+          "id": "d83df2ab02a01a1b",
+          "rank": 1,
+          "title": "Хватит быть славным парнем",
+          "author": "Robert A. Glover",
+          "isbn": "9789391560485",
+          "coverUrl": "/collection-covers/d83df2ab02a01a1b.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9789391560485",
+          "mentions": 7,
+          "allMentions": 9,
+          "votes": 139,
+          "weightedVotes": 46.433333,
+          "score": 8.113566,
+          "titleAliases": [
+            "Хватит быть славным парнем",
+            "No More Mr. Nice Guy",
+            "Как перестать быть приятным парнем",
+            "No More Mr. Nice Guy!"
+          ],
+          "authorAliases": [
+            "Robert A. Glover"
+          ]
+        },
+        {
+          "id": "e078f7a192790445",
+          "rank": 2,
+          "title": "Атлант расправил плечи",
+          "author": "Ayn Rand",
+          "isbn": "9781101137192",
+          "coverUrl": "/collection-covers/e078f7a192790445.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781101137192",
+          "mentions": 5,
+          "allMentions": 6,
+          "votes": 39,
+          "weightedVotes": 31.363636,
+          "score": 6.00326,
+          "titleAliases": [
+            "Атлант расправил плечи",
+            "Atlas Shrugged",
+            "Атлант заправляет штаны"
+          ],
+          "authorAliases": [
+            "Ayn Rand"
+          ]
+        },
+        {
+          "id": "1ce5cc73577b3bd6",
+          "rank": 3,
+          "title": "12 правил жизни: противоядие от хаоса",
+          "author": "Jordan B. Peterson",
+          "isbn": "9780241351642",
+          "coverUrl": "/collection-covers/1ce5cc73577b3bd6.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780241351642",
+          "mentions": 4,
+          "allMentions": 5,
+          "votes": 70,
+          "weightedVotes": 40.177778,
+          "score": 5.072759,
+          "titleAliases": [
+            "12 правил жизни: противоядие от хаоса",
+            "12 Rules for Life: An Antidote to Chaos",
+            "12 правил жизни: Противоядие от хаоса",
+            "12 правил жизни"
+          ],
+          "authorAliases": [
+            "Jordan B. Peterson"
+          ]
+        },
+        {
+          "id": "b75e48cbd92e380e",
+          "rank": 4,
+          "title": "Ложная слепота",
+          "author": "Peter Watts",
+          "isbn": "9785171529130",
+          "coverUrl": "/collection-covers/b75e48cbd92e380e.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785171529130",
+          "mentions": 4,
+          "allMentions": 4,
+          "votes": 27,
+          "weightedVotes": 7.316667,
+          "score": 4.611201,
+          "titleAliases": [
+            "Ложная слепота",
+            "Blindsight"
+          ],
+          "authorAliases": [
+            "Peter Watts"
+          ]
+        },
+        {
+          "id": "cbde660d679bff18",
+          "rank": 5,
+          "title": "Чёрный лебедь",
+          "author": "Nassim Nicholas Taleb",
+          "isbn": "9781588365835",
+          "coverUrl": "/collection-covers/cbde660d679bff18.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781588365835",
+          "mentions": 4,
+          "allMentions": 4,
+          "votes": 25,
+          "weightedVotes": 1.113636,
+          "score": 4.215945,
+          "titleAliases": [
+            "Чёрный лебедь",
+            "The Black Swan: The Impact of the Highly Improbable",
+            "Черный лебедь",
+            "Чёрный лебедь. Под знаком непредсказуемости",
+            "The Black Swan"
+          ],
+          "authorAliases": [
+            "Nassim Nicholas Taleb"
+          ]
+        },
+        {
+          "id": "f3e9caa0dd70a3cf",
+          "rank": 6,
+          "title": "Гарри Поттер и методы рационального мышления",
+          "author": "Eliezer Yudkowsky",
+          "isbn": "9781320616874",
+          "coverUrl": "/collection-covers/f3e9caa0dd70a3cf.png",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781320616874",
+          "mentions": 3,
+          "allMentions": 5,
+          "votes": 117,
+          "weightedVotes": 31.166667,
+          "score": 4.001499,
+          "titleAliases": [
+            "Гарри Поттер и методы рационального мышления",
+            "Harry Potter and the Methods of Rationality",
+            "Гарри Поттер и методы рациональности",
+            "Гарри Поттер и Методы рационального мышления",
+            "Гарри Поттер и Методы Рационального Мышления"
+          ],
+          "authorAliases": [
+            "Eliezer Yudkowsky"
+          ]
+        },
+        {
+          "id": "d198de37893ffbc0",
+          "rank": 7,
+          "title": "Вы, конечно, шутите, мистер Фейнман!",
+          "author": "Richard P. Feynman",
+          "isbn": "9780393355680",
+          "coverUrl": "/collection-covers/d198de37893ffbc0.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780393355680",
+          "mentions": 3,
+          "allMentions": 4,
+          "votes": 111,
+          "weightedVotes": 27.107143,
+          "score": 3.962573,
+          "titleAliases": [
+            "Вы, конечно, шутите, мистер Фейнман!",
+            "Surely You're Joking, Mr. Feynman!"
+          ],
+          "authorAliases": [
+            "Richard P. Feynman"
+          ]
+        },
+        {
+          "id": "af25d51242796350",
+          "rank": 8,
+          "title": "Нравственные письма к Луцилию",
+          "author": "Seneca",
+          "isbn": "9781503128170",
+          "coverUrl": "/collection-covers/af25d51242796350.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781503128170",
+          "mentions": 3,
+          "allMentions": 3,
+          "votes": 50,
+          "weightedVotes": 11.163636,
+          "score": 3.720901,
+          "titleAliases": [
+            "Нравственные письма к Луцилию",
+            "Epistulae Morales ad Lucilium",
+            "Epistulae morales ad Lucilium"
+          ],
+          "authorAliases": [
+            "Seneca"
+          ]
+        },
+        {
+          "id": "cc25b76984791bb0",
+          "rank": 9,
+          "title": "Приключения майора Звягина",
+          "author": "Веллер Михаил Иосифович",
+          "isbn": "9785171106027",
+          "coverUrl": "/collection-covers/cc25b76984791bb0.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785171106027",
+          "mentions": 3,
+          "allMentions": 3,
+          "votes": 25,
+          "weightedVotes": 8.333333,
+          "score": 3.644478,
+          "titleAliases": [
+            "Приключения майора Звягина"
+          ],
+          "authorAliases": [
+            "Веллер Михаил Иосифович",
+            "Михаил Иосифович Веллер"
+          ]
+        },
+        {
+          "id": "867df254257f20ea",
+          "rank": 10,
+          "title": "Сила воли",
+          "author": "Kelly McGonigal",
+          "isbn": "9781101553732",
+          "coverUrl": "/collection-covers/867df254257f20ea.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781101553732",
+          "mentions": 3,
+          "allMentions": 3,
+          "votes": 92,
+          "weightedVotes": 8.116667,
+          "score": 3.637701,
+          "titleAliases": [
+            "Сила воли",
+            "The Willpower Instinct",
+            "Сила воли. Как развить и укрепить"
+          ],
+          "authorAliases": [
+            "Kelly McGonigal"
+          ]
+        },
+        {
+          "id": "ea0a435debe7163c",
+          "rank": 11,
+          "title": "Самый богатый человек в Вавилоне",
+          "author": "George S. Clason",
+          "isbn": "9789562913782",
+          "coverUrl": "/collection-covers/ea0a435debe7163c.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9789562913782",
+          "mentions": 3,
+          "allMentions": 3,
+          "votes": 74,
+          "weightedVotes": 7.492208,
+          "score": 3.617228,
+          "titleAliases": [
+            "Самый богатый человек в Вавилоне",
+            "The Richest Man in Babylon"
+          ],
+          "authorAliases": [
+            "George S. Clason"
+          ]
+        },
+        {
+          "id": "32bcce4aa99c1682",
+          "rank": 12,
+          "title": "Психология влияния",
+          "author": "Robert B. Cialdini",
+          "isbn": "9780061899874",
+          "coverUrl": "/collection-covers/32bcce4aa99c1682.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780061899874",
+          "mentions": 3,
+          "allMentions": 3,
+          "votes": 71,
+          "weightedVotes": 7.253571,
+          "score": 3.609004,
+          "titleAliases": [
+            "Психология влияния",
+            "Influence: The Psychology of Persuasion",
+            "Influence"
+          ],
+          "authorAliases": [
+            "Robert B. Cialdini"
+          ]
+        },
+        {
+          "id": "5ed56d5e34528841",
+          "rank": 13,
+          "title": "Мастер и Маргарита",
+          "author": "Михаил Афанасьевич Булгаков",
+          "isbn": "9785998500695",
+          "coverUrl": "/collection-covers/5ed56d5e34528841.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785998500695",
+          "mentions": 3,
+          "allMentions": 3,
+          "votes": 26,
+          "weightedVotes": 6.9,
+          "score": 3.596371,
+          "titleAliases": [
+            "Мастер и Маргарита"
+          ],
+          "authorAliases": [
+            "Михаил Афанасьевич Булгаков"
+          ]
+        },
+        {
+          "id": "d98c13575e7dc722",
+          "rank": 14,
+          "title": "Котлован",
+          "author": "Андрей Платонов",
+          "isbn": "9785389065901",
+          "coverUrl": "/collection-covers/d98c13575e7dc722.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785389065901",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 18,
+          "weightedVotes": 18,
+          "score": 2.849586,
+          "titleAliases": [
+            "Котлован"
+          ],
+          "authorAliases": [
+            "Андрей Платонов"
+          ]
+        },
+        {
+          "id": "0a3fa54a963245ff",
+          "rank": 15,
+          "title": "Дзен или искусство ухода за мотоциклом",
+          "author": "Robert M. Pirsig",
+          "isbn": "9789863985372",
+          "coverUrl": "/collection-covers/0a3fa54a963245ff.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9789863985372",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 25,
+          "weightedVotes": 10.333333,
+          "score": 2.7005,
+          "titleAliases": [
+            "Дзен или искусство ухода за мотоциклом",
+            "Zen and the Art of Motorcycle Maintenance: An Inquiry into Values",
+            "Дзен и искусство ухода за мотоциклом"
+          ],
+          "authorAliases": [
+            "Robert M. Pirsig"
+          ]
+        },
+        {
+          "id": "fb20546db5f3b453",
+          "rank": 16,
+          "title": "Мужчины с Марса, женщины с Венеры",
+          "author": "John Gray",
+          "isbn": "9780061793363",
+          "coverUrl": "/collection-covers/fb20546db5f3b453.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780061793363",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 79,
+          "weightedVotes": 9.7,
+          "score": 2.683908,
+          "titleAliases": [
+            "Мужчины с Марса, женщины с Венеры",
+            "Men Are from Mars, Women Are from Venus"
+          ],
+          "authorAliases": [
+            "John Gray"
+          ]
+        },
+        {
+          "id": "3536eced8dfdbd76",
+          "rank": 17,
+          "title": "Думай медленно… решай быстро",
+          "author": "Daniel Kahneman",
+          "isbn": "9780385676526",
+          "coverUrl": "/collection-covers/3536eced8dfdbd76.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780385676526",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 20,
+          "weightedVotes": 7.666667,
+          "score": 2.623095,
+          "titleAliases": [
+            "Думай медленно… решай быстро",
+            "Thinking, Fast and Slow",
+            "Думай медленно, решай быстро",
+            "Думай медленно... решай быстро"
+          ],
+          "authorAliases": [
+            "Daniel Kahneman"
+          ]
+        },
+        {
+          "id": "f9bc85f5cd721f80",
+          "rank": 18,
+          "title": "Важные годы",
+          "author": "Meg Jay",
+          "isbn": "9780446575065",
+          "coverUrl": "/collection-covers/f9bc85f5cd721f80.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780446575065",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 16,
+          "weightedVotes": 7,
+          "score": 2.6,
+          "titleAliases": [
+            "Важные годы",
+            "The Defining Decade"
+          ],
+          "authorAliases": [
+            "Meg Jay"
+          ]
+        },
+        {
+          "id": "17a76d69a0c86c28",
+          "rank": 19,
+          "title": "Чапаев и Пустота",
+          "author": "Виктор Пелевин",
+          "isbn": "9785699221325",
+          "coverUrl": "/collection-covers/17a76d69a0c86c28.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785699221325",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 6,
+          "weightedVotes": 6,
+          "score": 2.561471,
+          "titleAliases": [
+            "Чапаев и Пустота"
+          ],
+          "authorAliases": [
+            "Виктор Пелевин"
+          ]
+        },
+        {
+          "id": "9a8b17542f688bcf",
+          "rank": 20,
+          "title": "Бегство от свободы",
+          "author": "Erich Fromm",
+          "isbn": "9781480402010",
+          "coverUrl": "/collection-covers/9a8b17542f688bcf.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781480402010",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 24,
+          "weightedVotes": 4.933333,
+          "score": 2.513769,
+          "titleAliases": [
+            "Бегство от свободы",
+            "Escape from Freedom"
+          ],
+          "authorAliases": [
+            "Erich Fromm"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "post-6558",
+      "slug": "unusual",
+      "tileTitle": "Необычные книги",
+      "title": "Необычные книги",
+      "description": "Ни на что не похожий читательский опыт: романы-загадки, переписка на полях и книги, которые играют с самой формой чтения.",
+      "color": "#f4e6da",
+      "intent": "recommendations",
+      "sourceUrl": "https://vas3k.club/post/6558/",
+      "sourceTitle": "Необычные книги",
+      "books": [
+        {
+          "id": "276c1db942742164",
+          "rank": 1,
+          "title": "Гёдель, Эшер, Бах: эта бесконечная гирлянда",
+          "author": "Douglas R. Hofstadter",
+          "isbn": "9780140179972",
+          "coverUrl": "/collection-covers/276c1db942742164.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780140179972",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 12,
+          "weightedVotes": 12,
+          "score": 2.740088,
+          "titleAliases": [
+            "Гёдель, Эшер, Бах: эта бесконечная гирлянда",
+            "Gödel, Escher, Bach: An Eternal Golden Braid"
+          ],
+          "authorAliases": [
+            "Douglas R. Hofstadter"
+          ]
+        },
+        {
+          "id": "b05aa077e1cf6f1b",
+          "rank": 2,
+          "title": "S.",
+          "author": "Doug Dorst; J. J. Abrams",
+          "isbn": "9783462047264",
+          "coverUrl": "/collection-covers/b05aa077e1cf6f1b.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9783462047264",
+          "mentions": 2,
+          "allMentions": 5,
+          "votes": 2,
+          "weightedVotes": 2,
+          "score": 2.316993,
+          "titleAliases": [
+            "S."
+          ],
+          "authorAliases": [
+            "Doug Dorst; J. J. Abrams"
+          ]
+        },
+        {
+          "id": "32d7e96c375a832e",
+          "rank": 3,
+          "title": "Игра в классики",
+          "author": "Julio Cortázar",
+          "isbn": "9789802763672",
+          "coverUrl": "/collection-covers/32d7e96c375a832e.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9789802763672",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 2,
+          "weightedVotes": 1.5,
+          "score": 2.264386,
+          "titleAliases": [
+            "Игра в классики",
+            "Rayuela"
+          ],
+          "authorAliases": [
+            "Julio Cortázar"
+          ]
+        },
+        {
+          "id": "3074cab70ab04ff4",
+          "rank": 4,
+          "title": "Дом листьев",
+          "author": "Mark Z. Danielewski",
+          "isbn": "9780375420528",
+          "coverUrl": "/collection-covers/3074cab70ab04ff4.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780375420528",
+          "mentions": 2,
+          "allMentions": 6,
+          "votes": 1,
+          "weightedVotes": 1,
+          "score": 2.2,
+          "titleAliases": [
+            "Дом листьев",
+            "House of Leaves"
+          ],
+          "authorAliases": [
+            "Mark Z. Danielewski"
+          ]
+        },
+        {
+          "id": "feda9f945d52b84b",
+          "rank": 5,
+          "title": "Кодекс Серафинианус",
+          "author": "Luigi Serafini",
+          "isbn": "9780847871049",
+          "coverUrl": "/collection-covers/feda9f945d52b84b.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780847871049",
+          "mentions": 1,
+          "allMentions": 2,
+          "votes": 13,
+          "weightedVotes": 13,
+          "score": 1.761471,
+          "titleAliases": [
+            "Кодекс Серафинианус",
+            "Codex Seraphinianus"
+          ],
+          "authorAliases": [
+            "Luigi Serafini"
+          ]
+        },
+        {
+          "id": "4fd4d2cc8e5435c1",
+          "rank": 6,
+          "title": "Tom Clancy's The Division: New York Collapse",
+          "author": "Alex Irvine",
+          "isbn": "9781452148274",
+          "coverUrl": "/collection-covers/4fd4d2cc8e5435c1.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781452148274",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 11,
+          "weightedVotes": 11,
+          "score": 1.716993,
+          "titleAliases": [
+            "Tom Clancy's The Division: New York Collapse",
+            "Tom Clancy’s The Division: New York Collapse"
+          ],
+          "authorAliases": [
+            "Alex Irvine"
+          ]
+        },
+        {
+          "id": "47c7e8954faff6c5",
+          "rank": 7,
+          "title": "Облачный атлас",
+          "author": "David Mitchell",
+          "isbn": "9781844568819",
+          "coverUrl": "/collection-covers/47c7e8954faff6c5.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781844568819",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 7,
+          "weightedVotes": 7,
+          "score": 1.6,
+          "titleAliases": [
+            "Облачный атлас",
+            "Cloud Atlas"
+          ],
+          "authorAliases": [
+            "David Mitchell"
+          ]
+        },
+        {
+          "id": "fdd18de8e6228610",
+          "rank": 8,
+          "title": "Вверх по лестнице, ведущей вниз",
+          "author": "Bel Kaufman",
+          "isbn": "9780525565659",
+          "coverUrl": "/collection-covers/fdd18de8e6228610.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780525565659",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 6,
+          "weightedVotes": 6,
+          "score": 1.561471,
+          "titleAliases": [
+            "Вверх по лестнице, ведущей вниз",
+            "Up the Down Staircase"
+          ],
+          "authorAliases": [
+            "Bel Kaufman"
+          ]
+        },
+        {
+          "id": "364e21637ea28192",
+          "rank": 9,
+          "title": "Падение Стоуна",
+          "author": "Iain Pears",
+          "isbn": "9780385530248",
+          "coverUrl": "/collection-covers/364e21637ea28192.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780385530248",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 11,
+          "weightedVotes": 5.5,
+          "score": 1.540088,
+          "titleAliases": [
+            "Падение Стоуна",
+            "Stone's Fall"
+          ],
+          "authorAliases": [
+            "Iain Pears"
+          ]
+        },
+        {
+          "id": "dc8066d3ebfcf99a",
+          "rank": 10,
+          "title": "Сластена",
+          "author": "Ian McEwan",
+          "isbn": "9780385536837",
+          "coverUrl": "/collection-covers/dc8066d3ebfcf99a.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780385536837",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 11,
+          "weightedVotes": 5.5,
+          "score": 1.540088,
+          "titleAliases": [
+            "Сластена",
+            "Sweet Tooth"
+          ],
+          "authorAliases": [
+            "Ian McEwan"
+          ]
+        },
+        {
+          "id": "9a7ab7f54aeaa6b0",
+          "rank": 11,
+          "title": "Остров Сахалин",
+          "author": "Эдуард Веркин",
+          "isbn": "9785041185671",
+          "coverUrl": "/collection-covers/9a7ab7f54aeaa6b0.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785041185671",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 5,
+          "weightedVotes": 5,
+          "score": 1.516993,
+          "titleAliases": [
+            "Остров Сахалин"
+          ],
+          "authorAliases": [
+            "Эдуард Веркин"
+          ]
+        },
+        {
+          "id": "08f2ae3741977646",
+          "rank": 12,
+          "title": "Квантовый вор",
+          "author": "Hannu Rajaniemi",
+          "isbn": "9780765367662",
+          "coverUrl": "/collection-covers/08f2ae3741977646.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780765367662",
+          "mentions": 1,
+          "allMentions": 3,
+          "votes": 9,
+          "weightedVotes": 4.5,
+          "score": 1.491886,
+          "titleAliases": [
+            "Квантовый вор",
+            "The Quantum Thief"
+          ],
+          "authorAliases": [
+            "Hannu Rajaniemi"
+          ]
+        },
+        {
+          "id": "6109b4a308cafb3b",
+          "rank": 13,
+          "title": "Теперь ты — стальная крыса",
+          "author": "Harry Harrison",
+          "isbn": "0586063595",
+          "coverUrl": "/collection-covers/6109b4a308cafb3b.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/0586063595",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 4,
+          "weightedVotes": 4,
+          "score": 1.464386,
+          "titleAliases": [
+            "Теперь ты — стальная крыса",
+            "You Can Be the Stainless Steel Rat"
+          ],
+          "authorAliases": [
+            "Harry Harrison"
+          ]
+        },
+        {
+          "id": "d08d14e9d0e03e61",
+          "rank": 14,
+          "title": "О ненормальности мозговой жизни современного культурного человека",
+          "author": "Мария Михайловна Манасеина",
+          "isbn": "9785519952842",
+          "coverUrl": "/collection-covers/d08d14e9d0e03e61.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785519952842",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 2,
+          "weightedVotes": 2,
+          "score": 1.316993,
+          "titleAliases": [
+            "О ненормальности мозговой жизни современного культурного человека"
+          ],
+          "authorAliases": [
+            "Мария Михайловна Манасеина",
+            "М. М. Манасеина"
+          ]
+        },
+        {
+          "id": "9bca76e9b8c59bd7",
+          "rank": 15,
+          "title": "All About Yves",
+          "author": "Catherine Ormen",
+          "isbn": "9781786271242",
+          "coverUrl": "/collection-covers/9bca76e9b8c59bd7.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781786271242",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 2,
+          "weightedVotes": 2,
+          "score": 1.316993,
+          "titleAliases": [
+            "All About Yves"
+          ],
+          "authorAliases": [
+            "Catherine Ormen"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "question-4784",
+      "slug": "science",
+      "tileTitle": "Научпоп",
+      "title": "Научпоп, который увлекает",
+      "description": "Ответы на вопрос о научпопе, который «вот прямо очень зашёл»: книги о человеке, природе и устройстве мира, увлёкшие клубчан.",
+      "color": "#e0ece7",
+      "intent": "recommendations",
+      "sourceUrl": "https://vas3k.club/question/4784/",
+      "sourceTitle": "Посоветуйте научпоп книги которые вам вот прямо очень зашли?",
+      "books": [
+        {
+          "id": "d3b1c5c3f523307d",
+          "rank": 1,
+          "title": "Хлопок одной ладонью: Как неживая природа породила человеческий разум",
+          "author": "Николай Кукушкин",
+          "isbn": "9785001393153",
+          "coverUrl": "/collection-covers/d3b1c5c3f523307d.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785001393153",
+          "mentions": 4,
+          "allMentions": 4,
+          "votes": 58,
+          "weightedVotes": 31.25,
+          "score": 5.002245,
+          "titleAliases": [
+            "Хлопок одной ладонью: Как неживая природа породила человеческий разум",
+            "Хлопок одной ладонью",
+            "Хлопок одной рукой"
+          ],
+          "authorAliases": [
+            "Николай Кукушкин"
+          ]
+        },
+        {
+          "id": "3536eced8dfdbd76",
+          "rank": 2,
+          "title": "Думай медленно… решай быстро",
+          "author": "Daniel Kahneman",
+          "isbn": "9780385676526",
+          "coverUrl": "/collection-covers/3536eced8dfdbd76.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780385676526",
+          "mentions": 4,
+          "allMentions": 4,
+          "votes": 105,
+          "weightedVotes": 12.826471,
+          "score": 4.757872,
+          "titleAliases": [
+            "Думай медленно… решай быстро",
+            "Thinking, Fast and Slow",
+            "Думай медленно, решай быстро",
+            "Думай медленно... решай быстро"
+          ],
+          "authorAliases": [
+            "Daniel Kahneman"
+          ]
+        },
+        {
+          "id": "7afa75cba4c71b49",
+          "rank": 3,
+          "title": "Тоннель эго",
+          "author": "Thomas Metzinger",
+          "isbn": "9780786744428",
+          "coverUrl": "/collection-covers/7afa75cba4c71b49.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780786744428",
+          "mentions": 3,
+          "allMentions": 3,
+          "votes": 19,
+          "weightedVotes": 13.4,
+          "score": 3.769599,
+          "titleAliases": [
+            "Тоннель эго",
+            "The Ego Tunnel",
+            "Туннель эго",
+            "The Ego Tunnel: The Science of the Mind and the Myth of the Self"
+          ],
+          "authorAliases": [
+            "Thomas Metzinger"
+          ]
+        },
+        {
+          "id": "dec5c08af83bfdc5",
+          "rank": 4,
+          "title": "Ружья, микробы и сталь",
+          "author": "Jared Diamond",
+          "isbn": "9780393038910",
+          "coverUrl": "/collection-covers/dec5c08af83bfdc5.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780393038910",
+          "mentions": 3,
+          "allMentions": 4,
+          "votes": 11,
+          "weightedVotes": 4.5,
+          "score": 3.491886,
+          "titleAliases": [
+            "Ружья, микробы и сталь",
+            "Guns, Germs, and Steel: The Fates of Human Societies",
+            "Ружья, микробы и сталь. Судьбы человеческих обществ",
+            "Guns, Germs, and Steel"
+          ],
+          "authorAliases": [
+            "Jared Diamond"
+          ]
+        },
+        {
+          "id": "5498a80e9e45dafd",
+          "rank": 5,
+          "title": "Долг: первые 5000 лет истории",
+          "author": "David Graeber",
+          "isbn": "9785911032999",
+          "coverUrl": "/collection-covers/5498a80e9e45dafd.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785911032999",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 8,
+          "weightedVotes": 7.5,
+          "score": 2.617493,
+          "titleAliases": [
+            "Долг: первые 5000 лет истории",
+            "Debt: The First 5,000 Years",
+            "Debt: The First 5000 Years"
+          ],
+          "authorAliases": [
+            "David Graeber"
+          ]
+        },
+        {
+          "id": "c254cafb952e15cc",
+          "rank": 6,
+          "title": "Фактологичность. Десять причин наших заблуждений о мире — и почему всё не так плохо, как кажется",
+          "author": "Hans Rosling",
+          "isbn": "9781250107817",
+          "coverUrl": "/collection-covers/c254cafb952e15cc.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781250107817",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 21,
+          "weightedVotes": 4.9,
+          "score": 2.512143,
+          "titleAliases": [
+            "Фактологичность. Десять причин наших заблуждений о мире — и почему всё не так плохо, как кажется",
+            "Factfulness",
+            "Factfulness: Ten Reasons We're Wrong About the World — and Why Things Are Better Than You Think"
+          ],
+          "authorAliases": [
+            "Hans Rosling"
+          ]
+        },
+        {
+          "id": "bc3c1b21050da7a1",
+          "rank": 7,
+          "title": "Биология добра и зла",
+          "author": "Robert M. Sapolsky",
+          "isbn": "9781594205071",
+          "coverUrl": "/collection-covers/bc3c1b21050da7a1.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781594205071",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 19,
+          "weightedVotes": 4.1,
+          "score": 2.470099,
+          "titleAliases": [
+            "Биология добра и зла",
+            "Behave: The Biology of Humans at Our Best and Worst",
+            "Behave",
+            "Behave: Биология добра и зла",
+            "Всё решено: Жизнь без свободы воли"
+          ],
+          "authorAliases": [
+            "Robert M. Sapolsky"
+          ]
+        },
+        {
+          "id": "4162b6b890b3b1b5",
+          "rank": 8,
+          "title": "Chasing New Horizons",
+          "author": "Alan Stern; David Grinspoon",
+          "isbn": "9781250098962",
+          "coverUrl": "/collection-covers/4162b6b890b3b1b5.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781250098962",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 6,
+          "weightedVotes": 4,
+          "score": 2.464386,
+          "titleAliases": [
+            "Chasing New Horizons",
+            "Chasing New Horizons: Inside the Epic First Mission to Pluto",
+            "За новыми горизонтами. Первый полет к Плутону"
+          ],
+          "authorAliases": [
+            "Alan Stern; David Grinspoon"
+          ]
+        },
+        {
+          "id": "ca10fb823b07aac0",
+          "rank": 9,
+          "title": "Жизнь учёного среди павианов",
+          "author": "Robert Sapolsky",
+          "isbn": "9781416590361",
+          "coverUrl": "/collection-covers/ca10fb823b07aac0.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781416590361",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 3,
+          "weightedVotes": 3,
+          "score": 2.4,
+          "titleAliases": [
+            "Жизнь учёного среди павианов",
+            "A Primate's Memoir",
+            "Записки примата",
+            "Записки примата. Необычайная жизнь ученого среди павианов"
+          ],
+          "authorAliases": [
+            "Robert Sapolsky"
+          ]
+        },
+        {
+          "id": "3414f3d70999ee15",
+          "rank": 10,
+          "title": "Predictably Irrational",
+          "author": "Dan Ariely",
+          "isbn": "9780061750113",
+          "coverUrl": "/collection-covers/3414f3d70999ee15.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780061750113",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 16,
+          "weightedVotes": 2.3,
+          "score": 2.344493,
+          "titleAliases": [
+            "Predictably Irrational",
+            "Предсказуемая иррациональность"
+          ],
+          "authorAliases": [
+            "Dan Ariely"
+          ]
+        },
+        {
+          "id": "5b9b4fd4ca9d8bb1",
+          "rank": 11,
+          "title": "Добыча: Всемирная история борьбы за нефть, деньги и власть",
+          "author": "Daniel Yergin",
+          "isbn": "9785961437881",
+          "coverUrl": "/collection-covers/5b9b4fd4ca9d8bb1.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785961437881",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 4,
+          "weightedVotes": 2,
+          "score": 2.316993,
+          "titleAliases": [
+            "Добыча: Всемирная история борьбы за нефть, деньги и власть",
+            "The Prize: The Epic Quest for Oil, Money, and Power",
+            "Добыча",
+            "The Prize: The Epic Quest for Oil, Money & Power"
+          ],
+          "authorAliases": [
+            "Daniel Yergin"
+          ]
+        },
+        {
+          "id": "fee63f2e6ed3bd45",
+          "rank": 12,
+          "title": "Ракеты и люди",
+          "author": "Черток Борис Евсеевич",
+          "isbn": "5217030976",
+          "coverUrl": "/collection-covers/fee63f2e6ed3bd45.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/5217030976",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 11,
+          "weightedVotes": 1.833333,
+          "score": 2.3005,
+          "titleAliases": [
+            "Ракеты и люди"
+          ],
+          "authorAliases": [
+            "Черток Борис Евсеевич",
+            "Борис Евсеевич Черток"
+          ]
+        },
+        {
+          "id": "d74db78e753f564d",
+          "rank": 13,
+          "title": "Новый ум короля",
+          "author": "Roger Penrose",
+          "isbn": "9780198784920",
+          "coverUrl": "/collection-covers/d74db78e753f564d.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780198784920",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 2,
+          "weightedVotes": 1.25,
+          "score": 2.233985,
+          "titleAliases": [
+            "Новый ум короля",
+            "The Emperor's New Mind"
+          ],
+          "authorAliases": [
+            "Roger Penrose"
+          ]
+        },
+        {
+          "id": "9ccf30559fdc5b41",
+          "rank": 14,
+          "title": "Сапиенс. Краткая история человечества",
+          "author": "Yuval Noah Harari",
+          "isbn": "9781784873646",
+          "coverUrl": "/collection-covers/9ccf30559fdc5b41.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781784873646",
+          "mentions": 2,
+          "allMentions": 5,
+          "votes": 2,
+          "weightedVotes": 1,
+          "score": 2.2,
+          "titleAliases": [
+            "Сапиенс. Краткая история человечества",
+            "Sapiens: A Brief History of Humankind",
+            "Краткая история человечества",
+            "Сапиенс",
+            "Sapiens",
+            "Sapiens: Краткая история человечества",
+            "Sapiens. Краткая история человечества"
+          ],
+          "authorAliases": [
+            "Yuval Noah Harari"
+          ]
+        },
+        {
+          "id": "05d976030ab669ec",
+          "rank": 15,
+          "title": "Краткая история времени",
+          "author": "Stephen Hawking",
+          "isbn": "9780553380163",
+          "coverUrl": "/collection-covers/05d976030ab669ec.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780553380163",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 47,
+          "weightedVotes": 47,
+          "score": 2.116993,
+          "titleAliases": [
+            "Краткая история времени",
+            "A Brief History of Time"
+          ],
+          "authorAliases": [
+            "Stephen Hawking"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "question-32013",
+      "slug": "childhood",
+      "tileTitle": "Из детства",
+      "title": "Любимые книги детства",
+      "description": "Клубчане вспоминают книги своего детства — истории, с которыми росли, которые перечитывали и помнят до сих пор.",
+      "color": "#f4ecd8",
+      "intent": "recommendations",
+      "sourceUrl": "https://vas3k.club/question/32013/",
+      "sourceTitle": "Книги вашего детства?",
+      "books": [
+        {
+          "id": "af7716c8892c81b4",
+          "rank": 1,
+          "title": "Посёлок",
+          "author": "Кир Булычёв",
+          "isbn": "9785389262096",
+          "coverUrl": "/collection-covers/af7716c8892c81b4.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785389262096",
+          "mentions": 3,
+          "allMentions": 3,
+          "votes": 7,
+          "weightedVotes": 7,
+          "score": 3.6,
+          "titleAliases": [
+            "Посёлок"
+          ],
+          "authorAliases": [
+            "Кир Булычёв"
+          ]
+        },
+        {
+          "id": "94e1fc715829ebf9",
+          "rank": 2,
+          "title": "Таинственный остров",
+          "author": "Jules Verne",
+          "isbn": "9781981599981",
+          "coverUrl": "/collection-covers/94e1fc715829ebf9.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781981599981",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 11,
+          "weightedVotes": 11,
+          "score": 2.716993,
+          "titleAliases": [
+            "Таинственный остров",
+            "L'Île mystérieuse"
+          ],
+          "authorAliases": [
+            "Jules Verne"
+          ]
+        },
+        {
+          "id": "30ae061ca08b97fb",
+          "rank": 3,
+          "title": "Денискины рассказы",
+          "author": "Виктор Драгунский",
+          "isbn": "9785042357336",
+          "coverUrl": "/collection-covers/30ae061ca08b97fb.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785042357336",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 27,
+          "weightedVotes": 7.25,
+          "score": 2.608879,
+          "titleAliases": [
+            "Денискины рассказы"
+          ],
+          "authorAliases": [
+            "Виктор Драгунский"
+          ]
+        },
+        {
+          "id": "29283c3b2e3061ab",
+          "rank": 4,
+          "title": "Звёзды — холодные игрушки",
+          "author": "Сергей Лукьяненко",
+          "isbn": "9785457151758",
+          "coverUrl": "/collection-covers/29283c3b2e3061ab.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785457151758",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 40,
+          "weightedVotes": 5.535714,
+          "score": 2.541669,
+          "titleAliases": [
+            "Звёзды — холодные игрушки"
+          ],
+          "authorAliases": [
+            "Сергей Лукьяненко"
+          ]
+        },
+        {
+          "id": "3f91bd92fc1d2fbf",
+          "rank": 5,
+          "title": "Спектр",
+          "author": "Сергей Лукьяненко",
+          "isbn": "9785457151741",
+          "coverUrl": "/collection-covers/3f91bd92fc1d2fbf.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785457151741",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 40,
+          "weightedVotes": 5.535714,
+          "score": 2.541669,
+          "titleAliases": [
+            "Спектр"
+          ],
+          "authorAliases": [
+            "Сергей Лукьяненко"
+          ]
+        },
+        {
+          "id": "f9689a61bb98f48d",
+          "rank": 6,
+          "title": "Отягощённые злом, или Сорок лет спустя",
+          "author": "Аркадий Стругацкий; Борис Стругацкий",
+          "isbn": "9785171372316",
+          "coverUrl": "/collection-covers/f9689a61bb98f48d.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785171372316",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 15,
+          "weightedVotes": 3.666667,
+          "score": 2.444478,
+          "titleAliases": [
+            "Отягощённые злом, или Сорок лет спустя",
+            "Отягощённые злом"
+          ],
+          "authorAliases": [
+            "Аркадий Стругацкий; Борис Стругацкий"
+          ]
+        },
+        {
+          "id": "e1fe097093cb435c",
+          "rank": 7,
+          "title": "Трудно быть богом",
+          "author": "Аркадий Стругацкий; Борис Стругацкий",
+          "isbn": "9785170501984",
+          "coverUrl": "/collection-covers/e1fe097093cb435c.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785170501984",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 7,
+          "weightedVotes": 2.666667,
+          "score": 2.374894,
+          "titleAliases": [
+            "Трудно быть богом"
+          ],
+          "authorAliases": [
+            "Аркадий Стругацкий; Борис Стругацкий"
+          ]
+        },
+        {
+          "id": "c5ea941507843b8e",
+          "rank": 8,
+          "title": "Понедельник начинается в субботу",
+          "author": "Аркадий Стругацкий; Борис Стругацкий",
+          "isbn": "9785859500161",
+          "coverUrl": "/collection-covers/c5ea941507843b8e.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785859500161",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 9,
+          "weightedVotes": 2,
+          "score": 2.316993,
+          "titleAliases": [
+            "Понедельник начинается в субботу"
+          ],
+          "authorAliases": [
+            "Аркадий Стругацкий; Борис Стругацкий"
+          ]
+        },
+        {
+          "id": "dce2af2a842650cf",
+          "rank": 9,
+          "title": "Ключи к декабрю",
+          "author": "Roger Zelazny",
+          "isbn": "9781515470243",
+          "coverUrl": "/collection-covers/dce2af2a842650cf.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781515470243",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 21,
+          "weightedVotes": 1.8,
+          "score": 2.297085,
+          "titleAliases": [
+            "Ключи к декабрю",
+            "Keys to December"
+          ],
+          "authorAliases": [
+            "Roger Zelazny"
+          ]
+        },
+        {
+          "id": "181737921c4c3464",
+          "rank": 10,
+          "title": "Сказки 1001 ночи",
+          "author": "Hanan al-Shaykh",
+          "isbn": "9781408826713",
+          "coverUrl": "/collection-covers/181737921c4c3464.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781408826713",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 5,
+          "weightedVotes": 1.8,
+          "score": 2.297085,
+          "titleAliases": [
+            "Сказки 1001 ночи",
+            "One Thousand and One Nights",
+            "1000 и одна ночь. Том 1",
+            "Тысяча и одна ночь"
+          ],
+          "authorAliases": [
+            "Hanan al-Shaykh"
+          ]
+        },
+        {
+          "id": "6296d4e9e88b9c8a",
+          "rank": 11,
+          "title": "Винни-Пух",
+          "author": "A. A. Milne",
+          "isbn": "9781101158937",
+          "coverUrl": "/collection-covers/6296d4e9e88b9c8a.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781101158937",
+          "mentions": 2,
+          "allMentions": 4,
+          "votes": 7,
+          "weightedVotes": 1.333333,
+          "score": 2.244478,
+          "titleAliases": [
+            "Винни-Пух",
+            "Winnie-the-Pooh"
+          ],
+          "authorAliases": [
+            "A. A. Milne"
+          ]
+        },
+        {
+          "id": "206101503c4b9d5b",
+          "rank": 12,
+          "title": "Мир и человек. Полный иллюстрированный географический атлас",
+          "author": "О. В. Старкова",
+          "isbn": "9785179829911",
+          "coverUrl": "/collection-covers/206101503c4b9d5b.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785179829911",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 70,
+          "weightedVotes": 70,
+          "score": 2.229949,
+          "titleAliases": [
+            "Мир и человек. Полный иллюстрированный географический атлас",
+            "Мир и человек: географический атлас"
+          ],
+          "authorAliases": [
+            "О. В. Старкова"
+          ]
+        },
+        {
+          "id": "f4c031a86f0dee44",
+          "rank": 13,
+          "title": "Муфта, Полботинка и Моховая Борода",
+          "author": "Eno Raud",
+          "isbn": "9785170356331",
+          "coverUrl": "/collection-covers/f4c031a86f0dee44.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785170356331",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 8,
+          "weightedVotes": 1.133333,
+          "score": 2.218622,
+          "titleAliases": [
+            "Муфта, Полботинка и Моховая Борода",
+            "Naksitrallid"
+          ],
+          "authorAliases": [
+            "Eno Raud"
+          ]
+        },
+        {
+          "id": "13e2e3134c3a3ede",
+          "rank": 14,
+          "title": "Бойцовский клуб",
+          "author": "Chuck Palahniuk",
+          "isbn": "9780805062977",
+          "coverUrl": "/collection-covers/13e2e3134c3a3ede.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780805062977",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 11,
+          "weightedVotes": 1.104348,
+          "score": 2.214675,
+          "titleAliases": [
+            "Бойцовский клуб",
+            "Fight Club"
+          ],
+          "authorAliases": [
+            "Chuck Palahniuk"
+          ]
+        },
+        {
+          "id": "a895d39f22539b0f",
+          "rank": 15,
+          "title": "Энциклопедия профессора Фортрана",
+          "author": "Андрей Владленович Зарецкий; А. Труханов; М. Зарецкая",
+          "isbn": "5090034842",
+          "coverUrl": "/collection-covers/a895d39f22539b0f.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/5090034842",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 58,
+          "weightedVotes": 58,
+          "score": 2.176529,
+          "titleAliases": [
+            "Энциклопедия профессора Фортрана"
+          ],
+          "authorAliases": [
+            "Андрей Владленович Зарецкий; А. Труханов; М. Зарецкая"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "thread-30223",
+      "slug": "best-2025",
+      "tileTitle": "Лучшее — 2025",
+      "title": "Любимые книги 2025 года",
+      "description": "Лучшее из прочитанного клубчанами в 2025 году, независимо от даты издания. В исходной теме выбирали тройку любимых книг и обсуждали разочарования и guilty pleasure.",
+      "color": "#e2eaf3",
+      "intent": "recommendations",
+      "sourceUrl": "https://vas3k.club/thread/30223/",
+      "sourceTitle": "Топ книг 2025",
+      "books": [
+        {
+          "id": "f824f26f5d3cc266",
+          "rank": 1,
+          "title": "Велнесс",
+          "author": "Nathan Hill",
+          "isbn": "9780385688093",
+          "coverUrl": "/collection-covers/f824f26f5d3cc266.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780385688093",
+          "mentions": 3,
+          "allMentions": 4,
+          "votes": 26,
+          "weightedVotes": 3.714286,
+          "score": 3.447408,
+          "titleAliases": [
+            "Велнесс",
+            "Wellness"
+          ],
+          "authorAliases": [
+            "Nathan Hill"
+          ]
+        },
+        {
+          "id": "1f421aba8d58dc12",
+          "rank": 2,
+          "title": "Планета людей",
+          "author": "Антуан де Сент-Экзюпери",
+          "isbn": "9785389173545",
+          "coverUrl": "/collection-covers/1f421aba8d58dc12.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785389173545",
+          "mentions": 3,
+          "allMentions": 3,
+          "votes": 2,
+          "weightedVotes": 2,
+          "score": 3.316993,
+          "titleAliases": [
+            "Планета людей",
+            "Terre des hommes"
+          ],
+          "authorAliases": [
+            "Антуан де Сент-Экзюпери",
+            "Antoine de Saint-Exupéry"
+          ]
+        },
+        {
+          "id": "c194634ca57ed7db",
+          "rank": 3,
+          "title": "Гиперион",
+          "author": "Dan Simmons",
+          "isbn": "9780307781888",
+          "coverUrl": "/collection-covers/c194634ca57ed7db.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780307781888",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 29,
+          "weightedVotes": 8,
+          "score": 2.633985,
+          "titleAliases": [
+            "Гиперион",
+            "Hyperion"
+          ],
+          "authorAliases": [
+            "Dan Simmons"
+          ]
+        },
+        {
+          "id": "ba2c409fecf7f7d5",
+          "rank": 4,
+          "title": "The Art of Doing Science and Engineering: Learning to Learn",
+          "author": "Richard W. Hamming",
+          "isbn": "9781732265172",
+          "coverUrl": "/collection-covers/ba2c409fecf7f7d5.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781732265172",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 18,
+          "weightedVotes": 6.8,
+          "score": 2.592695,
+          "titleAliases": [
+            "The Art of Doing Science and Engineering: Learning to Learn"
+          ],
+          "authorAliases": [
+            "Richard W. Hamming",
+            "Richard Hamming"
+          ]
+        },
+        {
+          "id": "d3b1c5c3f523307d",
+          "rank": 5,
+          "title": "Хлопок одной ладонью: Как неживая природа породила человеческий разум",
+          "author": "Николай Кукушкин",
+          "isbn": "9785001393153",
+          "coverUrl": "/collection-covers/d3b1c5c3f523307d.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785001393153",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 22,
+          "weightedVotes": 3.142857,
+          "score": 2.410125,
+          "titleAliases": [
+            "Хлопок одной ладонью: Как неживая природа породила человеческий разум",
+            "Хлопок одной ладонью",
+            "Хлопок одной рукой"
+          ],
+          "authorAliases": [
+            "Николай Кукушкин"
+          ]
+        },
+        {
+          "id": "f3e9caa0dd70a3cf",
+          "rank": 6,
+          "title": "Гарри Поттер и методы рационального мышления",
+          "author": "Eliezer Yudkowsky",
+          "isbn": "9781320616874",
+          "coverUrl": "/collection-covers/f3e9caa0dd70a3cf.png",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781320616874",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 12,
+          "weightedVotes": 2.7,
+          "score": 2.377505,
+          "titleAliases": [
+            "Гарри Поттер и методы рационального мышления",
+            "Harry Potter and the Methods of Rationality",
+            "Гарри Поттер и методы рациональности",
+            "Гарри Поттер и Методы рационального мышления",
+            "Гарри Поттер и Методы Рационального Мышления"
+          ],
+          "authorAliases": [
+            "Eliezer Yudkowsky"
+          ]
+        },
+        {
+          "id": "b394369ad668f37a",
+          "rank": 7,
+          "title": "Гроздья гнева",
+          "author": "John Steinbeck",
+          "isbn": "9780142000663",
+          "coverUrl": "/collection-covers/b394369ad668f37a.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780142000663",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 11,
+          "weightedVotes": 2.25,
+          "score": 2.340088,
+          "titleAliases": [
+            "Гроздья гнева",
+            "The Grapes of Wrath"
+          ],
+          "authorAliases": [
+            "John Steinbeck"
+          ]
+        },
+        {
+          "id": "886905de94ef391f",
+          "rank": 8,
+          "title": "Горе от ума",
+          "author": "Александр Сергеевич Грибоедов",
+          "isbn": "9785389075344",
+          "coverUrl": "/collection-covers/886905de94ef391f.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785389075344",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 6,
+          "weightedVotes": 2,
+          "score": 2.316993,
+          "titleAliases": [
+            "Горе от ума"
+          ],
+          "authorAliases": [
+            "Александр Сергеевич Грибоедов"
+          ]
+        },
+        {
+          "id": "adca35be2e4173b5",
+          "rank": 9,
+          "title": "Мартин Иден",
+          "author": "Jack London",
+          "isbn": "9780486826011",
+          "coverUrl": "/collection-covers/adca35be2e4173b5.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780486826011",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 10,
+          "weightedVotes": 2,
+          "score": 2.316993,
+          "titleAliases": [
+            "Мартин Иден",
+            "Martin Eden"
+          ],
+          "authorAliases": [
+            "Jack London"
+          ]
+        },
+        {
+          "id": "2d86e14000d09bae",
+          "rank": 10,
+          "title": "Щегол",
+          "author": "Donna Tartt",
+          "isbn": "9780316248679",
+          "coverUrl": "/collection-covers/2d86e14000d09bae.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780316248679",
+          "mentions": 2,
+          "allMentions": 6,
+          "votes": 13,
+          "weightedVotes": 2,
+          "score": 2.316993,
+          "titleAliases": [
+            "Щегол",
+            "The Goldfinch"
+          ],
+          "authorAliases": [
+            "Donna Tartt"
+          ]
+        },
+        {
+          "id": "39e4dc5c3c6fa81e",
+          "rank": 11,
+          "title": "John Dies at the End",
+          "author": "David Wong",
+          "isbn": "9780732291501",
+          "coverUrl": "/collection-covers/39e4dc5c3c6fa81e.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780732291501",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 7,
+          "weightedVotes": 1.4,
+          "score": 2.252607,
+          "titleAliases": [
+            "John Dies at the End"
+          ],
+          "authorAliases": [
+            "David Wong"
+          ]
+        },
+        {
+          "id": "78d4410b8c0ed364",
+          "rank": 12,
+          "title": "Прах Анджелы",
+          "author": "Фрэнк Маккорт",
+          "isbn": "9785171057893",
+          "coverUrl": "/collection-covers/78d4410b8c0ed364.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785171057893",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 7,
+          "weightedVotes": 1,
+          "score": 2.2,
+          "titleAliases": [
+            "Прах Анджелы",
+            "Angela's Ashes"
+          ],
+          "authorAliases": [
+            "Фрэнк Маккорт",
+            "Frank McCourt"
+          ]
+        },
+        {
+          "id": "07247af0db24d0f9",
+          "rank": 13,
+          "title": "Семь смертей Эвелины Хардкасл",
+          "author": "Стюарт Тёртон",
+          "isbn": "9785389147997",
+          "coverUrl": "/collection-covers/07247af0db24d0f9.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785389147997",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 6,
+          "weightedVotes": 0.928571,
+          "score": 2.189507,
+          "titleAliases": [
+            "Семь смертей Эвелины Хардкасл",
+            "The 7½ Deaths of Evelyn Hardcastle",
+            "The Seven Deaths of Evelyn Hardcastle"
+          ],
+          "authorAliases": [
+            "Стюарт Тёртон",
+            "Stuart Turton"
+          ]
+        },
+        {
+          "id": "bcf0a78b1e459a3f",
+          "rank": 14,
+          "title": "Морской волк",
+          "author": "Jack London",
+          "isbn": "9780679783374",
+          "coverUrl": "/collection-covers/bcf0a78b1e459a3f.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780679783374",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 1,
+          "weightedVotes": 0.5,
+          "score": 2.116993,
+          "titleAliases": [
+            "Морской волк",
+            "The Sea-Wolf"
+          ],
+          "authorAliases": [
+            "Jack London"
+          ]
+        },
+        {
+          "id": "fd5820f58f0f5842",
+          "rank": 15,
+          "title": "Благоволительницы",
+          "author": "Jonathan Littell",
+          "isbn": "9782070780976",
+          "coverUrl": "/collection-covers/fd5820f58f0f5842.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9782070780976",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 24,
+          "weightedVotes": 3,
+          "score": 1.4,
+          "titleAliases": [
+            "Благоволительницы",
+            "Les Bienveillantes"
+          ],
+          "authorAliases": [
+            "Jonathan Littell"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "thread-26660",
+      "slug": "best-2024",
+      "tileTitle": "Лучшее — 2024",
+      "title": "Любимые книги 2024 года",
+      "description": "Лучшее из прочитанного клубчанами в 2024 году, независимо от даты издания. В исходной теме выбирали тройку любимых книг и обсуждали разочарования и guilty pleasure.",
+      "color": "#ece5ed",
+      "intent": "recommendations",
+      "sourceUrl": "https://vas3k.club/thread/26660/",
+      "sourceTitle": "Топ книг 2024",
+      "books": [
+        {
+          "id": "d23beaf511f4ff3e",
+          "rank": 1,
+          "title": "Игра в кроликов",
+          "author": "Terry Miles",
+          "isbn": "9781984819666",
+          "coverUrl": "/collection-covers/d23beaf511f4ff3e.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781984819666",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 11,
+          "weightedVotes": 4.875,
+          "score": 2.510918,
+          "titleAliases": [
+            "Игра в кроликов",
+            "Rabbits"
+          ],
+          "authorAliases": [
+            "Terry Miles"
+          ]
+        },
+        {
+          "id": "d825863174be4123",
+          "rank": 2,
+          "title": "Случайному гостю",
+          "author": "Алексей Гедеонов",
+          "isbn": "9786177313204",
+          "coverUrl": "/collection-covers/d825863174be4123.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9786177313204",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 8,
+          "weightedVotes": 4,
+          "score": 2.464386,
+          "titleAliases": [
+            "Случайному гостю"
+          ],
+          "authorAliases": [
+            "Алексей Гедеонов"
+          ]
+        },
+        {
+          "id": "ca10fb823b07aac0",
+          "rank": 3,
+          "title": "Жизнь учёного среди павианов",
+          "author": "Robert Sapolsky",
+          "isbn": "9781416590361",
+          "coverUrl": "/collection-covers/ca10fb823b07aac0.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781416590361",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 8,
+          "weightedVotes": 2.857143,
+          "score": 2.389507,
+          "titleAliases": [
+            "Жизнь учёного среди павианов",
+            "A Primate's Memoir",
+            "Записки примата",
+            "Записки примата. Необычайная жизнь ученого среди павианов"
+          ],
+          "authorAliases": [
+            "Robert Sapolsky"
+          ]
+        },
+        {
+          "id": "6eacac4dd9d924ac",
+          "rank": 4,
+          "title": "Бронепароходы",
+          "author": "Алексей Викторович Иванов",
+          "isbn": "9785047083612",
+          "coverUrl": "/collection-covers/6eacac4dd9d924ac.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785047083612",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 16,
+          "weightedVotes": 2.825,
+          "score": 2.387092,
+          "titleAliases": [
+            "Бронепароходы"
+          ],
+          "authorAliases": [
+            "Алексей Викторович Иванов"
+          ]
+        },
+        {
+          "id": "99e669c159da8a87",
+          "rank": 5,
+          "title": "The Dragon's Banker",
+          "author": "Scott Warren",
+          "isbn": "9781078426671",
+          "coverUrl": "/collection-covers/99e669c159da8a87.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781078426671",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 20,
+          "weightedVotes": 2.466667,
+          "score": 2.35871,
+          "titleAliases": [
+            "The Dragon's Banker"
+          ],
+          "authorAliases": [
+            "Scott Warren"
+          ]
+        },
+        {
+          "id": "adcff31c8a2677f0",
+          "rank": 6,
+          "title": "Кадавры",
+          "author": "Алексей Поляринов",
+          "isbn": "9785042263064",
+          "coverUrl": "/collection-covers/adcff31c8a2677f0.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785042263064",
+          "mentions": 2,
+          "allMentions": 5,
+          "votes": 10,
+          "weightedVotes": 2.333333,
+          "score": 2.347393,
+          "titleAliases": [
+            "Кадавры"
+          ],
+          "authorAliases": [
+            "Алексей Поляринов"
+          ]
+        },
+        {
+          "id": "f3e9caa0dd70a3cf",
+          "rank": 7,
+          "title": "Гарри Поттер и методы рационального мышления",
+          "author": "Eliezer Yudkowsky",
+          "isbn": "9781320616874",
+          "coverUrl": "/collection-covers/f3e9caa0dd70a3cf.png",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781320616874",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 19,
+          "weightedVotes": 2.3,
+          "score": 2.344493,
+          "titleAliases": [
+            "Гарри Поттер и методы рационального мышления",
+            "Harry Potter and the Methods of Rationality",
+            "Гарри Поттер и методы рациональности",
+            "Гарри Поттер и Методы рационального мышления",
+            "Гарри Поттер и Методы Рационального Мышления"
+          ],
+          "authorAliases": [
+            "Eliezer Yudkowsky"
+          ]
+        },
+        {
+          "id": "e08db7eb6839ac64",
+          "rank": 8,
+          "title": "Граф Аверин. Колдун Российской империи",
+          "author": "Виктор Дашкевич",
+          "isbn": "9785042321207",
+          "coverUrl": "/collection-covers/e08db7eb6839ac64.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785042321207",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 11,
+          "weightedVotes": 2.2,
+          "score": 2.335614,
+          "titleAliases": [
+            "Граф Аверин. Колдун Российской империи"
+          ],
+          "authorAliases": [
+            "Виктор Дашкевич"
+          ]
+        },
+        {
+          "id": "d039590f75774d42",
+          "rank": 9,
+          "title": "Бесконечная шутка",
+          "author": "David Foster Wallace",
+          "isbn": "9780316306058",
+          "coverUrl": "/collection-covers/d039590f75774d42.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780316306058",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 14,
+          "weightedVotes": 2.009804,
+          "score": 2.317934,
+          "titleAliases": [
+            "Бесконечная шутка",
+            "Infinite Jest"
+          ],
+          "authorAliases": [
+            "David Foster Wallace"
+          ]
+        },
+        {
+          "id": "50a98ca5ca727ebd",
+          "rank": 10,
+          "title": "Риф",
+          "author": "Алексей Поляринов",
+          "isbn": "9785041099336",
+          "coverUrl": "/collection-covers/50a98ca5ca727ebd.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785041099336",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 3,
+          "weightedVotes": 2,
+          "score": 2.316993,
+          "titleAliases": [
+            "Риф"
+          ],
+          "authorAliases": [
+            "Алексей Поляринов"
+          ]
+        },
+        {
+          "id": "cfe59c9f6ca82995",
+          "rank": 11,
+          "title": "В поисках Аляски",
+          "author": "John Green",
+          "isbn": "9780593109069",
+          "coverUrl": "/collection-covers/cfe59c9f6ca82995.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780593109069",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 4,
+          "weightedVotes": 1.75,
+          "score": 2.291886,
+          "titleAliases": [
+            "В поисках Аляски",
+            "Looking for Alaska"
+          ],
+          "authorAliases": [
+            "John Green"
+          ]
+        },
+        {
+          "id": "a61bc4ab74063780",
+          "rank": 12,
+          "title": "Клара и Солнце",
+          "author": "Kazuo Ishiguro",
+          "isbn": "9780593318171",
+          "coverUrl": "/collection-covers/a61bc4ab74063780.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780593318171",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 4,
+          "weightedVotes": 1.75,
+          "score": 2.291886,
+          "titleAliases": [
+            "Клара и Солнце",
+            "Klara and the Sun"
+          ],
+          "authorAliases": [
+            "Kazuo Ishiguro"
+          ]
+        },
+        {
+          "id": "c194634ca57ed7db",
+          "rank": 13,
+          "title": "Гиперион",
+          "author": "Dan Simmons",
+          "isbn": "9780307781888",
+          "coverUrl": "/collection-covers/c194634ca57ed7db.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780307781888",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 4,
+          "weightedVotes": 1.176471,
+          "score": 2.224398,
+          "titleAliases": [
+            "Гиперион",
+            "Hyperion"
+          ],
+          "authorAliases": [
+            "Dan Simmons"
+          ]
+        },
+        {
+          "id": "237f9e3326c4ae3a",
+          "rank": 14,
+          "title": "Не отпускай меня",
+          "author": "Kazuo Ishiguro",
+          "isbn": "9781400044832",
+          "coverUrl": "/collection-covers/237f9e3326c4ae3a.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781400044832",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 6,
+          "weightedVotes": 0.75,
+          "score": 2.161471,
+          "titleAliases": [
+            "Не отпускай меня",
+            "Never Let Me Go"
+          ],
+          "authorAliases": [
+            "Kazuo Ishiguro"
+          ]
+        },
+        {
+          "id": "b394369ad668f37a",
+          "rank": 15,
+          "title": "Гроздья гнева",
+          "author": "John Steinbeck",
+          "isbn": "9780142000663",
+          "coverUrl": "/collection-covers/b394369ad668f37a.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780142000663",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 9,
+          "weightedVotes": 0.692308,
+          "score": 2.151798,
+          "titleAliases": [
+            "Гроздья гнева",
+            "The Grapes of Wrath"
+          ],
+          "authorAliases": [
+            "John Steinbeck"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "thread-22046",
+      "slug": "best-2023",
+      "tileTitle": "Лучшее — 2023",
+      "title": "Любимые книги 2023 года",
+      "description": "Лучшее из прочитанного клубчанами в 2023 году, независимо от даты издания. В исходной теме выбирали тройку любимых книг и обсуждали разочарования.",
+      "color": "#e5ebdd",
+      "intent": "recommendations",
+      "sourceUrl": "https://vas3k.club/thread/22046/",
+      "sourceTitle": "Топ книг 2023",
+      "books": [
+        {
+          "id": "f96da9c04c806471",
+          "rank": 1,
+          "title": "Задача трёх тел",
+          "author": "刘慈欣",
+          "isbn": "9785042015465",
+          "coverUrl": "/collection-covers/f96da9c04c806471.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785042015465",
+          "mentions": 4,
+          "allMentions": 6,
+          "votes": 30,
+          "weightedVotes": 11.119048,
+          "score": 4.719841,
+          "titleAliases": [
+            "Задача трёх тел",
+            "三体",
+            "The Three-Body Problem"
+          ],
+          "authorAliases": [
+            "刘慈欣",
+            "Liu Cixin"
+          ]
+        },
+        {
+          "id": "d4eae3856bdb88ef",
+          "rank": 2,
+          "title": "Mother of Learning",
+          "author": "Domagoj Kurmaic",
+          "isbn": "9788894848588",
+          "coverUrl": "/collection-covers/d4eae3856bdb88ef.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9788894848588",
+          "mentions": 3,
+          "allMentions": 5,
+          "votes": 26,
+          "weightedVotes": 16.5,
+          "score": 3.825857,
+          "titleAliases": [
+            "Mother of Learning"
+          ],
+          "authorAliases": [
+            "Domagoj Kurmaic"
+          ]
+        },
+        {
+          "id": "ee4b143ca2995cdb",
+          "rank": 3,
+          "title": "Тихий Дон",
+          "author": "Шолохов Михаил Александрович",
+          "isbn": "9785171393076",
+          "coverUrl": "/collection-covers/ee4b143ca2995cdb.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785171393076",
+          "mentions": 3,
+          "allMentions": 3,
+          "votes": 39,
+          "weightedVotes": 13.333333,
+          "score": 3.76826,
+          "titleAliases": [
+            "Тихий Дон",
+            "And Quiet Flows the Don"
+          ],
+          "authorAliases": [
+            "Шолохов Михаил Александрович",
+            "Михаил Александрович Шолохов"
+          ]
+        },
+        {
+          "id": "a70d970e715a755f",
+          "rank": 4,
+          "title": "Outlive: The Science and Art of Longevity",
+          "author": "Peter Attia",
+          "isbn": "9798889132493",
+          "coverUrl": "/collection-covers/a70d970e715a755f.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9798889132493",
+          "mentions": 3,
+          "allMentions": 3,
+          "votes": 31,
+          "weightedVotes": 10.5,
+          "score": 3.704712,
+          "titleAliases": [
+            "Outlive: The Science and Art of Longevity"
+          ],
+          "authorAliases": [
+            "Peter Attia"
+          ]
+        },
+        {
+          "id": "9cec2cf18522b4a4",
+          "rank": 5,
+          "title": "The Almanack of Naval Ravikant: A Guide to Wealth and Happiness",
+          "author": "Eric Jorgenson",
+          "isbn": "9798893310962",
+          "coverUrl": "/collection-covers/9cec2cf18522b4a4.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9798893310962",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 31,
+          "weightedVotes": 10.5,
+          "score": 2.704712,
+          "titleAliases": [
+            "The Almanack of Naval Ravikant: A Guide to Wealth and Happiness"
+          ],
+          "authorAliases": [
+            "Eric Jorgenson"
+          ]
+        },
+        {
+          "id": "8e059fc3c7d7af31",
+          "rank": 6,
+          "title": "Stuff Matters",
+          "author": "Mark Miodownik",
+          "isbn": "9780544236042",
+          "coverUrl": "/collection-covers/8e059fc3c7d7af31.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780544236042",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 42,
+          "weightedVotes": 9.3,
+          "score": 2.672914,
+          "titleAliases": [
+            "Stuff Matters",
+            "Stuff Matters: Exploring the Marvelous Materials That Shape Our Man-Made World"
+          ],
+          "authorAliases": [
+            "Mark Miodownik"
+          ]
+        },
+        {
+          "id": "15219917b2cca2e5",
+          "rank": 7,
+          "title": "Смерть Ивана Ильича",
+          "author": "Лев Николаевич Толстой",
+          "isbn": "9781520067490",
+          "coverUrl": "/collection-covers/15219917b2cca2e5.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781520067490",
+          "mentions": 2,
+          "allMentions": 4,
+          "votes": 32,
+          "weightedVotes": 7,
+          "score": 2.6,
+          "titleAliases": [
+            "Смерть Ивана Ильича",
+            "The Death of Ivan Ilyich"
+          ],
+          "authorAliases": [
+            "Лев Николаевич Толстой"
+          ]
+        },
+        {
+          "id": "011579a3ad20b5b1",
+          "rank": 8,
+          "title": "Братья Карамазовы",
+          "author": "Фёдор Михайлович Достоевский",
+          "isbn": "9785425075451",
+          "coverUrl": "/collection-covers/011579a3ad20b5b1.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785425075451",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 10,
+          "weightedVotes": 4.5,
+          "score": 2.491886,
+          "titleAliases": [
+            "Братья Карамазовы",
+            "The Brothers Karamazov"
+          ],
+          "authorAliases": [
+            "Фёдор Михайлович Достоевский"
+          ]
+        },
+        {
+          "id": "db753f84fa8ec583",
+          "rank": 9,
+          "title": "Лавр",
+          "author": "Евгений Водолазкин",
+          "isbn": "9785457236752",
+          "coverUrl": "/collection-covers/db753f84fa8ec583.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785457236752",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 10,
+          "weightedVotes": 4.5,
+          "score": 2.491886,
+          "titleAliases": [
+            "Лавр",
+            "Laurus"
+          ],
+          "authorAliases": [
+            "Евгений Водолазкин"
+          ]
+        },
+        {
+          "id": "47c7e8954faff6c5",
+          "rank": 10,
+          "title": "Облачный атлас",
+          "author": "David Mitchell",
+          "isbn": "9781844568819",
+          "coverUrl": "/collection-covers/47c7e8954faff6c5.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781844568819",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 5,
+          "weightedVotes": 4,
+          "score": 2.464386,
+          "titleAliases": [
+            "Облачный атлас",
+            "Cloud Atlas"
+          ],
+          "authorAliases": [
+            "David Mitchell"
+          ]
+        },
+        {
+          "id": "d5af680334f8a5cf",
+          "rank": 11,
+          "title": "Марсианин",
+          "author": "Andy Weir",
+          "isbn": "9780804139021",
+          "coverUrl": "/collection-covers/d5af680334f8a5cf.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780804139021",
+          "mentions": 2,
+          "allMentions": 4,
+          "votes": 26,
+          "weightedVotes": 2.930556,
+          "score": 2.394947,
+          "titleAliases": [
+            "Марсианин",
+            "The Martian"
+          ],
+          "authorAliases": [
+            "Andy Weir"
+          ]
+        },
+        {
+          "id": "ccfa3d7eba9eb345",
+          "rank": 12,
+          "title": "Project Hail Mary",
+          "author": "Andy Weir",
+          "isbn": "9780593135211",
+          "coverUrl": "/collection-covers/ccfa3d7eba9eb345.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780593135211",
+          "mentions": 2,
+          "allMentions": 5,
+          "votes": 23,
+          "weightedVotes": 2.555556,
+          "score": 2.366015,
+          "titleAliases": [
+            "Project Hail Mary",
+            "Проект «Аве Мария»"
+          ],
+          "authorAliases": [
+            "Andy Weir"
+          ]
+        },
+        {
+          "id": "e4245cabf5655e02",
+          "rank": 13,
+          "title": "Тысяча осеней Якоба де Зута",
+          "author": "David Mitchell",
+          "isbn": "9780340921562",
+          "coverUrl": "/collection-covers/e4245cabf5655e02.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780340921562",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 9,
+          "weightedVotes": 2.333333,
+          "score": 2.347393,
+          "titleAliases": [
+            "Тысяча осеней Якоба де Зута",
+            "The Thousand Autumns of Jacob de Zoet"
+          ],
+          "authorAliases": [
+            "David Mitchell"
+          ]
+        },
+        {
+          "id": "26b726c33172e17e",
+          "rank": 14,
+          "title": "Когда плакал Ницше",
+          "author": "Irvin D. Yalom",
+          "isbn": "9781541646438",
+          "coverUrl": "/collection-covers/26b726c33172e17e.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781541646438",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 10,
+          "weightedVotes": 1.785714,
+          "score": 2.295609,
+          "titleAliases": [
+            "Когда плакал Ницше",
+            "When Nietzsche Wept"
+          ],
+          "authorAliases": [
+            "Irvin D. Yalom"
+          ]
+        },
+        {
+          "id": "785cd52a69be7a11",
+          "rank": 15,
+          "title": "Борьба за моря. Эпоха великих географических открытий",
+          "author": "Erdődy János",
+          "isbn": "9631308200",
+          "coverUrl": "/collection-covers/785cd52a69be7a11.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9631308200",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 3,
+          "weightedVotes": 1.4,
+          "score": 2.252607,
+          "titleAliases": [
+            "Борьба за моря. Эпоха великих географических открытий",
+            "Борьба за моря"
+          ],
+          "authorAliases": [
+            "Erdődy János",
+            "Янош Эрдиди"
+          ]
+        },
+        {
+          "id": "390f9b035d53b716",
+          "rank": 16,
+          "title": "Лисьи броды",
+          "author": "Анна Старобинец",
+          "isbn": "9785047081793",
+          "coverUrl": "/collection-covers/390f9b035d53b716.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785047081793",
+          "mentions": 2,
+          "allMentions": 4,
+          "votes": 4,
+          "weightedVotes": 1.333333,
+          "score": 2.244478,
+          "titleAliases": [
+            "Лисьи броды",
+            "Лисьи Броды"
+          ],
+          "authorAliases": [
+            "Анна Старобинец"
+          ]
+        },
+        {
+          "id": "02f5c576166d10f1",
+          "rank": 17,
+          "title": "Tomorrow, and Tomorrow, and Tomorrow",
+          "author": "Gabrielle Zevin",
+          "isbn": "9780593466490",
+          "coverUrl": "/collection-covers/02f5c576166d10f1.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780593466490",
+          "mentions": 2,
+          "allMentions": 3,
+          "votes": 2,
+          "weightedVotes": 0.5,
+          "score": 2.116993,
+          "titleAliases": [
+            "Tomorrow, and Tomorrow, and Tomorrow",
+            "Завтра, завтра, завтра"
+          ],
+          "authorAliases": [
+            "Gabrielle Zevin"
+          ]
+        },
+        {
+          "id": "1c450155b67e49b7",
+          "rank": 18,
+          "title": "Перекрёстки",
+          "author": "Jonathan Franzen",
+          "isbn": "9780374719791",
+          "coverUrl": "/collection-covers/1c450155b67e49b7.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780374719791",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 2,
+          "weightedVotes": 0.416667,
+          "score": 2.1005,
+          "titleAliases": [
+            "Перекрёстки",
+            "Crossroads"
+          ],
+          "authorAliases": [
+            "Jonathan Franzen"
+          ]
+        },
+        {
+          "id": "c31158c436483b86",
+          "rank": 19,
+          "title": "Принципы изменения мирового порядка",
+          "author": "Ray Dalio",
+          "isbn": "9781982160272",
+          "coverUrl": "/collection-covers/c31158c436483b86.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781982160272",
+          "mentions": 2,
+          "allMentions": 4,
+          "votes": 2,
+          "weightedVotes": 0.333333,
+          "score": 2.083007,
+          "titleAliases": [
+            "Принципы изменения мирового порядка",
+            "Principles for Dealing with the Changing World Order: Why Nations Succeed and Fail",
+            "Принципы: изменение мирового порядка. Почему одни нации побеждают, а другие терпят поражение",
+            "The Changing World Order"
+          ],
+          "authorAliases": [
+            "Ray Dalio"
+          ]
+        },
+        {
+          "id": "29b0a01ab76ed581",
+          "rank": 20,
+          "title": "80,000 Hours: How to Have a Fulfilling Career That Does Good",
+          "author": "Benjamin Todd",
+          "isbn": "9780593981092",
+          "coverUrl": "/collection-covers/29b0a01ab76ed581.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780593981092",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 30,
+          "weightedVotes": 10,
+          "score": 1.691886,
+          "titleAliases": [
+            "80,000 Hours: How to Have a Fulfilling Career That Does Good",
+            "80,000 Hours: Find a fulfilling career that does good",
+            "80,000 Hours: Find a Fulfilling Career that Does Good"
+          ],
+          "authorAliases": [
+            "Benjamin Todd"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "post-17764",
+      "slug": "best-2022",
+      "tileTitle": "Лучшее — 2022",
+      "title": "Любимые книги 2022 года",
+      "description": "Книжные итоги 2022 года: личные топы, анти-топы и читательские челленджи. Здесь — книги, которые клубчане выделили среди лучших.",
+      "color": "#efe4db",
+      "intent": "recommendations",
+      "sourceUrl": "https://vas3k.club/post/17764/",
+      "sourceTitle": "Книжные итоги года и челенджи 2022",
+      "books": [
+        {
+          "id": "9acb3b39eb1230ac",
+          "rank": 1,
+          "title": "Осиная фабрика",
+          "author": "Iain Banks",
+          "isbn": "9780684853154",
+          "coverUrl": "/collection-covers/9acb3b39eb1230ac.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780684853154",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 5,
+          "weightedVotes": 1.8,
+          "score": 2.297085,
+          "titleAliases": [
+            "Осиная фабрика",
+            "The Wasp Factory"
+          ],
+          "authorAliases": [
+            "Iain Banks"
+          ]
+        },
+        {
+          "id": "b2dac18776dbc8ff",
+          "rank": 2,
+          "title": "Цирцея",
+          "author": "Madeline Miller",
+          "isbn": "9786020665931",
+          "coverUrl": "/collection-covers/b2dac18776dbc8ff.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9786020665931",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 7,
+          "weightedVotes": 0.904762,
+          "score": 2.185922,
+          "titleAliases": [
+            "Цирцея",
+            "Circe"
+          ],
+          "authorAliases": [
+            "Madeline Miller"
+          ]
+        },
+        {
+          "id": "d767c0db49ed7e2f",
+          "rank": 3,
+          "title": "История западной философии",
+          "author": "Bertrand Russell",
+          "isbn": "0041000455",
+          "coverUrl": "/collection-covers/d767c0db49ed7e2f.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/0041000455",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 4,
+          "weightedVotes": 0.8,
+          "score": 2.169599,
+          "titleAliases": [
+            "История западной философии",
+            "A History of Western Philosophy"
+          ],
+          "authorAliases": [
+            "Bertrand Russell"
+          ]
+        },
+        {
+          "id": "f8e2ba9cf699472f",
+          "rank": 4,
+          "title": "День на Пересадке",
+          "author": "Лэнд Алла",
+          "isbn": "9785600031845",
+          "coverUrl": "/collection-covers/f8e2ba9cf699472f.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785600031845",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 7,
+          "weightedVotes": 1.75,
+          "score": 1.291886,
+          "titleAliases": [
+            "День на Пересадке"
+          ],
+          "authorAliases": [
+            "Лэнд Алла",
+            "Алла Ленд"
+          ]
+        },
+        {
+          "id": "75c04e542670c2bf",
+          "rank": 5,
+          "title": "Дизайн привычных вещей",
+          "author": "Don Norman",
+          "isbn": "9780465072996",
+          "coverUrl": "/collection-covers/75c04e542670c2bf.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780465072996",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 7,
+          "weightedVotes": 1.75,
+          "score": 1.291886,
+          "titleAliases": [
+            "Дизайн привычных вещей",
+            "The Design of Everyday Things"
+          ],
+          "authorAliases": [
+            "Don Norman"
+          ]
+        },
+        {
+          "id": "ef2ea5145b127c63",
+          "rank": 6,
+          "title": "Теория невероятности. Как мечтать, чтобы сбывалось, как планировать, чтобы достигалось",
+          "author": "Татьяна Мужицкая",
+          "isbn": "9785041972585",
+          "coverUrl": "/collection-covers/ef2ea5145b127c63.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785041972585",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 7,
+          "weightedVotes": 1.75,
+          "score": 1.291886,
+          "titleAliases": [
+            "Теория невероятности. Как мечтать, чтобы сбывалось, как планировать, чтобы достигалось"
+          ],
+          "authorAliases": [
+            "Татьяна Мужицкая"
+          ]
+        },
+        {
+          "id": "7b2d1dd5cb6f60c3",
+          "rank": 7,
+          "title": "Дом, в котором...",
+          "author": "Мариам Петросян",
+          "isbn": "9785457591981",
+          "coverUrl": "/collection-covers/7b2d1dd5cb6f60c3.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785457591981",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 14,
+          "weightedVotes": 1.555556,
+          "score": 1.270727,
+          "titleAliases": [
+            "Дом, в котором..."
+          ],
+          "authorAliases": [
+            "Мариам Петросян"
+          ]
+        },
+        {
+          "id": "390f9b035d53b716",
+          "rank": 8,
+          "title": "Лисьи броды",
+          "author": "Анна Старобинец",
+          "isbn": "9785047081793",
+          "coverUrl": "/collection-covers/390f9b035d53b716.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785047081793",
+          "mentions": 1,
+          "allMentions": 3,
+          "votes": 14,
+          "weightedVotes": 1.555556,
+          "score": 1.270727,
+          "titleAliases": [
+            "Лисьи броды",
+            "Лисьи Броды"
+          ],
+          "authorAliases": [
+            "Анна Старобинец"
+          ]
+        },
+        {
+          "id": "5ced24a26fe25beb",
+          "rank": 9,
+          "title": "Под куполом",
+          "author": "Stephen King",
+          "isbn": "9781476735474",
+          "coverUrl": "/collection-covers/5ced24a26fe25beb.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781476735474",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 14,
+          "weightedVotes": 1.555556,
+          "score": 1.270727,
+          "titleAliases": [
+            "Под куполом",
+            "Under the Dome"
+          ],
+          "authorAliases": [
+            "Stephen King"
+          ]
+        },
+        {
+          "id": "2d86e14000d09bae",
+          "rank": 10,
+          "title": "Щегол",
+          "author": "Donna Tartt",
+          "isbn": "9780316248679",
+          "coverUrl": "/collection-covers/2d86e14000d09bae.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780316248679",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 14,
+          "weightedVotes": 1.555556,
+          "score": 1.270727,
+          "titleAliases": [
+            "Щегол",
+            "The Goldfinch"
+          ],
+          "authorAliases": [
+            "Donna Tartt"
+          ]
+        },
+        {
+          "id": "baa27352af258fcc",
+          "rank": 11,
+          "title": "The Player of Games",
+          "author": "Iain M. Banks",
+          "isbn": "9780316095860",
+          "coverUrl": "/collection-covers/baa27352af258fcc.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780316095860",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 14,
+          "weightedVotes": 1.555556,
+          "score": 1.270727,
+          "titleAliases": [
+            "The Player of Games"
+          ],
+          "authorAliases": [
+            "Iain M. Banks"
+          ]
+        },
+        {
+          "id": "a95effc046cbbebe",
+          "rank": 12,
+          "title": "Город перестановок",
+          "author": "Greg Egan",
+          "isbn": "9781922240019",
+          "coverUrl": "/collection-covers/a95effc046cbbebe.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781922240019",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 3,
+          "weightedVotes": 1.5,
+          "score": 1.264386,
+          "titleAliases": [
+            "Город перестановок",
+            "Permutation City"
+          ],
+          "authorAliases": [
+            "Greg Egan"
+          ]
+        },
+        {
+          "id": "d3b1c5c3f523307d",
+          "rank": 13,
+          "title": "Хлопок одной ладонью: Как неживая природа породила человеческий разум",
+          "author": "Николай Кукушкин",
+          "isbn": "9785001393153",
+          "coverUrl": "/collection-covers/d3b1c5c3f523307d.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785001393153",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 3,
+          "weightedVotes": 1.5,
+          "score": 1.264386,
+          "titleAliases": [
+            "Хлопок одной ладонью: Как неживая природа породила человеческий разум",
+            "Хлопок одной ладонью",
+            "Хлопок одной рукой"
+          ],
+          "authorAliases": [
+            "Николай Кукушкин"
+          ]
+        },
+        {
+          "id": "500bb321bcc1b2e4",
+          "rank": 14,
+          "title": "How to Talk So Little Kids Will Listen: A Survival Guide to Life with Children Ages 2-7",
+          "author": "Joanna Faber, Julie King",
+          "isbn": "9781501131653",
+          "coverUrl": "/collection-covers/500bb321bcc1b2e4.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781501131653",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 5,
+          "weightedVotes": 1.25,
+          "score": 1.233985,
+          "titleAliases": [
+            "How to Talk So Little Kids Will Listen: A Survival Guide to Life with Children Ages 2-7"
+          ],
+          "authorAliases": [
+            "Joanna Faber, Julie King"
+          ]
+        },
+        {
+          "id": "4aa4cf7f05c7b749",
+          "rank": 15,
+          "title": "The Culture Map",
+          "author": "Erin Meyer",
+          "isbn": "9781610392501",
+          "coverUrl": "/collection-covers/4aa4cf7f05c7b749.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781610392501",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 5,
+          "weightedVotes": 1.25,
+          "score": 1.233985,
+          "titleAliases": [
+            "The Culture Map",
+            "The Culture Map: Breaking Through the Invisible Boundaries of Global Business",
+            "Карта культурных различий",
+            "Карта культурных различий. Как люди думают, руководят и добиваются целей в международной среде"
+          ],
+          "authorAliases": [
+            "Erin Meyer"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "post-13301",
+      "slug": "best-2021",
+      "tileTitle": "Лучшее — 2021",
+      "title": "Любимые книги 2021 года",
+      "description": "Личные книжные топы клубчан за 2021 год: что запомнилось больше всего из прочитанного и почему хочется посоветовать это другим.",
+      "color": "#e3e8ea",
+      "intent": "recommendations",
+      "sourceUrl": "https://vas3k.club/post/13301/",
+      "sourceTitle": "Ваш топ книг — 2021",
+      "books": [
+        {
+          "id": "4d71feff1a2688ec",
+          "rank": 1,
+          "title": "Вся кремлёвская рать: Краткая история современной России",
+          "author": "Зыгарь, Михаил Викторович",
+          "isbn": "9785206000344",
+          "coverUrl": "/collection-covers/4d71feff1a2688ec.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785206000344",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 5,
+          "weightedVotes": 5,
+          "score": 2.516993,
+          "titleAliases": [
+            "Вся кремлёвская рать: Краткая история современной России",
+            "Вся кремлёвская рать"
+          ],
+          "authorAliases": [
+            "Зыгарь, Михаил Викторович",
+            "Михаил Зыгарь"
+          ]
+        },
+        {
+          "id": "762cab791319675d",
+          "rank": 2,
+          "title": "Designing Data-Intensive Applications",
+          "author": "Martin Kleppmann",
+          "isbn": "9781491903100",
+          "coverUrl": "/collection-covers/762cab791319675d.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781491903100",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 9,
+          "weightedVotes": 1.285714,
+          "score": 2.238529,
+          "titleAliases": [
+            "Designing Data-Intensive Applications",
+            "Высоко-нагруженные приложения",
+            "Высоконагруженные приложения. Программирование, масштабирование, поддержка",
+            "Высоконагруженные приложения"
+          ],
+          "authorAliases": [
+            "Martin Kleppmann"
+          ]
+        },
+        {
+          "id": "50a98ca5ca727ebd",
+          "rank": 3,
+          "title": "Риф",
+          "author": "Алексей Поляринов",
+          "isbn": "9785041099336",
+          "coverUrl": "/collection-covers/50a98ca5ca727ebd.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785041099336",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 10,
+          "weightedVotes": 0.7,
+          "score": 2.153107,
+          "titleAliases": [
+            "Риф"
+          ],
+          "authorAliases": [
+            "Алексей Поляринов"
+          ]
+        },
+        {
+          "id": "a1b9f3e4211f27b1",
+          "rank": 4,
+          "title": "Четверо",
+          "author": "Александр Пелевин",
+          "isbn": "9785042542954",
+          "coverUrl": "/collection-covers/a1b9f3e4211f27b1.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785042542954",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 9,
+          "weightedVotes": 0.5,
+          "score": 2.116993,
+          "titleAliases": [
+            "Четверо"
+          ],
+          "authorAliases": [
+            "Александр Пелевин"
+          ]
+        },
+        {
+          "id": "231be775462aab65",
+          "rank": 5,
+          "title": "Покров-17",
+          "author": "Александр Пелевин",
+          "isbn": "9785043181145",
+          "coverUrl": "/collection-covers/231be775462aab65.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785043181145",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 1,
+          "weightedVotes": 0.043478,
+          "score": 2.01228,
+          "titleAliases": [
+            "Покров-17"
+          ],
+          "authorAliases": [
+            "Александр Пелевин"
+          ],
+          "catalogAliases": [
+            {
+              "title": "Покров-17",
+              "author": "Виктор Пелевин"
+            }
+          ]
+        },
+        {
+          "id": "1a9ccac6fe43fe68",
+          "rank": 6,
+          "title": "Искусство лёгких касаний",
+          "author": "Пелевин, Виктор Олегович",
+          "isbn": "9785171816391",
+          "coverUrl": "/collection-covers/1a9ccac6fe43fe68.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785171816391",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 3,
+          "weightedVotes": 1.5,
+          "score": 1.264386,
+          "titleAliases": [
+            "Искусство лёгких касаний"
+          ],
+          "authorAliases": [
+            "Пелевин, Виктор Олегович",
+            "Виктор Пелевин"
+          ]
+        },
+        {
+          "id": "cd2f572a85a6395d",
+          "rank": 7,
+          "title": "Games People Play",
+          "author": "Eric Berne",
+          "isbn": "9780141938363",
+          "coverUrl": "/collection-covers/cd2f572a85a6395d.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780141938363",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 3,
+          "weightedVotes": 1.5,
+          "score": 1.264386,
+          "titleAliases": [
+            "Games People Play",
+            "Игры, в которые играют люди",
+            "Люди, которые играют в игры",
+            "What Do You Say After You Say Hello?"
+          ],
+          "authorAliases": [
+            "Eric Berne"
+          ]
+        },
+        {
+          "id": "99023c8249781dca",
+          "rank": 8,
+          "title": "Алгоритмы",
+          "author": "Sanjoy Dasgupta; Christos H. Papadimitriou; Umesh V. Vazirani",
+          "isbn": "9780073523408",
+          "coverUrl": "/collection-covers/99023c8249781dca.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780073523408",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 5,
+          "weightedVotes": 1,
+          "score": 1.2,
+          "titleAliases": [
+            "Алгоритмы",
+            "Algorithms"
+          ],
+          "authorAliases": [
+            "Sanjoy Dasgupta; Christos H. Papadimitriou; Umesh V. Vazirani"
+          ]
+        },
+        {
+          "id": "14614cbb6a6c7ff3",
+          "rank": 9,
+          "title": "Государственность и анархия",
+          "author": "Михаил Бакунин",
+          "isbn": "9785457065611",
+          "coverUrl": "/collection-covers/14614cbb6a6c7ff3.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785457065611",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 5,
+          "weightedVotes": 1,
+          "score": 1.2,
+          "titleAliases": [
+            "Государственность и анархия"
+          ],
+          "authorAliases": [
+            "Михаил Бакунин"
+          ]
+        },
+        {
+          "id": "3c606d3deb44f43e",
+          "rank": 10,
+          "title": "Русская идея (Азбука-классика (pocket-book))",
+          "author": "Бердяев Николай Александрович",
+          "isbn": "9785389035119",
+          "coverUrl": "/collection-covers/3c606d3deb44f43e.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785389035119",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 5,
+          "weightedVotes": 1,
+          "score": 1.2,
+          "titleAliases": [
+            "Русская идея (Азбука-классика (pocket-book))",
+            "Русская идея"
+          ],
+          "authorAliases": [
+            "Бердяев Николай Александрович",
+            "Николай Бердяев"
+          ]
+        },
+        {
+          "id": "b5354a719e619104",
+          "rank": 11,
+          "title": "Американха",
+          "author": "Chimamanda Ngozi Adichie",
+          "isbn": "9780345807465",
+          "coverUrl": "/collection-covers/b5354a719e619104.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780345807465",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 5,
+          "weightedVotes": 0.625,
+          "score": 1.140088,
+          "titleAliases": [
+            "Американха",
+            "Americanah"
+          ],
+          "authorAliases": [
+            "Chimamanda Ngozi Adichie"
+          ]
+        },
+        {
+          "id": "78aac9e788f2a0e5",
+          "rank": 12,
+          "title": "Половина жёлтого солнца",
+          "author": "Chimamanda Ngozi Adichie",
+          "isbn": "9780307373540",
+          "coverUrl": "/collection-covers/78aac9e788f2a0e5.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780307373540",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 5,
+          "weightedVotes": 0.625,
+          "score": 1.140088,
+          "titleAliases": [
+            "Половина жёлтого солнца",
+            "Half of a Yellow Sun"
+          ],
+          "authorAliases": [
+            "Chimamanda Ngozi Adichie"
+          ]
+        },
+        {
+          "id": "a09bcc2544dd6011",
+          "rank": 13,
+          "title": "Выдумки",
+          "author": "Jorge Luis Borges",
+          "isbn": "9780802130303",
+          "coverUrl": "/collection-covers/a09bcc2544dd6011.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780802130303",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 9,
+          "weightedVotes": 0.5,
+          "score": 1.116993,
+          "titleAliases": [
+            "Выдумки",
+            "Ficciones"
+          ],
+          "authorAliases": [
+            "Jorge Luis Borges"
+          ]
+        },
+        {
+          "id": "74af0e96395bf77a",
+          "rank": 14,
+          "title": "Двойник",
+          "author": "José Saramago",
+          "isbn": "9786071130594",
+          "coverUrl": "/collection-covers/74af0e96395bf77a.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9786071130594",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 9,
+          "weightedVotes": 0.5,
+          "score": 1.116993,
+          "titleAliases": [
+            "Двойник",
+            "O Homem Duplicado"
+          ],
+          "authorAliases": [
+            "José Saramago"
+          ]
+        },
+        {
+          "id": "e86703b2384a0ae1",
+          "rank": 15,
+          "title": "И дольше века длится день…",
+          "author": "Айтматов Чингиз Торекулович",
+          "isbn": "9785389267534",
+          "coverUrl": "/collection-covers/e86703b2384a0ae1.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785389267534",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 9,
+          "weightedVotes": 0.5,
+          "score": 1.116993,
+          "titleAliases": [
+            "И дольше века длится день…"
+          ],
+          "authorAliases": [
+            "Айтматов Чингиз Торекулович",
+            "Чингиз Айтматов"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "thread-23224",
+      "slug": "not-recommended",
+      "tileTitle": "Не советуют",
+      "title": "Книги, которые не советуют читать",
+      "description": "Книги, от чтения которых клубчане предостерегают, и их аргументы: чем популярная рекомендация может навредить. Критикуют книги, а не читателей.",
+      "color": "#f3e2df",
+      "intent": "anti_recommendations",
+      "sourceUrl": "https://vas3k.club/thread/23224/",
+      "sourceTitle": "Какие книги не стоит читать?",
+      "books": [
+        {
+          "id": "f96da9c04c806471",
+          "rank": 1,
+          "title": "Задача трёх тел",
+          "author": "刘慈欣",
+          "isbn": "9785042015465",
+          "coverUrl": "/collection-covers/f96da9c04c806471.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785042015465",
+          "mentions": 4,
+          "allMentions": 7,
+          "votes": 81,
+          "weightedVotes": 80,
+          "score": 5.26797,
+          "titleAliases": [
+            "Задача трёх тел",
+            "三体",
+            "The Three-Body Problem"
+          ],
+          "authorAliases": [
+            "刘慈欣",
+            "Liu Cixin"
+          ]
+        },
+        {
+          "id": "e078f7a192790445",
+          "rank": 2,
+          "title": "Атлант расправил плечи",
+          "author": "Ayn Rand",
+          "isbn": "9781101137192",
+          "coverUrl": "/collection-covers/e078f7a192790445.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781101137192",
+          "mentions": 2,
+          "allMentions": 4,
+          "votes": 159,
+          "weightedVotes": 63.666667,
+          "score": 3.20299,
+          "titleAliases": [
+            "Атлант расправил плечи",
+            "Atlas Shrugged",
+            "Атлант заправляет штаны"
+          ],
+          "authorAliases": [
+            "Ayn Rand"
+          ]
+        },
+        {
+          "id": "cbde660d679bff18",
+          "rank": 3,
+          "title": "Чёрный лебедь",
+          "author": "Nassim Nicholas Taleb",
+          "isbn": "9781588365835",
+          "coverUrl": "/collection-covers/cbde660d679bff18.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781588365835",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 36,
+          "weightedVotes": 36,
+          "score": 3.041891,
+          "titleAliases": [
+            "Чёрный лебедь",
+            "The Black Swan: The Impact of the Highly Improbable",
+            "Черный лебедь",
+            "Чёрный лебедь. Под знаком непредсказуемости",
+            "The Black Swan"
+          ],
+          "authorAliases": [
+            "Nassim Nicholas Taleb"
+          ]
+        },
+        {
+          "id": "300bf28e4728f774",
+          "rank": 4,
+          "title": "Анна Каренина",
+          "author": "Лев Толстой",
+          "isbn": "9780553213461",
+          "coverUrl": "/collection-covers/300bf28e4728f774.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780553213461",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 27,
+          "weightedVotes": 18,
+          "score": 2.849586,
+          "titleAliases": [
+            "Анна Каренина",
+            "Anna Karenina"
+          ],
+          "authorAliases": [
+            "Лев Толстой"
+          ]
+        },
+        {
+          "id": "f3e9caa0dd70a3cf",
+          "rank": 5,
+          "title": "Гарри Поттер и методы рационального мышления",
+          "author": "Eliezer Yudkowsky",
+          "isbn": "9781320616874",
+          "coverUrl": "/collection-covers/f3e9caa0dd70a3cf.png",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781320616874",
+          "mentions": 1,
+          "allMentions": 4,
+          "votes": 162,
+          "weightedVotes": 162,
+          "score": 2.469746,
+          "titleAliases": [
+            "Гарри Поттер и методы рационального мышления",
+            "Harry Potter and the Methods of Rationality",
+            "Гарри Поттер и методы рациональности",
+            "Гарри Поттер и Методы рационального мышления",
+            "Гарри Поттер и Методы Рационального Мышления"
+          ],
+          "authorAliases": [
+            "Eliezer Yudkowsky"
+          ]
+        },
+        {
+          "id": "9ccf30559fdc5b41",
+          "rank": 6,
+          "title": "Сапиенс. Краткая история человечества",
+          "author": "Yuval Noah Harari",
+          "isbn": "9781784873646",
+          "coverUrl": "/collection-covers/9ccf30559fdc5b41.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781784873646",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 6,
+          "weightedVotes": 4,
+          "score": 2.464386,
+          "titleAliases": [
+            "Сапиенс. Краткая история человечества",
+            "Sapiens: A Brief History of Humankind",
+            "Краткая история человечества",
+            "Сапиенс",
+            "Sapiens",
+            "Sapiens: Краткая история человечества",
+            "Sapiens. Краткая история человечества"
+          ],
+          "authorAliases": [
+            "Yuval Noah Harari"
+          ]
+        },
+        {
+          "id": "5dc99cc7cbb8c219",
+          "rank": 7,
+          "title": "Идиот",
+          "author": "Fyodor Dostoevsky",
+          "isbn": "9788726607772",
+          "coverUrl": "/collection-covers/5dc99cc7cbb8c219.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9788726607772",
+          "mentions": 1,
+          "allMentions": 3,
+          "votes": 64,
+          "weightedVotes": 64,
+          "score": 2.204474,
+          "titleAliases": [
+            "Идиот",
+            "The Idiot"
+          ],
+          "authorAliases": [
+            "Fyodor Dostoevsky"
+          ]
+        },
+        {
+          "id": "04988bbb8aec5c7c",
+          "rank": 8,
+          "title": "Бог-Император Дюны",
+          "author": "Frank Herbert",
+          "isbn": "9781473233805",
+          "coverUrl": "/collection-covers/04988bbb8aec5c7c.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781473233805",
+          "mentions": 2,
+          "allMentions": 2,
+          "votes": 1,
+          "weightedVotes": 0.5,
+          "score": 2.116993,
+          "titleAliases": [
+            "Бог-Император Дюны",
+            "God Emperor of Dune"
+          ],
+          "authorAliases": [
+            "Frank Herbert"
+          ]
+        },
+        {
+          "id": "3d6586e27a3c8680",
+          "rank": 9,
+          "title": "Богатый папа, бедный папа",
+          "author": "Robert T. Kiyosaki",
+          "isbn": "9781612680194",
+          "coverUrl": "/collection-covers/3d6586e27a3c8680.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781612680194",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 83,
+          "weightedVotes": 41.5,
+          "score": 2.081878,
+          "titleAliases": [
+            "Богатый папа, бедный папа",
+            "Rich Dad Poor Dad"
+          ],
+          "authorAliases": [
+            "Robert T. Kiyosaki"
+          ]
+        },
+        {
+          "id": "ea0a435debe7163c",
+          "rank": 10,
+          "title": "Самый богатый человек в Вавилоне",
+          "author": "George S. Clason",
+          "isbn": "9789562913782",
+          "coverUrl": "/collection-covers/ea0a435debe7163c.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9789562913782",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 22,
+          "weightedVotes": 22,
+          "score": 1.904712,
+          "titleAliases": [
+            "Самый богатый человек в Вавилоне",
+            "The Richest Man in Babylon"
+          ],
+          "authorAliases": [
+            "George S. Clason"
+          ]
+        },
+        {
+          "id": "deddd4a770a25a09",
+          "rank": 11,
+          "title": "Разумный инвестор",
+          "author": "Benjamin Graham",
+          "isbn": "9780062312686",
+          "coverUrl": "/collection-covers/deddd4a770a25a09.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9780062312686",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 17,
+          "weightedVotes": 17,
+          "score": 1.833985,
+          "titleAliases": [
+            "Разумный инвестор",
+            "The Intelligent Investor"
+          ],
+          "authorAliases": [
+            "Benjamin Graham"
+          ]
+        },
+        {
+          "id": "6fd0a0132c9c9383",
+          "rank": 12,
+          "title": "Магия утра. Как первый час дня определяет ваш успех",
+          "author": "Hal Elrod",
+          "isbn": "9781473668942",
+          "coverUrl": "/collection-covers/6fd0a0132c9c9383.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781473668942",
+          "mentions": 1,
+          "allMentions": 1,
+          "votes": 16,
+          "weightedVotes": 16,
+          "score": 1.817493,
+          "titleAliases": [
+            "Магия утра. Как первый час дня определяет ваш успех",
+            "The Miracle Morning"
+          ],
+          "authorAliases": [
+            "Hal Elrod"
+          ]
+        },
+        {
+          "id": "b75e48cbd92e380e",
+          "rank": 13,
+          "title": "Ложная слепота",
+          "author": "Peter Watts",
+          "isbn": "9785171529130",
+          "coverUrl": "/collection-covers/b75e48cbd92e380e.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785171529130",
+          "mentions": 1,
+          "allMentions": 7,
+          "votes": 14,
+          "weightedVotes": 14,
+          "score": 1.781378,
+          "titleAliases": [
+            "Ложная слепота",
+            "Blindsight"
+          ],
+          "authorAliases": [
+            "Peter Watts"
+          ]
+        },
+        {
+          "id": "cc7c9d811171f5d5",
+          "rank": 14,
+          "title": "Хулиномика: хулиганская экономика. Финансовые рынки для тех, кто их в гробу видал",
+          "author": "Алексей Викторович Марков",
+          "isbn": "9785171046958",
+          "coverUrl": "/collection-covers/cc7c9d811171f5d5.webp",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9785171046958",
+          "mentions": 1,
+          "allMentions": 2,
+          "votes": 26,
+          "weightedVotes": 13,
+          "score": 1.761471,
+          "titleAliases": [
+            "Хулиномика: хулиганская экономика. Финансовые рынки для тех, кто их в гробу видал",
+            "Хулиномика"
+          ],
+          "authorAliases": [
+            "Алексей Викторович Марков",
+            "Алексей Марков"
+          ]
+        },
+        {
+          "id": "84e3f538bbecc7d2",
+          "rank": 15,
+          "title": "Принципы",
+          "author": "Ray Dalio",
+          "isbn": "9781501124020",
+          "coverUrl": "/collection-covers/84e3f538bbecc7d2.jpg",
+          "goodreadsUrl": "https://www.goodreads.com/book/isbn/9781501124020",
+          "mentions": 1,
+          "allMentions": 3,
+          "votes": 12,
+          "weightedVotes": 12,
+          "score": 1.740088,
+          "titleAliases": [
+            "Принципы",
+            "Principles: Life and Work",
+            "Принципы. Жизнь и работа",
+            "Principles"
+          ],
+          "authorAliases": [
+            "Ray Dalio"
+          ]
+        }
+      ]
+    }
+  ]
+}

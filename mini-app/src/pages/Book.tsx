@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { getBook, isCurrentUserAdmin, type BookDetail, type Review } from "../api/client";
+import { getBook, getCollectionBook, isCurrentUserAdmin, type BookDetail, type BookPageDetail, type BookCollectionMembership, type Review } from "../api/client";
 import ReviewCard from "../components/ReviewCard";
 import SentimentBadge from "../components/SentimentBadge";
 import Loading from "../components/Loading";
@@ -11,12 +11,13 @@ import { useTranslation } from "../i18n/index.js";
 import { ConfigContext } from "../App";
 import { getBookDeepLink } from "../lib/deepLinks.js";
 
-export default function Book() {
-  const { id } = useParams<{ id: string }>();
+export default function Book({collectionEntry=false}:{collectionEntry?:boolean}) {
+  const { id, slug, bookId } = useParams<{ id: string; slug:string; bookId:string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const config = useContext(ConfigContext);
-  const [book, setBook] = useState<BookDetail | null>(null);
+  const [book, setBook] = useState<BookPageDetail | null>(null);
+  const [collections, setCollections] = useState<BookCollectionMembership[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,25 +28,40 @@ export default function Book() {
   const isAdmin = config ? isCurrentUserAdmin(config.adminUserIds) : false;
 
   useEffect(() => {
-    if (!id) return;
+    if (collectionEntry ? !slug || !bookId : !id) return;
+    let active = true;
 
     async function loadBook() {
       setLoading(true);
       setError(null);
+      setBook(null);
+      setReviews([]);
+      setCollections([]);
+      setSentimentFilter(null);
+      setShowEditBookModal(false);
 
       try {
-        const result = await getBook(parseInt(id!, 10));
+        const result = collectionEntry
+          ? await getCollectionBook(slug!,bookId!)
+          : await getBook(parseInt(id!, 10));
+        if (!active) return;
+        if ('bookId' in result && result.bookId) {
+          navigate(`/book/${result.bookId}`,{replace:true});
+          return;
+        }
         setBook(result.book);
         setReviews(result.reviews);
+        setCollections(result.collections ?? []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : t("errors.loadBook"));
+        if(active)setError(err instanceof Error ? err.message : t("errors.loadBook"));
       } finally {
-        setLoading(false);
+        if(active)setLoading(false);
       }
     }
 
     loadBook();
-  }, [id]);
+    return () => {active=false;};
+  }, [id,slug,bookId,collectionEntry,navigate]);
 
   const handleReviewUpdated = (updatedReview: Review) => {
     // If the review was reassigned to a different book, remove it from this page
@@ -101,7 +117,7 @@ export default function Book() {
     navigate("/browse");
   };
 
-  const shareUrl = config?.botUsername && book
+  const shareUrl = config?.botUsername && book && book.id !== null
     ? getBookDeepLink(config.botUsername, book.id)
     : undefined;
 
@@ -136,7 +152,7 @@ export default function Book() {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-tg-text">{book.title}</h1>
-            {isAdmin && (
+            {isAdmin && book.id !== null && (
               <button
                 onClick={() => setShowEditBookModal(true)}
                 className="text-sm text-tg-text no-underline hover:opacity-80"
@@ -198,7 +214,20 @@ export default function Book() {
         </div>
       )}
 
-      <div className="mb-4">
+      {collections.length > 0 && (
+        <section className="mb-6" aria-labelledby="book-collections-heading">
+          <h2 id="book-collections-heading" className="font-semibold text-tg-text mb-2">{t('collections.bookMemberships')}</h2>
+          <div className="flex flex-wrap gap-2">
+            {collections.map(collection => (
+              <Link key={collection.slug} to={`/collections/${collection.slug}`} className="rounded-full px-3 py-2 text-sm !text-[#292b2b] no-underline" style={{backgroundColor:collection.color}} title={collection.title}>
+                {collection.tileTitle} ↗
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div className="mb-4" data-testid="book-reviews">
         <h2 className="font-semibold text-tg-text mb-2">
           {t("book.reviewsCount", { count: book.reviewCount })}
         </h2>
@@ -263,9 +292,9 @@ export default function Book() {
       </div>
 
       {/* Edit Book Modal */}
-      {showEditBookModal && (
+      {showEditBookModal && book.id !== null && (
         <EditBookModal
-          book={book}
+          book={{...book,id:book.id}}
           onClose={() => setShowEditBookModal(false)}
           onSuccess={handleBookUpdated}
           onDelete={handleBookDeleted}
