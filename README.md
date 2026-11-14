@@ -5,7 +5,7 @@ A Telegram bot and mini-app for tracking book reviews with sentiment analysis, a
 ## Features
 
 - **Smart Review Processing**: Submit reviews via special hashtag or `/review` command, including text messages, media captions, and Telegram Rich Messages
-- **AI Book Extraction**: GPT-4o automatically extracts book information from review text
+- **AI Book Extraction**: GPT-6 Luna extracts book information from review text, with GPT-6.1 Terra web-search fallbacks
 - **Interactive Confirmation**: Choose from matched books, enter ISBN, or add manually
 - **Sentiment Analysis**: Automatic positive/negative/neutral classification
 - **Mini App Frontend**: Browse books, view reviews, explore leaderboards
@@ -152,7 +152,7 @@ Messages without a saved, book-linked review cannot be resolved.
 
 ### Bot Workflow
 
-1. Bot extracts book information using GPT-4o
+1. Bot extracts book information using GPT-6 Luna, with GPT-6.1 Terra web-search fallbacks for uncertain authors
 2. Shows matched books with inline keyboard
 3. You select the correct book or:
    - Enter ISBN for precise lookup
@@ -198,7 +198,7 @@ npm run preview      # Preview production build
 - **Backend**: TypeScript, Node.js, Express, Telegraf
 - **Frontend**: React, Vite, TypeScript, Telegram Mini Apps SDK
 - **Database**: SQLite with Prisma ORM
-- **AI**: OpenAI (GPT-4o for extraction, GPT-4o-mini for sentiment)
+- **AI**: OpenAI (GPT-6 Luna for extraction, sentiment, and review splitting; GPT-6.1 Terra for web-search fallbacks)
 - **APIs**: Google Books API for book metadata
 
 ## Deployment
