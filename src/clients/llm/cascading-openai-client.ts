@@ -1,6 +1,6 @@
 /**
  * Cascading OpenAI Client Implementation
- * Uses nano model for title/author extraction, escalates to web search for author when needed
+ * Uses Luna model for title/author extraction, escalates to web search for author when needed
  * Uses Responses API with Structured Outputs
  */
 
@@ -197,8 +197,8 @@ export class CascadingOpenAIClient implements ILLMClient {
   private client: OpenAI;
   private config: LLMClientConfig;
 
-  private readonly NANO_MODEL = "gpt-5-nano";
-  private readonly WEB_SEARCH_MODEL = "gpt-5.2";
+  private readonly PRIMARY_MODEL = "gpt-6-luna";
+  private readonly WEB_SEARCH_MODEL = "gpt-6.1-terra";
 
   private metrics: PipelineMetrics = {
     webSearchFallbacks: 0,
@@ -208,7 +208,7 @@ export class CascadingOpenAIClient implements ILLMClient {
 
   constructor(config: LLMClientConfig) {
     this.config = {
-      defaultModel: "gpt-5-nano",
+      defaultModel: "gpt-6-luna",
       defaultTemperature: 1,
       ...config,
     };
@@ -236,8 +236,8 @@ export class CascadingOpenAIClient implements ILLMClient {
 
   /**
    * Extract book information using cascading pipeline:
-   * 1. Extract title with nano model
-   * 2. Extract author with nano model
+   * 1. Extract title with Luna model
+   * 2. Extract author with Luna model
    * 3. If author weak, escalate to web search
    */
   async extractBookInfo(
@@ -250,19 +250,19 @@ export class CascadingOpenAIClient implements ILLMClient {
 
     console.log("[Cascading Client] Starting extraction pipeline");
 
-    // Step 1: Extract title with nano model
-    const titleResult = await this.extractTitleWithNano(userContent);
-    console.log("[Cascading Client] Step 1 (nano title):", JSON.stringify(titleResult));
+    // Step 1: Extract title with Luna model
+    const titleResult = await this.extractTitleWithLuna(userContent);
+    console.log("[Cascading Client] Step 1 (Luna title):", JSON.stringify(titleResult));
 
     if (!titleResult.title || titleResult.confidence === "low") {
       console.log("[Cascading Client] No title or low confidence, returning null");
       return null;
     }
 
-    // Step 2: Extract author with nano model
-    console.log("[Cascading Client] Step 2 (nano author)");
-    const authorResult = await this.extractAuthorWithNano(userContent, titleResult.title);
-    console.log("[Cascading Client] Nano author result:", JSON.stringify(authorResult));
+    // Step 2: Extract author with Luna model
+    console.log("[Cascading Client] Step 2 (Luna author)");
+    const authorResult = await this.extractAuthorWithLuna(userContent, titleResult.title);
+    console.log("[Cascading Client] Luna author result:", JSON.stringify(authorResult));
 
     // Step 3: If author weak, escalate to web search
     if (!authorResult.author || authorResult.confidence === "low" || authorResult.confidence === "medium") {
@@ -271,13 +271,13 @@ export class CascadingOpenAIClient implements ILLMClient {
       const webSearchAuthor = await this.extractAuthorWithWebSearch(titleResult.title, userContent);
       console.log("[Cascading Client] Web search result:", JSON.stringify(webSearchAuthor));
 
-      // Fall back to nano author if web search didn't improve the result
+      // Fall back to Luna author if web search didn't improve the result
       let finalAuthor = webSearchAuthor.author;
       let finalConfidence = webSearchAuthor.confidence;
 
       if (!webSearchAuthor.author ||
           (webSearchAuthor.confidence === "low" && authorResult.author && authorResult.confidence === "medium")) {
-        console.log("[Cascading Client] Web search failed or returned worse result, falling back to nano author");
+        console.log("[Cascading Client] Web search failed or returned worse result, falling back to Luna author");
         finalAuthor = authorResult.author;
         finalConfidence = authorResult.confidence;
       }
@@ -310,10 +310,10 @@ export class CascadingOpenAIClient implements ILLMClient {
     return textPart.text;
   }
 
-  private async extractTitleWithNano(userContent: string): Promise<TitleExtractionResult> {
+  private async extractTitleWithLuna(userContent: string): Promise<TitleExtractionResult> {
     try {
       const response = await this.client.responses.create({
-        model: this.NANO_MODEL,
+        model: this.PRIMARY_MODEL,
         instructions: TITLE_EXTRACTION_PROMPT,
         input: userContent,
         text: { format: titleExtractionSchema },
@@ -331,19 +331,19 @@ export class CascadingOpenAIClient implements ILLMClient {
         confidence: parsed.confidence || "low",
       };
     } catch (error) {
-      console.error("[Cascading Client] Error in nano title extraction:", error);
-      await this.handleError(error as Error, "Nano Title Extraction");
+      console.error("[Cascading Client] Error in Luna title extraction:", error);
+      await this.handleError(error as Error, "Luna Title Extraction");
       return { title: null, confidence: "low" };
     }
   }
 
-  private async extractAuthorWithNano(
+  private async extractAuthorWithLuna(
     userContent: string,
     title: string
   ): Promise<AuthorExtractionResult> {
     try {
       const response = await this.client.responses.create({
-        model: this.NANO_MODEL,
+        model: this.PRIMARY_MODEL,
         instructions: getAuthorExtractionPrompt(title),
         input: userContent,
         text: { format: authorExtractionSchema },
@@ -361,8 +361,8 @@ export class CascadingOpenAIClient implements ILLMClient {
         confidence: parsed.confidence || "low",
       };
     } catch (error) {
-      console.error("[Cascading Client] Error in nano author extraction:", error);
-      await this.handleError(error as Error, "Nano Author Extraction");
+      console.error("[Cascading Client] Error in Luna author extraction:", error);
+      await this.handleError(error as Error, "Luna Author Extraction");
       return { author: null, confidence: "low" };
     }
   }
@@ -422,7 +422,7 @@ Guidelines:
 
     try {
       const response = await this.client.responses.create({
-        model: this.NANO_MODEL,
+        model: this.PRIMARY_MODEL,
         instructions: instructions,
         input: `Review text:\n\n${reviewText}`,
         text: { format: sentimentAnalysisSchema },
@@ -456,7 +456,7 @@ Guidelines:
   ): Promise<ReviewStructureClassification | null> {
     try {
       const response = await this.client.responses.create({
-        model: this.NANO_MODEL,
+        model: this.PRIMARY_MODEL,
         instructions: REVIEW_STRUCTURE_PROMPT,
         input: reviewText,
         text: { format: reviewStructureSchema },

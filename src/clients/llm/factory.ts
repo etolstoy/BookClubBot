@@ -19,7 +19,7 @@ import type { ILLMClient } from "../../lib/interfaces/index.js";
 export function createLLMClient(): ILLMClient {
   return new CascadingOpenAIClient({
     apiKey: config.openaiApiKey,
-    defaultModel: "gpt-5-nano",
+    defaultModel: "gpt-6-luna",
     defaultTemperature: 1,
     onRateLimit: async (error: Error) => {
       await sendErrorNotification(error, {
