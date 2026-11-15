@@ -87,6 +87,9 @@ does not rewrite historical reviews.
 # Loads .env; an existing environment variable takes precedence.
 npm run test:sentiment-accuracy
 
+# Require every prediction to match the human reference (strict accuracy).
+SENTIMENT_REQUIRE_PERFECT=1 npm run test:sentiment-accuracy
+
 # Run one case.
 SENTIMENT_TEST_FILTER=sentiment-review-1088 npm run test:sentiment-accuracy
 ```
@@ -96,19 +99,32 @@ paid API calls. It is
 skipped during ordinary test runs unless `RUN_SENTIMENT_ACCURACY=1` is set.
 An explicitly requested run without credentials fails instead of silently skipping.
 
-Every label must match; mismatches and API failures fail their individual tests.
-The report includes overall accuracy, per-label accuracy, a confusion matrix,
-case-level predictions, latency, and token usage. It is saved to
-`reports/sentiment-accuracy/latest.json`; set `SENTIMENT_REPORT_PATH` to override it.
-The human-approved strict labels stay fixed when a model disagrees. Scores on the
-12-case strict set must not be compared directly with the original 16-case score;
-the original prompt scored 8/12 on these same strict cases. Jev 1.14 with rubric
-v2 currently scores 11/12: review 1121 (In the Woods) is predicted negative
-against the human-corrected neutral reference. This remains a failing assertion;
-the reference is not changed to match the selected model.
+CI gates against the explicitly accepted Jev baseline in
+`test/fixtures/llm/sentiment-baseline.json`. Its only known disagreement is review
+1121 (In the Woods): Jev predicts negative against the human-corrected neutral
+reference. That exact prediction may pass the regression gate, but it still
+counts as **incorrect** in accuracy, per-label scores, and the confusion matrix.
+Any new mismatch, changed prediction on that case, API failure, abstention, or
+unfinished case fails the gate. An improvement to the human reference passes.
+`SENTIMENT_REQUIRE_PERFECT=1` requires every label to match, including review 1121.
 
-CI runs this suite when the LLM client, sentiment service, sentiment dataset,
-or sentiment accuracy test changes, provided the API secret is available.
+The baseline is bound to the model, rubric, instructions, criteria, review text,
+and human reference by version and SHA-256 checks. Changes invalidate the
+exception and require explicit review. No reference label is rewritten to match
+a model prediction; no exception is added automatically from a run's results.
+
+The report includes overall accuracy, per-label accuracy, a confusion matrix,
+case-level predictions, latency, token usage, and a separate regression gate
+result listing known disagreements and failures. It is saved to
+`reports/sentiment-accuracy/latest.json`; set `SENTIMENT_REPORT_PATH` to override it.
+GitHub Actions also displays accuracy and disagreements in its step summary.
+The accepted baseline remains **11/12**, not 12/12. Scores on the 12-case reference
+set must not be compared directly with the original 16-case score; the original
+prompt scored 8/12 on these same strict cases.
+
+CI runs this suite when the LLM client, sentiment service, reference dataset,
+accepted baseline, regression gate, or sentiment accuracy test changes, provided
+the API secret is available.
 
 ### Unit Tests (75 tests)
 

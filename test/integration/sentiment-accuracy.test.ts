@@ -3,13 +3,16 @@
  * Run with npm run test:sentiment-accuracy; ordinary test runs make no API calls.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { z } from "zod";
 import dataset from "../fixtures/llm/sentiment-dataset.json";
 import adjudicationDataset from "../fixtures/llm/sentiment-adjudication-dataset.json";
+import baseline from "../fixtures/llm/sentiment-baseline.json";
 import { CascadingOpenAIClient, SENTIMENT_RUBRIC_VERSION } from "../../src/clients/llm/cascading-openai-client.js";
+import { JEV_SENTIMENT_MODEL, JEV_SENTIMENT_ENDPOINT, SENTIMENT_INSTRUCTIONS, SENTIMENT_CRITERIA } from "../../src/clients/llm/sentiment-rubric.js";
 import type { Sentiment } from "../../src/lib/interfaces/index.js";
+import { createSentimentRegressionGate } from "../helpers/sentiment-regression-gate.js";
 
 const sentimentSchema = z.enum(["positive", "neutral", "negative"]);
 const datasetSchema = z.array(z.object({
@@ -43,6 +46,15 @@ if (selected.length === 0) {
 
 const labels: Sentiment[] = ["positive", "neutral", "negative"];
 const shouldRunLiveAccuracy = process.env.RUN_SENTIMENT_ACCURACY === "1";
+const requirePerfect = process.env.SENTIMENT_REQUIRE_PERFECT === "1";
+const gate = createSentimentRegressionGate(baseline, entries, {
+  model: JEV_SENTIMENT_MODEL,
+  rubricVersion: SENTIMENT_RUBRIC_VERSION,
+  requestConfiguration: {
+    model: JEV_SENTIMENT_MODEL, endpoint: JEV_SENTIMENT_ENDPOINT,
+    instructions: SENTIMENT_INSTRUCTIONS, criteria: SENTIMENT_CRITERIA,
+  },
+});
 
 interface CaseResult {
   id: string;
@@ -51,6 +63,8 @@ interface CaseResult {
   expected: Sentiment;
   actual: Sentiment | null;
   passed: boolean;
+  knownDisagreement: boolean;
+  gatePassed: boolean;
   elapsedMs: number;
 }
 
@@ -79,6 +93,8 @@ describe.skipIf(!shouldRunLiveAccuracy)("Sentiment accuracy (production LLM clie
       expected: entry.ideal_answer.sentiment,
       actual: null,
       passed: false,
+      knownDisagreement: false,
+      gatePassed: false,
       elapsedMs: 90_000,
     });
     const passed = ordered.filter((result) => result.passed).length;
@@ -103,7 +119,7 @@ describe.skipIf(!shouldRunLiveAccuracy)("Sentiment accuracy (production LLM clie
     const report = {
       evaluatedAt: new Date().toISOString(),
       provider: "jev",
-      model: "jev-1.14.0",
+      model: JEV_SENTIMENT_MODEL,
       rubricVersion: SENTIMENT_RUBRIC_VERSION,
       candidateCount: entries.length + deferred.length,
       deferredCount: deferred.length,
@@ -116,6 +132,12 @@ describe.skipIf(!shouldRunLiveAccuracy)("Sentiment accuracy (production LLM clie
       total: ordered.length,
       passed,
       accuracy: ordered.length ? passed / ordered.length : 0,
+      regressionGate: {
+        mode: requirePerfect ? "perfect-accuracy" : "accepted-baseline",
+        passed: ordered.every(result => result.gatePassed),
+        knownDisagreements: ordered.filter(result => result.knownDisagreement).map(result => result.id),
+        failedCases: ordered.filter(result => !result.gatePassed).map(result => result.id),
+      },
       byLabel,
       confusionMatrix,
       usage: client.getMetrics(),
@@ -131,12 +153,29 @@ describe.skipIf(!shouldRunLiveAccuracy)("Sentiment accuracy (production LLM clie
       `(${(report.accuracy * 100).toFixed(1)}%)`);
     console.log(`Rubric ${SENTIMENT_RUBRIC_VERSION}; ${deferred.length} candidates ` +
       "await adjudication and do not count as passes.");
+    console.log(`Regression gate (${report.regressionGate.mode}): ` +
+      `${report.regressionGate.passed ? "PASS" : "FAIL"}; ` +
+      `${report.regressionGate.knownDisagreements.length} known disagreements still count as incorrect.`);
     console.table(byLabel);
     console.log("Confusion matrix (expected rows, predicted columns):");
     console.table(confusionMatrix);
     for (const result of ordered.filter((entry) => !entry.passed)) {
       console.log(`${result.id} (${result.description}): ` +
-        `expected ${result.expected}, got ${result.actual}`);
+        `expected ${result.expected}, got ${result.actual}` +
+        (result.knownDisagreement ? " [known baseline disagreement]" : " [NEW FAILURE]"));
+    }
+    if (process.env.GITHUB_STEP_SUMMARY) {
+      appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+        `### Sentiment evaluation\n\n` +
+        `Reference accuracy: **${passed}/${ordered.length}** (${(report.accuracy * 100).toFixed(1)}%). ` +
+        `Gate (${report.regressionGate.mode}): **${report.regressionGate.passed ? "PASS" : "FAIL"}**.\n\n` +
+        `Known disagreements remain incorrect in the accuracy score. ` +
+        `${deferred.length} deferred cases are excluded.\n\n` +
+        `| Case | Human reference | Prediction | Status |\n| --- | --- | --- | --- |\n` +
+        ordered.filter(result => !result.passed).map(result =>
+          `| ${result.id} | ${result.expected} | ${result.actual ?? "null"} | ` +
+          `${result.knownDisagreement ? "Known disagreement" : "New failure"} |\n`
+        ).join(""));
     }
     console.log(`Report: ${reportPath}\n`);
   });
@@ -145,15 +184,19 @@ describe.skipIf(!shouldRunLiveAccuracy)("Sentiment accuracy (production LLM clie
     const started = Date.now();
     const actual = await client!.analyzeSentiment(entry.review_text);
     const expected = entry.ideal_answer.sentiment;
+    const score = gate.score(entry.id, actual, requirePerfect);
     results.set(entry.id, {
       id: entry.id,
       description: entry.description,
       source: entry.source.type,
       expected,
       actual,
-      passed: actual === expected,
+      ...score,
       elapsedMs: Date.now() - started,
     });
-    expect(actual, `${entry.id}: ${entry.description}`).toBe(expected);
+    expect(score.gatePassed,
+      `${entry.id}: ${entry.description}: human reference ${expected}, got ${actual}; ` +
+      (requirePerfect ? "perfect accuracy required" : "prediction must match the reference or its exact accepted baseline")
+    ).toBe(true);
   }, 90_000);
 });

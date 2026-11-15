@@ -60,7 +60,7 @@ jobs:
           if printf '%s\n' "$changed_files" | grep -Eq '^(src/clients/llm/cascading-openai-client\.ts|test/integration/book-extraction-accuracy\.test\.ts|test/fixtures/llm/book-extraction-dataset\.json)$'; then
             book_changed=true
           fi
-          if printf '%s\n' "$changed_files" | grep -Eq '^(src/clients/llm/(cascading-openai-client|jev-sentiment-client|sentiment-rubric|factory)\.ts|src/services/sentiment\.ts|src/lib/config\.ts|test/integration/sentiment-accuracy\.test\.ts|test/fixtures/llm/sentiment(-adjudication)?-dataset\.json)$'; then
+          if printf '%s\n' "$changed_files" | grep -Eq '^(src/clients/llm/(cascading-openai-client|jev-sentiment-client|sentiment-rubric|factory)\.ts|src/services/sentiment\.ts|src/lib/config\.ts|test/helpers/sentiment-regression-gate\.ts|test/integration/sentiment-accuracy\.test\.ts|test/fixtures/llm/sentiment(-adjudication)?-dataset\.json|test/fixtures/llm/sentiment-baseline\.json)$'; then
             sentiment_changed=true
           fi
           echo "book_changed=$book_changed" >> "$GITHUB_OUTPUT"
