@@ -52,6 +52,64 @@ npm run test:ui
 
 ## Test Categories
 
+### Live sentiment evaluation
+
+The original candidate set contains 16 production reviews: six recorded human
+corrections and ten random controls. Controls exclude every review with an edit
+notification in the supplied Telegram export. Each case retains its review ID
+and correction or sampling provenance.
+
+`test/fixtures/llm/sentiment-dataset.json` contains the 12 strict cases (five
+positive, three neutral, four negative). The other four remain in
+`sentiment-adjudication-dataset.json` with their original labels and reasons:
+1172 and 1322 need label adjudication, 1317 lacks an explicit evaluative stance,
+and 324 is truncated. They are not counted as passes or included in strict
+accuracy. The report always lists these deferred cases. No original label was
+changed to match a model prediction. Review 294's description was corrected to
+the Полари series named in its text; its incorrect catalogue title is preserved
+in the source metadata.
+
+The production client uses rubric `v2`: judge the primary book's overall reading
+assessment, prioritizing an explicit overall verdict, then a rating, then the
+dominant evaluative stance. Ratings on known scales normalize to ten: at least
+seven is positive, at most four is negative, and the middle is neutral. Qualified
+praise can be positive; isolated criticisms do not establish overall rejection.
+A genuinely average or balanced opinion is neutral. Plot mood, quoted dialogue,
+and opinions of other books are not the reviewer's assessment of this book.
+Insufficient or materially incomplete evidence yields `null`, as do API errors;
+ingestion preserves it instead of inventing a neutral opinion. Unknown sentiments
+are excluded from sentiment breakdowns. Applying a historical report is a separate,
+explicit operation using `scripts/apply-jev-sentiments.py`; ordinary ingestion
+does not rewrite historical reviews.
+
+```bash
+# Uses the production LLM client's current sentiment model and prompt.
+# Loads .env; an existing environment variable takes precedence.
+npm run test:sentiment-accuracy
+
+# Run one case.
+SENTIMENT_TEST_FILTER=sentiment-review-1088 npm run test:sentiment-accuracy
+```
+
+Live sentiment evaluation uses Jev 1.14, requires a real `JEV_API_KEY`, and makes
+paid API calls. It is
+skipped during ordinary test runs unless `RUN_SENTIMENT_ACCURACY=1` is set.
+An explicitly requested run without credentials fails instead of silently skipping.
+
+Every label must match; mismatches and API failures fail their individual tests.
+The report includes overall accuracy, per-label accuracy, a confusion matrix,
+case-level predictions, latency, and token usage. It is saved to
+`reports/sentiment-accuracy/latest.json`; set `SENTIMENT_REPORT_PATH` to override it.
+The human-approved strict labels stay fixed when a model disagrees. Scores on the
+12-case strict set must not be compared directly with the original 16-case score;
+the original prompt scored 8/12 on these same strict cases. Jev 1.14 with rubric
+v2 currently scores 11/12: review 1121 (In the Woods) is predicted negative
+against the human-corrected neutral reference. This remains a failing assertion;
+the reference is not changed to match the selected model.
+
+CI runs this suite when the LLM client, sentiment service, sentiment dataset,
+or sentiment accuracy test changes, provided the API secret is available.
+
 ### Unit Tests (75 tests)
 
 Fast, isolated tests with no external dependencies.
@@ -347,3 +405,21 @@ Tests run automatically on:
 - [Telegraf Testing](https://telegraf.js.org/testing)
 - [Prisma Testing](https://www.prisma.io/docs/guides/testing)
 - [Mock Patterns](https://martinfowler.com/articles/mocksArentStubs.html)
+
+### Approved historical Jev backfill
+
+Use the full results JSON from the approved audit, not a fresh unreviewed run.
+Stop review writers before applying. The command checks each review's text, book
+assignment, and old sentiment against the snapshot; conflicting edits and new
+reviews are preserved. Jev's unknown choice is stored as SQL NULL. Only the
+sentiment column is updated, in one transaction, after a SQLite backup passes
+integrity checking. The output directory contains the backup and per-review audit.
+
+```bash
+# Preview without changing the database.
+python3 scripts/apply-jev-sentiments.py /path/bookclub.db /path/results.json --output-dir /path/audit
+# Apply the reviewed results, after stopping writers.
+python3 scripts/apply-jev-sentiments.py /path/bookclub.db /path/results.json --output-dir /path/audit --apply
+# Test backup, edit conflict handling, and unknown label persistence.
+python3 -m unittest discover -s test/unit -p 'test_jev_backfill.py'
+```

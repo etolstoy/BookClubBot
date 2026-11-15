@@ -451,7 +451,7 @@ async function savePreparedReviewPart(
     telegramUsername: message.from.username || null,
     telegramDisplayName: getDisplayName(message.from),
     reviewText: prepared.reviewText,
-    sentiment: prepared.sentiment || "neutral",
+    sentiment: prepared.sentiment,
     messageId,
     chatId,
     reviewedAt: new Date(message.date * 1000),
@@ -476,8 +476,9 @@ async function savePreparedReviewPart(
       const reviews = await prisma.review.findMany({ where: { bookId: prepared.bookId } });
 
       const sentiments = reviews.reduce((acc, r) => {
-        const sent = r.sentiment || "neutral";
-        acc[sent] = (acc[sent] || 0) + 1;
+        if (r.sentiment) {
+          acc[r.sentiment] = (acc[r.sentiment] || 0) + 1;
+        }
         return acc;
       }, {} as Record<string, number>);
 
@@ -491,7 +492,8 @@ async function savePreparedReviewPart(
 
       const reviewWord = getRussianPluralReview(reviewCount);
 
-      const text = `Теперь на книгу «${book?.title}» написано ${reviewCount} ${reviewWord} (${sentimentText}).`;
+      const breakdown = sentimentText ? ` (${sentimentText})` : "";
+      const text = `Теперь на книгу «${book?.title}» написано ${reviewCount} ${reviewWord}${breakdown}.`;
 
       // Send message with deep link to book page in Mini App
       await ctx.reply(text, {

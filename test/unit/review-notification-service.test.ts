@@ -352,6 +352,35 @@ describe("Review Notification Service", () => {
       expect(textArg).toContain("4 рецензии");
     });
 
+    it("does not count unknown sentiments as neutral in notifications", async () => {
+      vi.mocked(subscriptionService.getActiveSubscribers).mockResolvedValue([BigInt(222)]);
+      vi.mocked(prisma.review.findMany).mockResolvedValue([
+        { sentiment: "positive" },
+        { sentiment: null },
+      ] as any);
+      const mockTelegram = createMockTelegram();
+
+      await notifySubscribersOfNewReview(createMockReview(), mockTelegram as any);
+
+      const text = mockTelegram.sendMessage.mock.calls[0][1];
+      expect(text).toContain("👍 1");
+      expect(text).not.toContain("😐");
+      expect(text).toContain("2 рецензии");
+    });
+
+    it("omits an empty breakdown when every sentiment is unknown", async () => {
+      vi.mocked(subscriptionService.getActiveSubscribers).mockResolvedValue([BigInt(222)]);
+      vi.mocked(prisma.review.findMany).mockResolvedValue([{ sentiment: null }] as any);
+      const mockTelegram = createMockTelegram();
+
+      await notifySubscribersOfNewReview(createMockReview({ sentiment: null }), mockTelegram as any);
+
+      const text = mockTelegram.sendMessage.mock.calls[0][1];
+      expect(text).toContain("всего 1 рецензия");
+      expect(text).not.toContain("😐");
+      expect(text).not.toContain(" — всего");
+    });
+
     it("should include deep link button when book exists", async () => {
       vi.mocked(subscriptionService.getActiveSubscribers).mockResolvedValue([BigInt(222)]);
       vi.mocked(prisma.review.findMany).mockResolvedValue([

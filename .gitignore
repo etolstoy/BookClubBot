@@ -53,3 +53,6 @@ tmp/
 
 # Development notes
 TODO.md
+
+# Python maintenance tools
+__pycache__/

@@ -48,6 +48,7 @@ export interface LLMCompletionOptions {
  */
 export interface LLMClientConfig {
   apiKey: string;
+  jevApiKey?: string;
   defaultModel?: string;
   defaultTemperature?: number;
   onRateLimit?: (error: Error) => Promise<void>;
@@ -73,7 +74,7 @@ export interface ILLMClient {
   /**
    * Analyze sentiment of review text
    * @param reviewText - The review text to analyze
-   * @returns Sentiment classification or null if analysis fails
+   * @returns Sentiment classification, or null for insufficient evidence or analysis failure
    */
   analyzeSentiment(reviewText: string): Promise<Sentiment | null>;
 

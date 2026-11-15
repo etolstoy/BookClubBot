@@ -148,7 +148,7 @@ export class MockLLMClient implements ILLMClient {
       if (mockResponse.shouldThrow) {
         throw mockResponse.error || new Error("Mock error");
       }
-      return mockResponse.sentiment ?? "neutral";
+      return mockResponse.sentiment === undefined ? "neutral" : mockResponse.sentiment;
     }
 
     return this.getDefaultSentiment(this.defaultBehavior);
