@@ -6,7 +6,7 @@ import { ReaderProfileClient, READER_PROFILE_MODEL, READER_PROFILE_REASONING, RE
   type ProfileReview, type GeneratedReaderProfile } from "../clients/llm/reader-profile-client.js";
 
 type ProfileStore = Pick<PrismaClient, "readerProfile">;
-type Generate = (reviews: ProfileReview[]) => Promise<GeneratedReaderProfile>;
+type Generate = (reviews: ProfileReview[], readerName: string) => Promise<GeneratedReaderProfile>;
 
 export async function enqueueReaderProfile(userId: bigint, db: ProfileStore = prisma, delayMs = 5000) {
   const requestedAt = new Date();
@@ -23,24 +23,27 @@ export async function getReaderProfile(userId: bigint, db: ProfileStore = prisma
     select: { text: true, status: true, generatedAt: true } });
 }
 
-async function latestReviews(userId: bigint, db: Pick<PrismaClient, "review">): Promise<ProfileReview[]> {
+async function profileEvidence(userId: bigint, db: Pick<PrismaClient, "review">) {
   const rows = await db.review.findMany({ where: { telegramUserId: userId },
     orderBy: [{ reviewedAt: "desc" }, { id: "desc" }], take: 20,
-    select: { id: true, reviewText: true, reviewedAt: true, book: { select: { title: true, author: true } } },
+    select: { id: true, reviewText: true, reviewedAt: true, telegramDisplayName: true, telegramUsername: true,
+      book: { select: { title: true, author: true } } },
   });
-  return rows.map(r => ({ id: r.id, title: r.book?.title ?? null, author: r.book?.author ?? null,
+  const readerName = rows[0]?.telegramDisplayName?.trim() || rows[0]?.telegramUsername?.trim() || "Клубень";
+  const reviews: ProfileReview[] = rows.map(r => ({ id: r.id, title: r.book?.title ?? null, author: r.book?.author ?? null,
     reviewText: r.reviewText, reviewedAt: r.reviewedAt.toISOString() }));
+  return { readerName, reviews };
 }
 
-function sourceHash(reviews: ProfileReview[]) {
+function sourceHash(evidence: { readerName: string; reviews: ProfileReview[] }) {
   return createHash("sha256").update(JSON.stringify({ model: READER_PROFILE_MODEL,
-    reasoning: READER_PROFILE_REASONING, prompt: READER_PROFILE_PROMPT, reviews })).digest("hex");
+    reasoning: READER_PROFILE_REASONING, prompt: READER_PROFILE_PROMPT, ...evidence })).digest("hex");
 }
 
 /** Claim and process one durable job. Version checks prevent older work overwriting a new review. */
 export async function processNextReaderProfile(
   db: PrismaClient = prisma,
-  generate: Generate = reviews => new ReaderProfileClient(config.openaiApiKey).generate(reviews),
+  generate: Generate = (reviews, name) => new ReaderProfileClient(config.openaiApiKey).generate(reviews, name),
 ): Promise<boolean> {
   const job = await db.readerProfile.findFirst({
     where: { status: "pending", nextAttemptAt: { lte: new Date() } }, orderBy: { requestedAt: "asc" },
@@ -53,16 +56,17 @@ export async function processNextReaderProfile(
   // Another worker won this row; keep looking for a different pending user.
   if (!claimed.count) return true;
   try {
-    const reviews = await latestReviews(job.telegramUserId, db);
-    const hash = sourceHash(reviews);
+    const evidence = await profileEvidence(job.telegramUserId, db);
+    const { reviews, readerName } = evidence;
+    const hash = sourceHash(evidence);
     const generated = !reviews.length ? { text: null, inputTokens: 0, outputTokens: 0 }
-      : job.text && job.sourceHash === hash ? null : await generate(reviews);
+      : job.text && job.sourceHash === hash ? null : await generate(reviews, readerName);
     await db.$transaction(async tx => {
       const current = await tx.readerProfile.findUnique({ where: { telegramUserId: job.telegramUserId },
         select: { version: true, status: true } });
       if (current?.version !== job.version || current.status !== "generating") return;
       // Review edits/deletions or book metadata may have changed while the request was in flight.
-      if (sourceHash(await latestReviews(job.telegramUserId, tx)) !== hash) {
+      if (sourceHash(await profileEvidence(job.telegramUserId, tx)) !== hash) {
         await enqueueReaderProfile(job.telegramUserId, tx);
         return;
       }

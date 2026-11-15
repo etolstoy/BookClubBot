@@ -215,7 +215,10 @@ MIT
 
 The reviewer page and your own profile share the “Читательский профиль” block.
 Profiles use `gpt-6.1-terra` with `reasoning.effort: high` and the requested roast
-prompt. The latest 20 reviews include book titles, authors, dates, and full text,
+prompt. Roasts use third person and the member’s name, emphasizing recurring
+reading patterns rather than isolated reactions. The name is taken from the
+latest review’s display name (or username), and is included in cache validation.
+The latest 20 reviews include book titles, authors, dates, and full text,
 ordered newest first with review ID breaking timestamp ties. The latest review
 is explicitly identified. Responses over 200 words are retried once and never
 stored if they still exceed the limit.

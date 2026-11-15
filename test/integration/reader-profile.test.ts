@@ -43,6 +43,23 @@ describe('durable reader profile generation',()=>{
     await processNextReaderProfile(db,generate);expect(await processNextReaderProfile(db,generate)).toBe(false);
     await enqueue();await processNextReaderProfile(db,generate);expect(generate).toHaveBeenCalledTimes(1);
   });
+  it('passes the current member name and regenerates when that name changes',async()=>{
+    const r=await review();
+    await db.review.update({where:{id:r.id},data:{telegramDisplayName:'Алексей Иванов',telegramUsername:'alex'}});
+    const generate=vi.fn(async(reviews:ProfileReview[],name:string)=>generated);
+    await enqueue();await processNextReaderProfile(db,generate);
+    expect(generate.mock.calls[0][1]).toBe('Алексей Иванов');
+    const before=(await db.readerProfile.findUnique({where:{telegramUserId:123n}}))!.sourceHash;
+    await db.review.update({where:{id:r.id},data:{telegramDisplayName:'Александр'}});
+    await enqueue();await processNextReaderProfile(db,generate);
+    expect(generate).toHaveBeenCalledTimes(2);expect(generate.mock.calls[1][1]).toBe('Александр');
+    expect((await db.readerProfile.findUnique({where:{telegramUserId:123n}}))!.sourceHash).not.toBe(before);
+  });
+  it('uses the username when the display name is missing',async()=>{
+    const r=await review();await db.review.update({where:{id:r.id},data:{telegramDisplayName:' ',telegramUsername:'alex'}});
+    const generate=vi.fn(async(reviews:ProfileReview[],name:string)=>generated);
+    await enqueue();await processNextReaderProfile(db,generate);expect(generate.mock.calls[0][1]).toBe('alex');
+  });
   it('discards an older generation when a new review arrives during the API call',async()=>{
     await review();await enqueue();let finish!:(v:typeof generated)=>void;let started!:()=>void;
     const began=new Promise<void>(r=>{started=r;});const pending=new Promise<typeof generated>(r=>{finish=r;});
