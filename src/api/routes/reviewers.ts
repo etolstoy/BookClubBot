@@ -3,8 +3,22 @@ import {
   getReviewsByUserId,
   getUserReviewStats,
 } from "../../services/review.service.js";
+import { getReaderProfile } from "../../services/reader-profile.service.js";
 
 const router = Router();
+
+// Reading a profile never starts an AI request.
+router.get("/:userId/reader-profile", async (req, res) => {
+  if (!/^\d+$/.test(req.params.userId)) {
+    res.status(400).json({ error: "Invalid reviewer ID" });
+    return;
+  }
+  try {
+    res.json({ readerProfile: await getReaderProfile(BigInt(req.params.userId)) });
+  } catch {
+    res.status(500).json({ error: "Failed to fetch reader profile" });
+  }
+});
 
 // GET /api/reviewers/:userId - Reviewer profile with their reviews
 router.get("/:userId", async (req, res) => {
@@ -20,12 +34,13 @@ router.get("/:userId", async (req, res) => {
       return;
     }
 
-    const [reviews, stats] = await Promise.all([
+    const [reviews, stats, readerProfile] = await Promise.all([
       getReviewsByUserId(telegramUserId, {
         limit: parsedLimit,
         offset: parsedOffset,
       }),
       getUserReviewStats(telegramUserId),
+      getReaderProfile(telegramUserId),
     ]);
 
     if (reviews.length === 0 && stats.totalReviews === 0) {
@@ -52,6 +67,7 @@ router.get("/:userId", async (req, res) => {
         ...reviewerInfo,
         totalReviews: stats.totalReviews,
         sentiments: stats.sentimentCounts,
+        readerProfile,
       },
       reviews: reviews.map((review: {
         id: number;

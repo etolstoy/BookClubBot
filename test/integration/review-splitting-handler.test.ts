@@ -190,6 +190,8 @@ describe.sequential("Review splitting handler integration", () => {
     const reviews = await prisma.review.findMany();
     expect(reviews).toHaveLength(2);
     expect(reviews.every((review) => review.sentiment === null)).toBe(true);
+    const profileJob = await prisma.readerProfile.findUnique({ where: { telegramUserId: reviews[0].telegramUserId } });
+    expect(profileJob).toMatchObject({ status: "pending", version: 2 });
     const summary = vi.mocked(secondContext.reply).mock.calls
       .map(([message]) => message)
       .find((message) => typeof message === "string" && message.startsWith("Теперь на книгу"));

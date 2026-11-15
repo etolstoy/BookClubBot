@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { useParams } from "react-router-dom";
 import { getReviewer, getCurrentUserId, type Reviewer as ReviewerType, type Review } from "../api/client";
 import ReviewCard from "../components/ReviewCard";
+import ReaderProfile from "../components/ReaderProfile";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
 import Layout from "../components/Layout";
@@ -116,6 +117,8 @@ export default function Reviewer() {
             </div>
           </div>
         </div>
+
+        <ReaderProfile userId={reviewer.telegramUserId} initialProfile={reviewer.readerProfile} />
 
         <h2 className="font-semibold text-tg-text mb-3">{t("reviewer.reviewHistory")}</h2>
 

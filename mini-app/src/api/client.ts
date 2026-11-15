@@ -167,11 +167,18 @@ export interface Review {
   } | null;
 }
 
+export interface ReaderProfile {
+  text: string | null;
+  status: "pending" | "generating" | "ready" | "failed";
+  generatedAt: string | null;
+}
+
 export interface Reviewer {
   telegramUserId: string;
   username: string | null;
   displayName: string | null;
   totalReviews: number;
+  readerProfile: ReaderProfile | null;
   sentiments: {
     positive: number;
     negative: number;
@@ -236,6 +243,10 @@ export async function searchGoogleBooks(
 
 export async function getReviewer(userId: string): Promise<{ reviewer: Reviewer; reviews: Review[] }> {
   return fetchApi(`/reviewers/${userId}`);
+}
+
+export async function getReaderProfile(userId: string): Promise<{ readerProfile: ReaderProfile | null }> {
+  return fetchApi(`/reviewers/${encodeURIComponent(userId)}/reader-profile`);
 }
 
 export async function getMonthlyLeaderboard(options?: {

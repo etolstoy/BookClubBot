@@ -59,6 +59,28 @@ model Subscription {
   @@map("subscriptions")
 }
 
+model ReaderProfile {
+  telegramUserId BigInt   @id @map("telegram_user_id")
+  text           String?
+  status         String   @default("pending")
+  version        Int      @default(1)
+  attempts       Int      @default(0)
+  nextAttemptAt  DateTime @default(now()) @map("next_attempt_at")
+  requestedAt    DateTime @default(now()) @map("requested_at")
+  generatedAt    DateTime? @map("generated_at")
+  sourceHash     String?  @map("source_hash")
+  sourceReviewIds String  @default("[]") @map("source_review_ids")
+  latestReviewId Int?     @map("latest_review_id")
+  model          String   @default("gpt-6.1-terra")
+  reasoningEffort String  @default("high") @map("reasoning_effort")
+  inputTokens    Int?     @map("input_tokens")
+  outputTokens   Int?     @map("output_tokens")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([status, nextAttemptAt])
+  @@map("reader_profiles")
+}
+
 model BookCollection {
   slug             String            @id
   tileTitle        String            @map("tile_title")

@@ -73,6 +73,10 @@ export const translations = {
   },
 
   reviewer: {
+    readerProfile: "Читательский профиль",
+    profileGenerating: "Собираем читательский профиль…",
+    profileUpdating: "Обновляем с учётом новой рецензии…",
+    profileEmpty: "Профиль появится после следующей рецензии.",
     totalReviews: "Всего рецензий",
     reviewHistory: "История рецензий",
     noReviews: "Рецензий пока нет",

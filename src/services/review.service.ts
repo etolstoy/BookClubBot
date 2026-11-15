@@ -4,6 +4,7 @@ import { analyzeSentiment, type Sentiment } from "./sentiment.js";
 import { processReviewText } from "./book.service.js";
 import type { ExtractedBookInfo } from "../lib/interfaces/llm-client.interface.js";
 import type { Prisma } from "@prisma/client";
+import { enqueueReaderProfile } from "./reader-profile.service.js";
 
 export interface CreateReviewInput {
   bookId?: number | null;
@@ -18,21 +19,25 @@ export interface CreateReviewInput {
 }
 
 export async function createReview(input: CreateReviewInput) {
-  return prisma.review.create({
-    data: {
-      bookId: input.bookId,
-      telegramUserId: input.telegramUserId,
-      telegramUsername: input.telegramUsername,
-      telegramDisplayName: input.telegramDisplayName,
-      reviewText: input.reviewText,
-      sentiment: input.sentiment,
-      messageId: input.messageId,
-      chatId: input.chatId,
-      reviewedAt: input.reviewedAt,
-    },
-    include: {
-      book: true,
-    },
+  return prisma.$transaction(async tx => {
+    const review = await tx.review.create({
+      data: {
+        bookId: input.bookId,
+        telegramUserId: input.telegramUserId,
+        telegramUsername: input.telegramUsername,
+        telegramDisplayName: input.telegramDisplayName,
+        reviewText: input.reviewText,
+        sentiment: input.sentiment,
+        messageId: input.messageId,
+        chatId: input.chatId,
+        reviewedAt: input.reviewedAt,
+      },
+      include: {
+        book: true,
+      },
+    });
+    await enqueueReaderProfile(input.telegramUserId, tx);
+    return review;
   });
 }
 
@@ -545,10 +550,14 @@ export async function updateReview(
     updateData.bookId = input.bookId;
   }
 
-  return prisma.review.update({
-    where: { id: reviewId },
-    data: updateData,
-    include: { book: true },
+  return prisma.$transaction(async tx => {
+    const review = await tx.review.update({
+      where: { id: reviewId }, data: updateData, include: { book: true },
+    });
+    if (input.reviewText !== undefined || input.bookId !== undefined) {
+      await enqueueReaderProfile(review.telegramUserId, tx);
+    }
+    return review;
   });
 }
 
@@ -557,9 +566,10 @@ export async function updateReview(
  * Returns the deleted review with book details for admin notification
  */
 export async function deleteReview(reviewId: number) {
-  return prisma.review.delete({
-    where: { id: reviewId },
-    include: { book: true },
+  return prisma.$transaction(async tx => {
+    const review = await tx.review.delete({ where: { id: reviewId }, include: { book: true } });
+    await enqueueReaderProfile(review.telegramUserId, tx);
+    return review;
   });
 }
 

@@ -122,6 +122,7 @@ export async function clearTestData(prisma: PrismaClient): Promise<void> {
   console.log("[Test DB] Clearing all test data");
 
   // Delete in correct order (respect foreign keys)
+  await prisma.readerProfile.deleteMany({});
   await prisma.review.deleteMany({});
   await prisma.book.deleteMany({});
   // Add other tables as needed

@@ -4,6 +4,7 @@ import { createBot, startBot } from "./bot/index.js";
 import { createServer, startServer } from "./server.js";
 import { sendErrorNotification } from "./services/notification.service.js";
 import { config } from "./lib/config.js";
+import { startReaderProfileWorker } from "./services/reader-profile.service.js";
 
 async function validateEvalCaseLogging(): Promise<void> {
   try {
@@ -53,6 +54,7 @@ async function main() {
   // Create and start API server (pass bot for auth middleware)
   const server = createServer(bot);
   await startServer(server);
+  await startReaderProfileWorker();
 
   // Start bot (this will initialize notification service)
   await startBot(bot);
