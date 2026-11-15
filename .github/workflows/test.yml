@@ -35,7 +35,11 @@ jobs:
           BOT_USERNAME: test_bot
           DATABASE_URL: file:./data/test.db
           OPENAI_API_KEY: test_openai_key
+          JEV_API_KEY: test_jev_key
         run: npm test -- --run --reporter=verbose --exclude test/integration/book-extraction-accuracy.test.ts
+
+      - name: Test historical sentiment backfill
+        run: python3 -m unittest discover -s test/unit -p 'test_jev_backfill.py'
 
   accuracy-tests:
     runs-on: ubuntu-latest
@@ -45,15 +49,26 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history for changed files detection
 
-      - name: Check for LLM client changes
+      - name: Check for accuracy suite changes
         id: check_changes
+        env:
+          DIFF_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # Check if cascading-openai-client.ts was changed in this PR
-            git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "src/clients/llm/cascading-openai-client.ts" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+          changed_files=$(git diff --name-only "$DIFF_BASE" HEAD)
+          book_changed=false
+          sentiment_changed=false
+          if printf '%s\n' "$changed_files" | grep -Eq '^(src/clients/llm/cascading-openai-client\.ts|test/integration/book-extraction-accuracy\.test\.ts|test/fixtures/llm/book-extraction-dataset\.json)$'; then
+            book_changed=true
+          fi
+          if printf '%s\n' "$changed_files" | grep -Eq '^(src/clients/llm/(cascading-openai-client|jev-sentiment-client|sentiment-rubric|factory)\.ts|src/services/sentiment\.ts|src/lib/config\.ts|test/helpers/sentiment-regression-gate\.ts|test/integration/sentiment-accuracy\.test\.ts|test/fixtures/llm/sentiment(-adjudication)?-dataset\.json|test/fixtures/llm/sentiment-baseline\.json)$'; then
+            sentiment_changed=true
+          fi
+          echo "book_changed=$book_changed" >> "$GITHUB_OUTPUT"
+          echo "sentiment_changed=$sentiment_changed" >> "$GITHUB_OUTPUT"
+          if [ "$book_changed" = true ] || [ "$sentiment_changed" = true ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           else
-            # For push events, check the current commit
-            git diff --name-only HEAD~1 HEAD | grep -q "src/clients/llm/cascading-openai-client.ts" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Setup Node.js
@@ -67,8 +82,8 @@ jobs:
         if: steps.check_changes.outputs.changed == 'true'
         run: npm ci
 
-      - name: Run accuracy tests
-        if: steps.check_changes.outputs.changed == 'true'
+      - name: Run book extraction accuracy tests
+        if: steps.check_changes.outputs.book_changed == 'true'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -78,6 +93,25 @@ jobs:
           fi
           npm test -- test/integration/book-extraction-accuracy.test.ts --run --reporter=verbose
 
+      - name: Run sentiment accuracy tests
+        if: steps.check_changes.outputs.sentiment_changed == 'true'
+        env:
+          JEV_API_KEY: ${{ secrets.JEV_API_KEY }}
+        run: |
+          if [ -z "$JEV_API_KEY" ]; then
+            echo "Skipping sentiment accuracy tests - JEV_API_KEY not configured"
+            exit 0
+          fi
+          npm run test:sentiment-accuracy
+
+      - name: Upload sentiment accuracy report
+        if: always() && steps.check_changes.outputs.sentiment_changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentiment-accuracy-report
+          path: reports/sentiment-accuracy/latest.json
+          if-no-files-found: ignore
+
       - name: Skip accuracy tests (no changes)
         if: steps.check_changes.outputs.changed == 'false'
-        run: echo "⏭️ Skipping accuracy tests - cascading-openai-client.ts was not modified"
+        run: echo "Skipping accuracy tests - no relevant client, service, or evaluation changes"

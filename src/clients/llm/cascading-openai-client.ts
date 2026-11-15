@@ -1,10 +1,12 @@
 /**
- * Cascading OpenAI Client Implementation
+ * Book extraction and review splitting with OpenAI; sentiment with Jev.
  * Uses Luna model for title/author extraction, escalates to web search for author when needed
  * Uses Responses API with Structured Outputs
  */
 
 import OpenAI from "openai";
+import { JevSentimentClient } from "./jev-sentiment-client.js";
+export { SENTIMENT_RUBRIC_VERSION } from "./sentiment-rubric.js";
 import type {
   ILLMClient,
   LLMClientConfig,
@@ -133,20 +135,6 @@ const authorExtractionSchema = {
   },
 };
 
-const sentimentAnalysisSchema = {
-  type: "json_schema" as const,
-  name: "sentiment_analysis",
-  strict: true,
-  schema: {
-    type: "object",
-    properties: {
-      sentiment: { type: "string", enum: ["positive", "negative", "neutral"] },
-    },
-    required: ["sentiment"],
-    additionalProperties: false,
-  },
-};
-
 const reviewStructureSchema = {
   type: "json_schema" as const,
   name: "review_structure",
@@ -196,6 +184,7 @@ interface AuthorExtractionResult {
 export class CascadingOpenAIClient implements ILLMClient {
   private client: OpenAI;
   private config: LLMClientConfig;
+  private sentimentClient: JevSentimentClient;
 
   private readonly PRIMARY_MODEL = "gpt-6-luna";
   private readonly WEB_SEARCH_MODEL = "gpt-6.1-terra";
@@ -213,13 +202,20 @@ export class CascadingOpenAIClient implements ILLMClient {
       ...config,
     };
     this.client = new OpenAI({ apiKey: this.config.apiKey });
+    this.sentimentClient = new JevSentimentClient(this.config.jevApiKey ?? "");
   }
 
   getMetrics(): PipelineMetrics {
-    return { ...this.metrics };
+    const sentiment = this.sentimentClient.getMetrics();
+    return {
+      ...this.metrics,
+      totalInputTokens: this.metrics.totalInputTokens + sentiment.totalInputTokens,
+      totalOutputTokens: this.metrics.totalOutputTokens + sentiment.totalOutputTokens,
+    };
   }
 
   resetMetrics(): void {
+    this.sentimentClient.resetMetrics();
     this.metrics = {
       webSearchFallbacks: 0,
       totalInputTokens: 0,
@@ -412,43 +408,7 @@ export class CascadingOpenAIClient implements ILLMClient {
   }
 
   async analyzeSentiment(reviewText: string): Promise<Sentiment | null> {
-    const instructions = `Analyze the following book review and classify the reviewer's sentiment.
-Return ONLY one of: "positive", "negative", or "neutral"
-
-Guidelines:
-- "positive": The reviewer recommends the book, enjoyed it, or speaks highly of it
-- "negative": The reviewer does not recommend the book, disliked it, or criticizes it
-- "neutral": Mixed feelings, informational review without clear recommendation, or balanced pros/cons`;
-
-    try {
-      const response = await this.client.responses.create({
-        model: this.PRIMARY_MODEL,
-        instructions: instructions,
-        input: `Review text:\n\n${reviewText}`,
-        text: { format: sentimentAnalysisSchema },
-      });
-
-      this.trackUsage(response);
-      const content = this.extractTextFromResponse(response);
-      if (!content) {
-        console.warn("[Cascading Client] No content in sentiment response");
-        return null;
-      }
-
-      const parsed = JSON.parse(content);
-      const sentiment = parsed.sentiment;
-
-      if (sentiment === "positive" || sentiment === "negative" || sentiment === "neutral") {
-        return sentiment;
-      }
-
-      console.warn(`[Cascading Client] Unexpected sentiment value: ${sentiment}`);
-      return null;
-    } catch (error) {
-      console.error("[Cascading Client] Error analyzing sentiment:", error);
-      // Sentiment failures are not critical, return null without notification
-      return null;
-    }
+    return this.sentimentClient.analyzeSentiment(reviewText);
   }
 
   async classifyReviewStructure(

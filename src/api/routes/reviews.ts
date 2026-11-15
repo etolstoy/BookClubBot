@@ -233,11 +233,8 @@ router.patch("/:id", authenticateTelegramWebApp, async (req, res) => {
       updateData.reviewText = reviewText.trim();
 
       // Re-analyze sentiment if text changed and no explicit sentiment provided
-      if (!sentiment) {
-        const newSentiment = await analyzeSentiment(updateData.reviewText);
-        if (newSentiment) {
-          updateData.sentiment = newSentiment;
-        }
+      if (sentiment === undefined) {
+        updateData.sentiment = await analyzeSentiment(updateData.reviewText);
       }
     }
 

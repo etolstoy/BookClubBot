@@ -84,6 +84,7 @@ jobs:
                   - BOT_TOKEN=${{ secrets.BOT_TOKEN }}
                   - BOT_USERNAME=${{ secrets.BOT_USERNAME }}
                   - OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+                  - JEV_API_KEY=${{ secrets.JEV_API_KEY }}
                   - GOOGLE_BOOKS_API_KEY=${{ secrets.GOOGLE_BOOKS_API_KEY }}
                   - TARGET_CHAT_ID=${{ secrets.TARGET_CHAT_ID }}
                   - ADMIN_CHAT_ID=${{ secrets.ADMIN_CHAT_ID }}

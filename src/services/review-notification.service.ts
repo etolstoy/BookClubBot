@@ -138,8 +138,9 @@ async function formatNotificationText(
 
     const sentiments = reviews.reduce(
       (acc, r) => {
-        const sent = r.sentiment || "neutral";
-        acc[sent] = (acc[sent] || 0) + 1;
+        if (r.sentiment) {
+          acc[r.sentiment] = (acc[r.sentiment] || 0) + 1;
+        }
         return acc;
       },
       {} as Record<string, number>
@@ -150,7 +151,8 @@ async function formatNotificationText(
     const reviewWord = getRussianPluralReview(totalReviews);
 
     lines.push(""); // Empty line
-    lines.push(`${sentimentText} — всего ${totalReviews} ${reviewWord}`);
+    const breakdown = sentimentText ? `${sentimentText} — ` : "";
+    lines.push(`${breakdown}всего ${totalReviews} ${reviewWord}`);
   }
 
   return {

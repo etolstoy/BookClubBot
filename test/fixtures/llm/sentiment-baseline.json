@@ -1,0 +1,14 @@
+{
+  "model": "jev-1.14.0",
+  "rubricVersion": "v2",
+  "configurationSha256": "b6aa381eda8d88d8a3244ec2a51ab96d367da89aafbdf3c660f0712158acc78a",
+  "knownDisagreements": [
+    {
+      "id": "sentiment-review-1121",
+      "expected": "neutral",
+      "actual": "negative",
+      "reviewSha256": "7aebb462f3a0a92a66e93c5a6ef0a89ea0465e733c541c2668b70d02d0989796",
+      "reason": "Known Jev 1.14 disagreement recorded during the approved rollout on 2026-11-15. The human-corrected neutral reference is retained; this prediction still counts as incorrect in accuracy."
+    }
+  ]
+}

@@ -175,6 +175,29 @@ describe.sequential("Review splitting handler integration", () => {
     });
   }
 
+  it("preserves an unknown sentiment when importing a review", async () => {
+    const text = "1984 — George Orwell. The story takes place in Oceania. #рецензия";
+    mockLLMClient.mockResponse(text, {
+      reviewStructure: { kind: "single", parts: [] },
+      extractedInfo: { title: "1984", author: "George Orwell", confidence: "high" },
+      sentiment: null,
+    });
+
+    await handleReviewMessage(createReviewContext(text, 920), botContext);
+    const secondContext = createReviewContext(text, 921);
+    await handleReviewMessage(secondContext, botContext);
+
+    const reviews = await prisma.review.findMany();
+    expect(reviews).toHaveLength(2);
+    expect(reviews.every((review) => review.sentiment === null)).toBe(true);
+    const summary = vi.mocked(secondContext.reply).mock.calls
+      .map(([message]) => message)
+      .find((message) => typeof message === "string" && message.startsWith("Теперь на книгу"));
+    expect(summary).toBeDefined();
+    expect(summary).not.toContain("😐");
+    expect(summary).not.toContain("()");
+  });
+
   it.each(["text", "caption", "command", "rich"])("passes source spoilers to notifications for a %s review", async (kind) => {
     const text = "1984 #рецензия 📖 secret";
     const spoiler = { type: "spoiler", offset: text.indexOf("secret"), length: 6 };

@@ -12,13 +12,14 @@ import {
 import type { ILLMClient } from "../../lib/interfaces/index.js";
 
 /**
- * Create and configure an LLM client (OpenAI)
+ * Create and configure an LLM client (OpenAI extraction and Jev sentiment)
  * Includes error and rate limit notification handlers
  * @returns Configured ILLMClient instance
  */
 export function createLLMClient(): ILLMClient {
   return new CascadingOpenAIClient({
     apiKey: config.openaiApiKey,
+    jevApiKey: config.jevApiKey,
     defaultModel: "gpt-6-luna",
     defaultTemperature: 1,
     onRateLimit: async (error: Error) => {

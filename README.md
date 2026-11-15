@@ -77,7 +77,8 @@ All components start together via `npm run dev`.
    cp .env.example .env
    # Edit .env and set:
    # - BOT_TOKEN (required)
-   # - OPENAI_API_KEY (required)
+   # - OPENAI_API_KEY (required for book extraction)
+   # - JEV_API_KEY (required for sentiment)
    # - GOOGLE_BOOKS_API_KEY (optional)
    # - TARGET_CHAT_ID (chat where bot monitors for #рецензия)
    # - ADMIN_CHAT_ID (for error notifications)
@@ -198,7 +199,7 @@ npm run preview      # Preview production build
 - **Backend**: TypeScript, Node.js, Express, Telegraf
 - **Frontend**: React, Vite, TypeScript, Telegram Mini Apps SDK
 - **Database**: SQLite with Prisma ORM
-- **AI**: OpenAI (GPT-6 Luna for extraction, sentiment, and review splitting; GPT-6.1 Terra for web-search fallbacks)
+- **AI**: OpenAI (GPT-6 Luna for extraction and review splitting; GPT-6.1 Terra for web-search fallbacks); Jev 1.14 for sentiment (rubric v2, unknown when evidence is insufficient)
 - **APIs**: Google Books API for book metadata
 
 ## Deployment

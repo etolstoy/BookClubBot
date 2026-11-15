@@ -8,7 +8,7 @@ export type { Sentiment };
  * Analyze sentiment of review text using LLM
  * @param reviewText - The review text to analyze
  * @param llmClient - Optional LLM client for testing (defaults to factory-created instance)
- * @returns Sentiment classification or null if analysis fails
+ * @returns Sentiment classification, or null for insufficient evidence or analysis failure
  */
 export async function analyzeSentiment(
   reviewText: string,
